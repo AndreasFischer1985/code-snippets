@@ -1,0 +1,37 @@
+# Specify which shape-files and metadata-files to download:
+url="https://github.com/nvkelso/natural-earth-vector/raw/master/50m_cultural/"
+files=c(
+"ne_50m_admin_0_countries.shp",
+"ne_50m_admin_0_countries.shx",
+"ne_50m_admin_0_countries.cpg",
+"ne_50m_admin_0_countries.dbf",
+"ne_50m_admin_0_countries.prj")
+
+# Download data and metadata (i.e. the "files") if necessary:
+for(file in files)if(!file.exists(file))download.file(paste0(url,file),file,mode = "wb")
+
+# Prepare data for plotting:
+object=sf::st_read(grep("shp",files,value=T))
+map=object$geometry
+colors=rep("white",length(map));
+get_coord=function(target,context=.1){
+	bbox=str_split(capture.output(print(target)[[1]])[4]," ")[[1]]
+	xlim=as.numeric(c(bbox[13],bbox[17]))
+	ylim=as.numeric(c(bbox[15],bbox[19]))
+	xlim[1]=xlim[1]-context*xlim[1]
+	xlim[2]=xlim[2]+context*xlim[2]
+	ylim[1]=ylim[1]-context*ylim[1]
+	ylim[2]=ylim[2]+context*ylim[2]
+	res=list(xlim=xlim,ylim=ylim)
+	return(res)
+}
+
+# Specify target area and its color:
+target=world[object$NAME_EN=="Germany","geometry"]
+colors[object$NAME_EN=="Germany"]="blue"
+lim=get_coord(target)
+
+# Plot target area:
+plot(map,col=colors,xlim=lim[[1]],ylim=lim[[2]])
+text(mean(lim[[1]]),mean(lim[[2]]),"Germany")
+
