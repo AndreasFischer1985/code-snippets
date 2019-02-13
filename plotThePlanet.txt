@@ -7,9 +7,11 @@ plotThePlanet=function(
 		"ne_50m_admin_0_countries.dbf",
 		"ne_50m_admin_0_countries.prj"),
 	label.id="NAME_EN",
-	targetname="Afghanistan",
+	targetname=NULL,
 	context=.01,
-	newlabel=NULL
+	newlabel=NULL,
+	colors=NULL,
+	...
 ){
 	library(stringr)
 
@@ -25,7 +27,7 @@ plotThePlanet=function(
 	# Prepare data for plotting:
 	object=sf::st_read(grep("shp",files,value=T))
 	map=object$geometry
-	colors=rep("white",length(map));
+
 	get_coord=function(target){
 		output=capture.output(print(target)[[1]])[4];
 		bbox=suppressWarnings(as.numeric(unlist(str_split(output," "))));
@@ -35,18 +37,28 @@ plotThePlanet=function(
 		return(res)
 	}
 
+
 	# Specify target area and its color:
-	target=map[object[[label.id]]==targetname]
-	colors[object[[label.id]]==targetname]="blue"
-	lim=get_coord(target)
-	lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
-	lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
-	lim$ylim[1]=lim$ylim[1]-context*lim$ylim[1]
-	lim$ylim[2]=lim$ylim[2]+context*lim$ylim[2]
-	# Plot target area:
-	plot(map,col=colors,xlim=lim[[1]],ylim=lim[[2]])
-	text(mean(lim[[1]]),mean(lim[[2]]),ifelse(is.null(newlabel),targetname,newlabel))
+	if(!is.null(targetname)){
+		target=map[object[[label.id]]==targetname]
+		if(is.null(colors)){colors=rep("white",length(map));colors[object[[label.id]]==targetname]="blue"}
+		lim=get_coord(target)
+		lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
+		lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
+		lim$ylim[1]=lim$ylim[1]-context*lim$ylim[1]
+		lim$ylim[2]=lim$ylim[2]+context*lim$ylim[2]
+
+		# Plot target area:
+		plot(map,col=colors,xlim=lim[[1]],ylim=lim[[2]],...)
+		text(mean(lim[[1]]),mean(lim[[2]]),ifelse(is.null(newlabel),targetname,newlabel))
+	}else{
+		if(is.null(colors)){colors=rep("white",length(map))}
+		plot(map,col=colors,...)
+	}
+	return(object)
 }
+
+plotThePlanet(targetname="Germany")
 
 plotThePlanet(
 url="https://www.suche-postleitzahl.org/download_files/public/plz-2stellig.shp.zip",
@@ -57,6 +69,8 @@ files=c(
 "plz-2stellig.prj"),
 label.id="plz",
 targetname="01",
-newlabel="PLZ 01"
+context=.01,
+newlabel="PLZ 01",
+colors=NULL
 )
 
