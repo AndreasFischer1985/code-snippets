@@ -1,37 +1,62 @@
-# Specify which shape-files and metadata-files to download:
-url="https://github.com/nvkelso/natural-earth-vector/raw/master/50m_cultural/"
-files=c(
-"ne_50m_admin_0_countries.shp",
-"ne_50m_admin_0_countries.shx",
-"ne_50m_admin_0_countries.cpg",
-"ne_50m_admin_0_countries.dbf",
-"ne_50m_admin_0_countries.prj")
+plotThePlanet=function(
+	url="https://github.com/nvkelso/natural-earth-vector/raw/master/50m_cultural/",
+	files=c(
+		"ne_50m_admin_0_countries.shp",
+		"ne_50m_admin_0_countries.shx",
+		"ne_50m_admin_0_countries.cpg",
+		"ne_50m_admin_0_countries.dbf",
+		"ne_50m_admin_0_countries.prj"),
+	label.id="NAME_EN",
+	targetname="Afghanistan",
+	context=.01,
+	newlabel=NULL
+){
+	library(stringr)
 
-# Download data and metadata (i.e. the "files") if necessary:
-for(file in files)if(!file.exists(file))download.file(paste0(url,file),file,mode = "wb")
+	# Download and unzip zip-file if necessary
+	if(length(grep("[.]zip$",url))>0){
+		if(!file.exists("plotThePlanetMap.zip"))download.file(url,"plotThePlanetMap.zip");
+		unzip("plotThePlanetMap.zip");
+	}
 
-# Prepare data for plotting:
-object=sf::st_read(grep("shp",files,value=T))
-map=object$geometry
-colors=rep("white",length(map));
-get_coord=function(target,context=.1){
-	bbox=str_split(capture.output(print(target)[[1]])[4]," ")[[1]]
-	xlim=as.numeric(c(bbox[13],bbox[17]))
-	ylim=as.numeric(c(bbox[15],bbox[19]))
-	xlim[1]=xlim[1]-context*xlim[1]
-	xlim[2]=xlim[2]+context*xlim[2]
-	ylim[1]=ylim[1]-context*ylim[1]
-	ylim[2]=ylim[2]+context*ylim[2]
-	res=list(xlim=xlim,ylim=ylim)
-	return(res)
+	# Download data and metadata (i.e. the "files") if necessary:
+	for(file in files)if(!file.exists(file))download.file(paste0(url,file),file,mode = "wb")
+
+	# Prepare data for plotting:
+	object=sf::st_read(grep("shp",files,value=T))
+	map=object$geometry
+	colors=rep("white",length(map));
+	get_coord=function(target){
+		output=capture.output(print(target)[[1]])[4];
+		bbox=suppressWarnings(as.numeric(unlist(str_split(output," "))));
+		xlim=c(bbox[13],bbox[17])
+		ylim=c(bbox[15],bbox[19])
+		res=list(xlim=xlim,ylim=ylim)
+		return(res)
+	}
+
+	# Specify target area and its color:
+	target=map[object[[label.id]]==targetname]
+	colors[object[[label.id]]==targetname]="blue"
+	lim=get_coord(target)
+	lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
+	lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
+	lim$ylim[1]=lim$ylim[1]-context*lim$ylim[1]
+	lim$ylim[2]=lim$ylim[2]+context*lim$ylim[2]
+	# Plot target area:
+	plot(map,col=colors,xlim=lim[[1]],ylim=lim[[2]])
+	text(mean(lim[[1]]),mean(lim[[2]]),ifelse(is.null(newlabel),targetname,newlabel))
 }
 
-# Specify target area and its color:
-target=world[object$NAME_EN=="Germany","geometry"]
-colors[object$NAME_EN=="Germany"]="blue"
-lim=get_coord(target)
-
-# Plot target area:
-plot(map,col=colors,xlim=lim[[1]],ylim=lim[[2]])
-text(mean(lim[[1]]),mean(lim[[2]]),"Germany")
+plotThePlanet(
+url="https://www.suche-postleitzahl.org/download_files/public/plz-2stellig.shp.zip",
+files=c(
+"plz-2stellig.shp",
+"plz-2stellig.shx",
+"plz-2stellig.dbf",
+"plz-2stellig.prj"),
+label.id="plz",
+targetname="01",
+newlabel="PLZ 01"
+)
 
