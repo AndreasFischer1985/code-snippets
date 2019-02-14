@@ -1,4 +1,9 @@
 plotThePlanet=function(
+	targetname=NULL,
+	newlabel=NULL,
+	colors=NULL,
+	context=.01,
+	label.id="NAME_EN",
 	url="https://github.com/nvkelso/natural-earth-vector/raw/master/50m_cultural/",
 	files=c(
 		"ne_50m_admin_0_countries.shp",
@@ -6,11 +11,8 @@ plotThePlanet=function(
 		"ne_50m_admin_0_countries.cpg",
 		"ne_50m_admin_0_countries.dbf",
 		"ne_50m_admin_0_countries.prj"),
-	label.id="NAME_EN",
-	targetname=NULL,
-	context=.01,
-	newlabel=NULL,
-	colors=NULL,
+	cex=1,
+	suppress.labels=F,
 	...
 ){
 	library(stringr)
@@ -39,38 +41,59 @@ plotThePlanet=function(
 
 
 	# Specify target area and its color:
+	colorsnull=F
+	if(is.null(colors)){colors=rep("white",length(map));colorsnull=T}
 	if(!is.null(targetname)){
-		target=map[object[[label.id]]==targetname]
-		if(is.null(colors)){colors=rep("white",length(map));colors[object[[label.id]]==targetname]="blue"}
-		lim=get_coord(target)
-		lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
-		lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
-		lim$ylim[1]=lim$ylim[1]-context*lim$ylim[1]
-		lim$ylim[2]=lim$ylim[2]+context*lim$ylim[2]
-
+		li=list()
+		for(i in 1:length(targetname)){	
+			target=map[object[[label.id]]==targetname[i]]
+			if(colorsnull)colors[object[[label.id]]==targetname[i]]="blue"
+			lim=get_coord(target)
+			lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
+			lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
+			lim$ylim[1]=lim$ylim[1]-context*lim$ylim[1]
+			lim$ylim[2]=lim$ylim[2]+context*lim$ylim[2]
+			li[[i]]=lim
+		}
+		xlim=c(min(sapply(li,function(x)min(x$xlim))),max(sapply(li,function(x)max(x$xlim))));
+		ylim=c(min(sapply(li,function(x)min(x$ylim))),max(sapply(li,function(x)max(x$ylim))));
+	
 		# Plot target area:
-		plot(map,col=colors,xlim=lim[[1]],ylim=lim[[2]],...)
-		text(mean(lim[[1]]),mean(lim[[2]]),ifelse(is.null(newlabel),targetname,newlabel))
+		plot(map,col=colors,xlim=xlim,ylim=ylim,...)
+		for(i in 1:length(targetname)) {
+			obj1=map[object[[label.id]]==targetname[i]]
+			obj2=obj1[[which(sapply(obj1,function(x)length(x))>0)]][[which.max(sapply(obj1[[which(sapply(obj1,function(x)length(x))>0)]],function(y)dim(y[[1]])[1]))]][[1]]
+			print(paste0("x=",mean(obj2[,1]),"y=",mean(obj2[,2])," : ",targetname[i]))
+			if(!suppress.labels)text(mean(obj2[,1]),mean(obj2[,2]),ifelse((is.null(newlabel)|length(newlabel)!=length(targetname)),targetname[i],newlabel[i]),cex=cex)
+		}
 	}else{
-		if(is.null(colors)){colors=rep("white",length(map))}
 		plot(map,col=colors,...)
 	}
 	return(object)
 }
 
-plotThePlanet(targetname="Germany")
-
-plotThePlanet(
+if(F)
+obj=plotThePlanet(
+targetname="01",
+newlabel="PLZ 01",
+colors=NULL,
+context=.01,
+label.id="plz",
 url="https://www.suche-postleitzahl.org/download_files/public/plz-2stellig.shp.zip",
 files=c(
 "plz-2stellig.shp",
 "plz-2stellig.shx",
 "plz-2stellig.dbf",
-"plz-2stellig.prj"),
-label.id="plz",
-targetname="01",
-context=.01,
-newlabel="PLZ 01",
-colors=NULL
+"plz-2stellig.prj")
 )
+
+if(F)
+obj=plotThePlanet(targetname="Germany")
+
+if(F)
+obj=plotThePlanet(targetname=c("Germany","Afghanistan"))
+
+#obj1=obj$geometry[obj$NAME_EN=="France"]; obj2=obj1[[which(sapply(obj1,function(x)length(x))>0)]][[which.max(sapply(obj1[[which(sapply(obj1,function(x)length(x))>0)]],function(y)dim(y[[1]])[1]))]][[1]]; mean(obj2[,1]);mean(obj2[,2])
+
+
 
