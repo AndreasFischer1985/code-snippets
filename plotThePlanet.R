@@ -13,10 +13,12 @@ plotThePlanet=function(
 		"ne_50m_admin_0_countries.prj"),
 	cex=1,
 	suppress.labels=F,
-	bg=rgb(0,0,1,.2),
+	bg='lightblue',
+	subset=T,
+	xlim=NULL,
+	ylim=NULL,
 	...
 ){
-
 
 	library(stringr)
 
@@ -45,39 +47,53 @@ plotThePlanet=function(
 
 	# Specify target area and its color:
 	colorsnull=F
-	if(is.null(colors)){colors=rep("white",length(map));colorsnull=T}
+	if(is.null(colors)){colors=rep("olivedrab3",length(map));colorsnull=T}
 	if(!colorsnull&length(colors)>1&length(colors)<length(map)&length(colors)==length(targetname)){
-		colors2=rep("white",length(map));
+		colors2=rep("olivedrab3",length(map));
 		for(i in 1:length(targetname))
 			colors2[object[[label.id]]==targetname[i]]=colors[i];
 		colors=colors2;}
 		
 	if(!is.null(targetname)){
 		li=list()
-		for(i in 1:length(targetname)){	
-			target=map[object[[label.id]]==targetname[i]]
-			if(colorsnull)colors[object[[label.id]]==targetname[i]]="grey"
-			lim=get_coord(target)
-			lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
-			lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
-			lim$ylim[1]=lim$ylim[1]-context*lim$ylim[1]
-			lim$ylim[2]=lim$ylim[2]+context*lim$ylim[2]
-			li[[i]]=lim
-		}
-		xlim=c(min(sapply(li,function(x)min(x$xlim))),max(sapply(li,function(x)max(x$xlim))));
-		ylim=c(min(sapply(li,function(x)min(x$ylim))),max(sapply(li,function(x)max(x$ylim))));
-	
+		if(is.null(xlim)|is.null(ylim)){
+			for(i in 1:length(targetname)){	
+				target=map[object[[label.id]]==targetname[i]]
+				if(colorsnull)colors[object[[label.id]]==targetname[i]]="palegreen"
+				lim=get_coord(target)
+				lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
+				lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
+				lim$ylim[1]=lim$ylim[1]-context*lim$ylim[1]
+				lim$ylim[2]=lim$ylim[2]+context*lim$ylim[2]
+				li[[i]]=lim
+			}}else li=list(list(xlim=xlim),list(ylim=ylim))
+		if(is.null(xlim))xlim=c(min(sapply(li,function(x)min(x$xlim))),max(sapply(li,function(x)max(x$xlim))));
+		if(is.null(ylim))ylim=c(min(sapply(li,function(x)min(x$ylim))),max(sapply(li,function(x)max(x$ylim))));
+		print(paste0("xlim=c(",xlim[1],",",xlim[2],"); ylim=c(",ylim[1],",",ylim[2],")"))
+
 		# Plot target area:
-		plot(map,col=colors,xlim=xlim,ylim=ylim,bg=bg,...)
+		if(subset){
+			b1=sapply(map,st_bbox)
+			keep=(b1[1,]>xlim[1]|b1[3,]<xlim[2]|b1[2,]>ylim[1]|b1[4,]<ylim[2]);
+			plot(map[keep],col=colors[keep],xlim=xlim,ylim=ylim,bg=bg,...)
+		}else
+			plot(map,col=colors,xlim=xlim,ylim=ylim,bg=bg,...)
+ 
 		for(i in 1:length(targetname)) {
 			obj1=map[object[[label.id]]==targetname[i]]
 			obj2=obj1[[which(sapply(obj1,function(x)length(x))>0)]][[which.max(sapply(obj1[[which(sapply(obj1,function(x)length(x))>0)]],function(y)ifelse(is.null(dim(y[[1]])),1,dim(y[[1]])[1])))]]
 			if(is.list(obj2))obj2=obj2[[1]]
-			print(paste0("x=",mean(obj2[,1]),"y=",mean(obj2[,2])," : ",targetname[i]))
-			if(!suppress.labels)text(mean(obj2[,1]),mean(obj2[,2]),ifelse((is.null(newlabel)|length(newlabel)!=length(targetname)),targetname[i],newlabel[i]),cex=cex)
-		}
+			x1=suppressWarnings(na.omit(sf::st_coordinates(sf::st_centroid(obj1))[,1])[1])
+			y1=suppressWarnings(na.omit(sf::st_coordinates(sf::st_centroid(obj1))[,2])[1])
+			print(paste0(targetname[i],": centroid(x)=",x1,"; centroid(y)=",y1))
+			#print(paste0("mean(x)=",mean(obj2[,1]),"mean(y)=",mean(obj2[,2])," : ",targetname[i]))
+			if(!suppress.labels)text(x1,y1,ifelse((is.null(newlabel)|length(newlabel)!=length(targetname)),targetname[i],newlabel[i]),cex=cex)
+			}
 	}else{
+		b1=st_bbox(map);xlim=c(b1[1],b1[3]);ylim=c(b1[2],b1[4])
+		print(paste0("xlim=c(",xlim[1],",",xlim[2],"); ylim=c(",ylim[1],",",ylim[2],")"))
 		plot(map,col=colors,bg=bg,...)
+		
 	}
 	return(object)
 }
@@ -85,15 +101,6 @@ plotThePlanet=function(
 #####################################
 # Examples
 #####################################
-
-if(F)
-obj=plotThePlanet(targetname="Germany")
-
-if(F)
-obj=plotThePlanet(targetname=c("Germany","Afghanistan"),cex=.5)
-
-if(F)
-obj=plotThePlanet(c("Germany","Afghanistan","Turkey"),colors=c("red","purple","green"),cex=.5)
 
 if(F)
 obj=plotThePlanet(
@@ -107,8 +114,18 @@ files=c(
 "plz-2stellig.shp",
 "plz-2stellig.shx",
 "plz-2stellig.dbf",
-"plz-2stellig.prj")
+"plz-2stellig.prj"),
+bg="grey"
 )
+
+if(F)
+obj=plotThePlanet(targetname="Germany")
+
+if(F)
+obj=plotThePlanet(targetname=c("Germany","Afghanistan"),cex=.5)
+
+if(F)
+obj=plotThePlanet(c("Germany","Afghanistan","Turkey"),colors=c("red","purple","green"),cex=.5)
 
 
 
