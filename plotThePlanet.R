@@ -73,7 +73,7 @@ plotThePlanet=function(
 
 		# Plot target area:
 		if(subset){
-			b1=sapply(map,st_bbox)
+			b1=sapply(map,sf::st_bbox)
 			keep=(b1[1,]>xlim[1]|b1[3,]<xlim[2]|b1[2,]>ylim[1]|b1[4,]<ylim[2]);
 			plot(map[keep],col=colors[keep],xlim=xlim,ylim=ylim,bg=bg,...)
 		}else
@@ -90,7 +90,7 @@ plotThePlanet=function(
 			if(!suppress.labels)text(x1,y1,ifelse((is.null(newlabel)|length(newlabel)!=length(targetname)),targetname[i],newlabel[i]),cex=cex)
 			}
 	}else{
-		b1=st_bbox(map);xlim=c(b1[1],b1[3]);ylim=c(b1[2],b1[4])
+		b1=sf::st_bbox(map);xlim=c(b1[1],b1[3]);ylim=c(b1[2],b1[4])
 		print(paste0("xlim=c(",xlim[1],",",xlim[2],"); ylim=c(",ylim[1],",",ylim[2],")"))
 		plot(map,col=colors,bg=bg,...)
 		
@@ -118,16 +118,17 @@ files=c(
 bg="grey"
 )
 
-if(F)
-obj=plotThePlanet(targetname="Germany")
+if(F){
+obj=plotThePlanet(targetname="Germany",context=.05)
+centroids= t(sapply(sf::st_centroid(sf::st_geometry(obj)),function(x)c(x[1],x[2])))
+#quantqual::boxedtext(centroids[,1],centroids[,2],obj$NAME_EN,cex=1)
+}
 
 if(F)
 obj=plotThePlanet(targetname=c("Germany","Afghanistan"),cex=.5)
 
-if(F)
+if(T)
 obj=plotThePlanet(c("Germany","Afghanistan","Turkey"),colors=c("red","purple","green"),cex=.5)
-
-
 
 
 
