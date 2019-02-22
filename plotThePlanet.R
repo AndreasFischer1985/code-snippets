@@ -14,22 +14,28 @@ plotThePlanet=function(
 	cex=1,
 	suppress.labels=F,
 	bg='lightblue',
+	bg2='olivedrab3',
+	fg='palegreen',
 	subset=T,
 	xlim=NULL,
 	ylim=NULL,
 	...
 ){
-
 	library(stringr)
+
+	mar=par("mar");
+	par(mar = c(0,0,0,0));
 
 	# Download and unzip zip-file if necessary
 	if(length(grep("[.]zip$",url))>0){
-		if(!file.exists("plotThePlanetMap.zip"))download.file(url,"plotThePlanetMap.zip");
+		if(sum(!file.exists(files))>0)
+		download.file(url,"plotThePlanetMap.zip");
 		unzip("plotThePlanetMap.zip");
+		file.remove("plotThePlanetMap.zip")
 	}
 
 	# Download data and metadata (i.e. the "files") if necessary:
-	for(file in files)if(!file.exists(file))download.file(paste0(url,file),file,mode = "wb")
+	for(file in files) if(!file.exists(file)) download.file(paste0(url,file),file,mode = "wb")
 
 	# Prepare data for plotting:
 	object=sf::st_read(grep("shp",files,value=T))
@@ -44,22 +50,20 @@ plotThePlanet=function(
 		return(res)
 	}
 
-
 	# Specify target area and its color:
 	colorsnull=F
-	if(is.null(colors)){colors=rep("olivedrab3",length(map));colorsnull=T}
+	if(is.null(colors)){colors=rep(bg2,length(map));colorsnull=T}
 	if(!colorsnull&length(colors)>1&length(colors)<length(map)&length(colors)==length(targetname)){
-		colors2=rep("olivedrab3",length(map));
-		for(i in 1:length(targetname))
-			colors2[object[[label.id]]==targetname[i]]=colors[i];
-		colors=colors2;}
-		
+		colors2=rep(bg2,length(map));
+		for(i in 1:length(targetname))colors2[object[[label.id]]==targetname[i]]=colors[i];
+		colors=colors2;
+	}	
 	if(!is.null(targetname)){
 		li=list()
 		if(is.null(xlim)|is.null(ylim)){
 			for(i in 1:length(targetname)){	
 				target=map[object[[label.id]]==targetname[i]]
-				if(colorsnull)colors[object[[label.id]]==targetname[i]]="palegreen"
+				if(colorsnull)colors[object[[label.id]]==targetname[i]]=fg
 				lim=get_coord(target)
 				lim$xlim[1]=lim$xlim[1]-context*lim$xlim[1]
 				lim$xlim[2]=lim$xlim[2]+context*lim$xlim[2]
@@ -95,12 +99,45 @@ plotThePlanet=function(
 		plot(map,col=colors,bg=bg,...)
 		
 	}
+
+	par(mar=mar)
 	return(object)
 }
 
 #####################################
 # Examples
 #####################################
+
+
+if(T)
+obj=plotThePlanet(c("Germany","Afghanistan","Turkey"),colors=c("red","purple","green"),cex=.5)
+
+if(F){
+obj=plotThePlanet(targetname="Germany",context=.05)
+centroids= t(sapply(sf::st_centroid(sf::st_geometry(obj)),function(x)c(x[1],x[2])))
+#quantqual::boxedText(centroids[,1],centroids[,2],paste0(" ",obj$NAME_EN," "),cex=1,decollide=T,vspace=1.8,hspace=1)
+}
+
+if(F){
+obj=plotThePlanet(
+#targetname=c("Bayern"),
+colors=NULL,
+context=.01,
+label.id="NAME_1",
+url="https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_DEU_shp.zip",
+files=c(
+"gadm36_DEU_1.shp",
+"gadm36_DEU_1.shx",
+"gadm36_DEU_1.cpg",
+"gadm36_DEU_1.dbf",
+"gadm36_DEU_1.prj"
+),
+bg="grey"
+)
+centroids= t(sapply(sf::st_centroid(sf::st_geometry(obj)),function(x)c(x[1],x[2])))
+#quantqual::boxedText(centroids[,1],centroids[,2],paste0(" ",obj$NAME_1," "),cex=.7,decollide=T,vspace=1.8,hspace=1)
+}
+
 
 if(F)
 obj=plotThePlanet(
@@ -117,18 +154,6 @@ files=c(
 "plz-2stellig.prj"),
 bg="grey"
 )
-
-if(F){
-obj=plotThePlanet(targetname="Germany",context=.05)
-centroids= t(sapply(sf::st_centroid(sf::st_geometry(obj)),function(x)c(x[1],x[2])))
-#quantqual::boxedtext(centroids[,1],centroids[,2],obj$NAME_EN,cex=1)
-}
-
-if(F)
-obj=plotThePlanet(targetname=c("Germany","Afghanistan"),cex=.5)
-
-if(T)
-obj=plotThePlanet(c("Germany","Afghanistan","Turkey"),colors=c("red","purple","green"),cex=.5)
 
 
 
