@@ -4,13 +4,13 @@ plotThePlanet=function(
 	colors=NULL,
 	context=.01,
 	label.id="NAME_EN",
-	url="https://github.com/nvkelso/natural-earth-vector/raw/master/50m_cultural/",
+	source="www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_map_units.zip",
 	files=c(
-		"ne_50m_admin_0_countries.shp",
-		"ne_50m_admin_0_countries.shx",
-		"ne_50m_admin_0_countries.cpg",
-		"ne_50m_admin_0_countries.dbf",
-		"ne_50m_admin_0_countries.prj"),
+		"ne_10m_admin_0_map_units.shp",
+		"ne_10m_admin_0_map_units.shx",
+		"ne_10m_admin_0_map_units.cpg",
+		"ne_10m_admin_0_map_units.dbf",
+		"ne_10m_admin_0_map_units.prj"),
 	cex=1,
 	suppress.labels=F,
 	bg='lightblue',
@@ -27,15 +27,14 @@ plotThePlanet=function(
 	par(mar = c(0,0,0,0));
 
 	# Download and unzip zip-file if necessary
-	if(length(grep("[.]zip$",url))>0){
-		if(sum(!file.exists(files))>0)
-		download.file(url,"plotThePlanetMap.zip");
+	if(length(grep("[.]zip$",source))>0 & sum(!file.exists(files))>0){
+		download.file(source,"plotThePlanetMap.zip");
 		unzip("plotThePlanetMap.zip");
 		file.remove("plotThePlanetMap.zip")
 	}
 
 	# Download data and metadata (i.e. the "files") if necessary:
-	for(file in files) if(!file.exists(file)) download.file(paste0(url,file),file,mode = "wb")
+	for(file in files) if(!file.exists(file)) download.file(paste0(source,file),file,mode = "wb")
 
 	# Prepare data for plotting:
 	object=sf::st_read(grep("shp",files,value=T))
@@ -109,7 +108,7 @@ plotThePlanet=function(
 #####################################
 
 
-if(T)
+if(F)
 obj=plotThePlanet(c("Germany","Afghanistan","Turkey"),colors=c("red","purple","green"),cex=.5)
 
 if(F){
@@ -120,11 +119,10 @@ centroids= t(sapply(sf::st_centroid(sf::st_geometry(obj)),function(x)c(x[1],x[2]
 
 if(F){
 obj=plotThePlanet(
-#targetname=c("Bayern"),
 colors=NULL,
 context=.01,
 label.id="NAME_1",
-url="https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_DEU_shp.zip",
+source="https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_DEU_shp.zip",
 files=c(
 "gadm36_DEU_1.shp",
 "gadm36_DEU_1.shx",
@@ -139,21 +137,32 @@ centroids= t(sapply(sf::st_centroid(sf::st_geometry(obj)),function(x)c(x[1],x[2]
 }
 
 
+if(F){
+obj=plotThePlanet(targetname=c("Bayern","Nordrhein-Westfalen","Niedersachsen","Bayern","Rheinland-Pfalz","Hessen","Saarland","Berlin","Brandenburg","Schleswig-Holstein","Mecklenburg-Vorpommern","Thüringen","Sachsen","Sachsen-Anhalt","Freie Hansestadt Bremen","Baden-Württemberg","Hamburg"),
+context=.05,
+label.id="name_de",
+source="https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_1_states_provinces.zip",
+files=c(
+"ne_10m_admin_1_states_provinces.shp",
+"ne_10m_admin_1_states_provinces.shx",
+"ne_10m_admin_1_states_provinces.cpg",
+"ne_10m_admin_1_states_provinces.dbf",
+"ne_10m_admin_1_states_provinces.prj"))
+}
+
+
 if(F)
 obj=plotThePlanet(
-targetname=c("90","09"),
-newlabel=c("PLZ 90","PLZ 09"),
+targetname=c("90537"),
 colors=NULL,
-context=.01,
+context=0,
 label.id="plz",
-url="https://www.suche-postleitzahl.org/download_files/public/plz-2stellig.shp.zip",
+source="https://www.suche-postleitzahl.org/download_files/public/plz-gebiete.shp.zip",
 files=c(
-"plz-2stellig.shp",
-"plz-2stellig.shx",
-"plz-2stellig.dbf",
-"plz-2stellig.prj"),
-bg="grey"
+"plz-gebiete.shp",
+"plz-gebiete.shx",
+"plz-gebiete.dbf",
+"plz-gebiete.prj"),
+bg="grey",
+suppress.labels=T
 )
-
-
-
