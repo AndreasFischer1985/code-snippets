@@ -52,7 +52,7 @@ plotThePlanet=function(
 	# Specify target area and its color:
 	colorsnull=F
 	if(is.null(colors)){colors=rep(bg2,length(map));colorsnull=T}
-	if(!colorsnull&length(colors)>1&length(colors)<length(map)&length(colors)==length(targetname)){
+	if(!colorsnull&length(colors)<length(map)&length(colors)==length(targetname)){
 		colors2=rep(bg2,length(map));
 		for(i in 1:length(targetname))colors2[object[[label.id]]==targetname[i]]=colors[i];
 		colors=colors2;
@@ -77,7 +77,7 @@ plotThePlanet=function(
 		# Plot target area:
 		if(subset){
 			b1=sapply(map,sf::st_bbox)
-			keep=(b1[1,]>xlim[1]|b1[3,]<xlim[2]|b1[2,]>ylim[1]|b1[4,]<ylim[2]);
+			keep=which(!(b1[1,]>xlim[2]|b1[3,]<xlim[1]|b1[4,]<ylim[1]|b1[2,]>ylim[2]));
 			plot(map[keep],col=colors[keep],xlim=xlim,ylim=ylim,bg=bg,...)
 		}else
 			plot(map,col=colors,xlim=xlim,ylim=ylim,bg=bg,...)
@@ -91,7 +91,7 @@ plotThePlanet=function(
 			print(paste0(targetname[i],": centroid(x)=",x1,"; centroid(y)=",y1))
 			#print(paste0("mean(x)=",mean(obj2[,1]),"mean(y)=",mean(obj2[,2])," : ",targetname[i]))
 			if(!suppress.labels)text(x1,y1,ifelse((is.null(newlabel)|length(newlabel)!=length(targetname)),targetname[i],newlabel[i]),cex=cex)
-			}
+		}
 	}else{
 		b1=sf::st_bbox(map);xlim=c(b1[1],b1[3]);ylim=c(b1[2],b1[4])
 		print(paste0("xlim=c(",xlim[1],",",xlim[2],"); ylim=c(",ylim[1],",",ylim[2],")"))
@@ -106,7 +106,6 @@ plotThePlanet=function(
 #####################################
 # Examples
 #####################################
-
 
 if(F)
 obj=plotThePlanet(c("Germany","Afghanistan","Turkey"),colors=c("red","purple","green"),cex=.5)
@@ -147,14 +146,17 @@ files=c(
 "ne_10m_admin_1_states_provinces.shx",
 "ne_10m_admin_1_states_provinces.cpg",
 "ne_10m_admin_1_states_provinces.dbf",
-"ne_10m_admin_1_states_provinces.prj"))
+"ne_10m_admin_1_states_provinces.prj"),
+suppress.labels=T,
+subset=F
+)
 }
 
 
-if(F)
+#if(F)
 obj=plotThePlanet(
-targetname=c("90537"),
-colors=NULL,
+targetname="90537",
+colors="yellow",
 context=0,
 label.id="plz",
 source="https://www.suche-postleitzahl.org/download_files/public/plz-gebiete.shp.zip",
@@ -163,6 +165,5 @@ files=c(
 "plz-gebiete.shx",
 "plz-gebiete.dbf",
 "plz-gebiete.prj"),
-bg="grey",
-suppress.labels=T
+bg="grey"
 )
