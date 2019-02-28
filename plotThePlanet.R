@@ -4,7 +4,7 @@ plotThePlanet=function(
 	colors=NULL,
 	context=.01,
 	label.id="NAME_EN",
-	source="www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_map_units.zip",
+	source="https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_map_units.zip",
 	files=c(
 		"ne_10m_admin_0_map_units.shp",
 		"ne_10m_admin_0_map_units.shx",
@@ -153,10 +153,11 @@ subset=F
 }
 
 
-#if(F)
+if(F){
+
 obj=plotThePlanet(
 targetname="90537",
-colors="yellow",
+colors="green",
 context=0,
 label.id="plz",
 source="https://www.suche-postleitzahl.org/download_files/public/plz-gebiete.shp.zip",
@@ -165,5 +166,29 @@ files=c(
 "plz-gebiete.shx",
 "plz-gebiete.dbf",
 "plz-gebiete.prj"),
-bg="grey"
+bg2="olivedrab3",
+suppress.labels=T,
+border=NA
 )
+
+#bui=sf::st_read("gis_osm_buildings_a_free_1.shp");xlim=par("usr")[1:2];ylim=par("usr")[3:4];
+#b1=sapply(bui$geometry,sf::st_bbox);keep=which(!(b1[1,]>xlim[2]|b1[3,]<xlim[1]|b1[4,]<ylim[1]|b1[2,]>ylim[2]));
+#plot(bui$geometry[keep],add=T,col="red",border="red")
+
+#wat=sf::st_read("gis_osm_water_a_free_1.shp");xlim=par("usr")[1:2];ylim=par("usr")[3:4];
+#b1=sapply(wat$geometry,sf::st_bbox);keep=which(!(b1[1,]>xlim[2]|b1[3,]<xlim[1]|b1[4,]<ylim[1]|b1[2,]>ylim[2]));
+#plot(wat$geometry[keep],add=T,col="blue")
+
+#waw=sf::st_read("gis_osm_waterways_free_1.shp");xlim=par("usr")[1:2];ylim=par("usr")[3:4];
+#b1=sapply(waw$geometry,sf::st_bbox);keep=which(!(b1[1,]>xlim[2]|b1[3,]<xlim[1]|b1[4,]<ylim[1]|b1[2,]>ylim[2]));
+#plot(waw$geometry[keep],add=T,col="blue")
+
+#str=sf::st_read("gis_osm_roads_free_1.shp");xlim=par("usr")[1:2];ylim=par("usr")[3:4];
+#b1=sapply(str$geometry,sf::st_bbox);keep=which(!(b1[1,]>xlim[2]|b1[3,]<xlim[1]|b1[4,]<ylim[1]|b1[2,]>ylim[2]));
+#plot(str$geometry[keep],add=T)
+
+#raw=sf::st_read("gis_osm_railways_free_1.shp");xlim=par("usr")[1:2];ylim=par("usr")[3:4];
+#b1=sapply(raw$geometry,sf::st_bbox);keep=which(!(b1[1,]>xlim[2]|b1[3,]<xlim[1]|b1[4,]<ylim[1]|b1[2,]>ylim[2]));
+#plot(raw$geometry[keep],add=T,col="grey",lwd=2)
+
+}
