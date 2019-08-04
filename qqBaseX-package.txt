@@ -1,0 +1,2042 @@
+
+library(roxygen2);library(devtools)
+package.name="qqBaseX";
+remove.packages(package.name); 
+g=getwd();
+dir.create("MyPackages");
+setwd("MyPackages")
+
+if(F){
+	remove.packages("qqBaseX"); 
+	devtools::install_github("AndreasFischer1985/qqBaseX")
+}
+
+create(package.name,
+description=list(
+"Package"="qqBaseX",
+"Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
+"Version"="0.1.4",
+"Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
+"Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
+"Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
+"License"="GPL-2",
+"Encoding"="UTF-8",
+"LazyData"="true",
+"RoxygenNote"="6.1.0",
+"VignetteBuilder"="knitr")
+);
+
+####################################
+# set up R-functions
+####################################
+
+setwd(package.name)
+dir.create("R");
+setwd("R")
+
+###########################################
+# Scraping
+###########################################
+
+n <- "vgrepl"
+d <- paste0(	"#' Function vgrepl\n",
+	"#' \n#' Variant of grepl that takes a vector of patterns.\n")
+f <- function(...)
+{f=Vectorize(grepl,vectorize.arg="pattern");f(...);}
+vgrepl=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "getHTML";
+#-------------
+d <- paste0(	"#' Function getHTML\n",
+	"#' \n#' Extracts HTML from an URL.\n",
+	"#' @param url A valid URL.\n",
+	"#' @param encoding Character value specifying the encoding. Defaults to \"UTF-8\".\n",
+	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
+	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
+	"#' @details Extracts HTML from an URL. Assumes UTF-8 encoding by default. Returns a character element containing HTML-code.\n",
+	"#' @keywords scraping\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' getHTML()")
+
+f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=Sys.Date(),closeCon=T,method="libcurl",silent=T){
+	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
+	if(!silent)message(paste0("Trying to get html from ",url))
+	if(is.character(url))url=url(url,method=method)
+	html=paste(readLines(url,encoding=encoding), collapse="\n");       
+	if(save) write.csv2(data.frame(gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))),paste0(prefix,"_",round(10000*rnorm(1)),"_html.csv"))
+	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
+        return(html)
+}
+getHTML=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n<-"scrapeHTML"
+#-------------
+d <- paste0(	"#' Function scrapeHTML\n",
+	"#' \n#' Extracts Information from HTML.\n",
+	"#' @param html A character element containing HTML-code.\n",
+	"#' @param short Logical value specifying whether only lines with verbal information or link should be returned. Defaults to F.\n",
+	"#' @param show Logical value specifying whether the data.frame should be plotted/edited.\n",
+	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
+	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
+	"#' @details Extracts Information from HTML. Returns a data.frame with three columns: the first column contains html-code, the second column contains extracted verbal information, and the third column contains extracted links.\n",
+	"#' @keywords scraping\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' scrapeHTML(getHTML())")
+f <- function(html,short=F,show=T,save=T,prefix=Sys.Date()){
+	strings=gsub("(\n|\t)+"," ",gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]])))
+	info=gsub("^[ ]*$","",gsub("^<[^<]*>","",strings))
+	links=character(length(info))
+	links[grep("href=[\"\'].*?[\"\']",strings)]=
+		gsub("[\"\'].*$","",gsub("^.*?href=[\"\']","",grep("href=[\"\'].*?[\"\']",strings,value=T)))
+	result=data.frame(entry=as.character(strings),info=as.character(info),links=as.character(links))
+	if(short)result=result[nchar(as.character(result[,2]))>0|nchar(as.character(result[,3]))>0,]
+	if(show)result=edit(result)
+	if(save)write.csv2(data.frame(result),paste0(prefix,"_",round(10000*rnorm(1)),"_result.csv"))
+	return(result)
+}
+scrapeHTML=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n<-"subsetHTML"
+#-------------
+d <- paste0(	"#' Function subsetHTML\n",
+	"#' \n#' Extracts a coherent subset of code from HTML-code.\n",
+	"#' @param html A character element containing HTML-code.\n",
+	"#' @param pattern Regular expression specifying the tag to be used for subsetting.\n",
+	"#' @param start Regular expression. Defaults to \"<div\".\n",
+	"#' @param end Regular expression. Defaults to \"</div>\".\n",
+	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
+	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
+	"#' @details Extracts a coherent subset of code from HTML-code.\n",
+	"#' @keywords scraping\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' subsetHTML(getHTML(\"https://jobs.meinestadt.de/nuernberg/suche?words=Wissenschaftlicher%20Mitarbeiter\"))")
+f <- function(html,pattern="class=\"m-resultListEntries__content\"",start="<div",end="</div>",save=T,prefix=Sys.Date()){
+	strings=gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))
+	loc.pat=grep(pattern,strings)
+	loc.div1=grep(start,strings)
+	loc.div2=grep(end,strings)
+	result=character(0)
+	for(i1 in loc.pat){
+		loc.div3=sort(c(loc.div1[which(loc.div1>i1)],loc.div2[which(loc.div2>i1)]))
+		i2=i1;for(i in loc.div3)if(length(loc.div1[which(loc.div1>i1 & loc.div1<=i)])<=length(loc.div2[which(loc.div2>i1 & loc.div2<=i)])){i2=i;break;}
+		string=paste(strings[i1:i2],collapse="\n");
+		text=gsub("^( )*(\n)*( )*(\n)*","",gsub("(\n)+( )*(\n)*","\n",gsub("<.*?>","",string)));
+		result=c(result,text);
+	}
+	if(save)write.csv2(data.frame(result),paste0(prefix,"_",round(10000*rnorm(1)),"_result.csv"))
+	return(result)
+}
+subsetHTML=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n<-"extractTable"
+#-------------
+d <- paste0(	"#' Function extractTable\n",
+	"#' \n#' Extracts table as data.frames from multiple lines of text.\n",
+	"#' @param x A character vector containing one text-line per element.\n",
+	"#' @param header Logical value that specifies, whether to treat first row and column as row- and column-names. Defaults to F.\n",
+	"#' @param trim Logical value that specifies, whether to trim entries. Defaults to T.\n",
+	"#' @param convert Logical value that specifies, whether to convert table to numeric (after correcting for notation in case correctNotation is set to T). Please use with care, if table contains non-numeric information. Defaults to T.\n",
+	"#' @param correctNotation Logical value that specifies, whether to correct for the fact that entries use commata instead of dots. Erases all dots in all entries and subsequently replaces commata by dots. Defaults to F.\n",
+	"#' @details Extracts table as data.frames from multiple lines of text. Columns are assumed to be separated by whitespaces that are placed at the same position in each line. Please make sure that headers don't span multiple columns or rows.\n",
+	"#' @keywords scraping\n",
+	"#' @export\n")
+f=function(x,reg.up=NULL,reg.down=NULL,reg.left="^",reg.right="$",reg.fix=NULL,header=F,trim=T,convert=F,correctNotation=F){
+	trimIt=function(x)gsub("(^[ ]+|[ ]+$)","",x);
+	if(!is.null(reg.up)){
+		lines=(grep(reg.up,x)[1]):(grep(reg.down,x)[1]-1)
+		x=x[lines]
+		rows=(unlist(gregexpr(reg.left,x[1]))[1]):(unlist(gregexpr(reg.right,x[1]))[1])
+		x=substr(x,min(rows),max(rows));
+	}
+	cells=x[nchar(x)>0&!(grepl("^[ ]+$",x))] #streiche leere zeilen
+	t=data.frame(sapply(cells,function(y)paste0(y,paste(rep(" ",max(nchar(cells))-nchar(y)),collapse="")))) #vereinheitliche Länge und setze in data.frame
+	t2=strsplit(as.character(t[,1]),"")
+	d1=data.frame(t2[[1]]);for(i in 2:length(t2))d1=data.frame(d1,t2[[i]])
+	t2=t(d1)
+	w=c(which(colSums(t2==" ")==max(colSums(t2==" "))),dim(t2)[2])
+	e=list();
+	for(i in 1:length(w))e[[i]]=apply(data.frame(t2[,ifelse(i==1,1,w[i-1]):w[i]]),1,function(x)paste(x,collapse=""))
+	erg=data.frame(e[[1]]);
+	for(i in 2:length(w))erg=apply(data.frame(erg,e[[i]]),2,as.character)
+	if(header){
+		colnames(erg)=trim(as.character(erg[1,]))
+		rownames(erg)=trim(as.character(erg[,1]))
+		erg=erg[-1,-1]
+	} else { colnames(erg)=1:dim(erg)[2];rownames(erg)=1:dim(erg)[1];}
+	erg=erg[,!colSums(erg=="  ")==max(colSums(erg=="  "))];
+	rn=rownames(erg);
+	if(correctNotation)erg=apply(erg,2,function(x)gsub("[%.]","",x)) #erase % and dots 
+	if(correctNotation)erg=apply(erg,2,function(x)gsub("[,]",".",x)) #change comm to dots
+	if(!is.null(reg.fix))erg=gsub(reg.fix,"",erg)
+	if(convert){erg=apply(erg,2,as.numeric);rownames(erg)=rn}
+	if(trim)return(trimIt(erg)) else return(erg)
+}
+extractTable=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n <- "scrapeJDDM"
+d <- paste0(
+	"#' Function scrapeJDDM\n",
+	"#' \n#' Downloads and returns data and metadata from the database of the Journal of Dynamic Decision Making.\n",
+	"#' @param plot Logical vakue specifying wether to plot data on reads and downloads.\n",
+	"#' @details Downloads and returns data and metadata from the database of the Journal of Dynamic Decision Making.\n",
+	"#' @keywords scraping\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' s=scrapeJDDM();"
+);
+f<-function(plot=T,
+	urls=paste0("https://journals.ub.uni-heidelberg.de/index.php/jddm/issue/view/",c(3269,2836,2269,3694,4432)),	
+	url2="https://journals.ub.uni-heidelberg.de/cgi-bin/oastats.cgi?repo=ojs;from_date=2015-09-29%2021:39:27;id=jddm:"
+){
+
+	#Extract information
+	#-------------------
+	article.ids=character(0)
+	all.authors=character(0)
+	authors=character(0)
+	years=character(0)
+	article.labels=character(0)
+
+	for(url in urls){
+		html0= gsub("(\t|\n)","",paste(readLines(url, encoding="UTF-8"), collapse="\n"));
+		links=matchAll(html0,"https://journals.ub.uni-heidelberg.de/index.php/jddm/article/view/[0-9/]*\\\">PDF")[[1]][,1]
+		article.ids=c(article.ids,gsub("(.*view/|\\\">PDF)","",links))
+		all.authors=c(all.authors,gsub("</div>.*","",strsplit(html0,"(\"authors\\\">)")[[1]])[-1]);
+		authors=paste0(gsub(",.*","",all.authors)," et al.")
+		authors[grep("Fischer(.*)Holt(.*)Funke",all.authors)]="Editoral"
+		years=c(years,rep(gsub("(.*[(]|[)])","",matchOne(html0,"<title>Vol [0-9]* \\([0-9]*\\)"))[,1],length(links)))
+	}
+	article.labels=paste0(authors," (",years,")");
+	names(article.labels)=article.ids;
+
+	# Extract statistics on articles
+	#-------------------------------
+	#tryCatch({load("html.RData")},error=function(c){});
+	#if(!exists("html")) {
+		html=list()
+		for(i in 1:length(article.ids)){
+			html[as.character(article.ids[i])]=paste(
+				readLines(paste0(url2,
+				gsub("/.*","",article.ids[i]),";lang=ende;overlay=1"), encoding="UTF-8"), collapse="\n");
+			message(article.ids[i])
+		};
+	#}
+
+	# format
+	#--------------------------
+	html=unlist(html)
+	current.year=as.numeric(gsub("-.*","",(Sys.Date())));span=current.year-2015+1
+	results=list()
+	for(i in 1:length(html)){ 
+		months=paste(paste0(">",c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"),"<"),collapse="|")
+		df=data.frame( #df enthält sämtliche Nennung von Monaten sowie Monats-weise splits des html
+			c("Intro",matchAll(html[i],months)[[1]]),
+			strsplit(as.character(html[i]),months))
+		df[,2]=gsub("<table class=\\\"stats\\\"><tr><th>201[0-9]</th>","",df[,2]); # Entferne Jahres-Angaben
+		numbers=sapply(matchAll(df[,2],">[0-9]+<"),function(x)as.numeric(gsub("[<>]","",c(x[1:2]))))[,-1]; #Extrahiere die 2 Zahlenangaben je Monat
+		if(is.null(dim(numbers)))numbers=as.matrix(numbers);#{warning(paste0("Zu Paper ",i," sind nicht genügend Daten vorhanden. Bitte exkludieren"));return(formatData(html[-i],article.ids[-i]));}#stop(paste0("Zu Paper ",i," sind nicht genügend Daten vorhanden. Bitte exkludieren"));
+		colnames(numbers)=gsub("[<>]","",df[-1,1]);rownames(numbers)=c("Downloads","Frontdoor"); # Generiere col- und rownames
+		mo=dim(numbers)[2];numbers=cbind(numbers,matrix(NA,nrow=2,ncol=24-mo)); # Wenn nicht zu allen 24 Monaten Infos vorliegen, füge NA ein
+		colnames(numbers)=paste(colnames(numbers),c(rep(current.year,12),rep(current.year-1,12)))
+		st=matchAll(df[,2],">[0-9]+<");prior=as.numeric(gsub("[<>]","",st[[length(st)]][-c(1:2),1])); # Extrahiere aus letztem Element Infos zu Vorjahren
+		prior=c(prior,rep(NA,2*(as.numeric(gsub("-.*","",(Sys.Date())))-2014)-length(prior))); # Wenn nicht zu allen Jahren seit 2015 Infos vorliegen, füge NA ein
+		numbers=cbind(numbers,t(data.frame(prior[seq(1,length(prior),2)],prior[seq(1,length(prior),2)+1]))); # Füge die Infos in Matrix numbers ein
+		colnames(numbers)[25:(24+span)]=as.numeric(gsub("-.*","",(Sys.Date()))):2015; # Generiere colnames für die Vorjahre
+		results[[as.character(article.ids[i])]]=numbers; # Schreibe matrix numbers in die Liste results
+	}
+
+	m=matrix(ncol=(24+span));for(i in 1:length(results))m=rbind(m,results[[i]]);m=m[-1,]; #put list in a matrix
+	rownames(m)=paste(rownames(m),rep(article.ids,each=2))
+
+	if(as.numeric(gsub("(^[0-9]*-|-[0-9]*$)","",Sys.Date()))<12){
+		shift=which(!is.na(m[,1]));m[shift,13:24]=m[shift,1:12];m[shift,1:12]=NA;
+		m=m[,first(which(dim(m)[1]!=colSums(is.na(m)))):dim(m)[2]]
+	}
+
+	# prepare plotting
+	#-----------------------
+	names(article.labels)=article.ids;
+
+	current.year=as.numeric(gsub("-.*","",(Sys.Date())))
+	years.JDDM=(as.numeric(gsub("-.*","",(Sys.Date())))-2014)
+	entryNo=2*12+years.JDDM-2
+
+	downloads=m[seq(1,dim(m)[1],2),dim(m)[2]:1]
+	frontdoor=m[seq(1,dim(m)[1],2)+1,dim(m)[2]:1]
+
+	downloads.per.year=m[seq(1,dim(m)[1],2),dim(m)[2]:1][,1:years.JDDM]
+	frontdoor.per.year=m[seq(1,dim(m)[1],2)+1,dim(m)[2]:1][,1:years.JDDM]
+	frontdoor.per.year[is.na(frontdoor.per.year)]=0
+	downloads.per.year[is.na(downloads.per.year)]=0
+	
+	df=data.frame(
+		article.ids,article.labels,all.authors,authors,years,download.link=paste0("https://journals.ub.uni-heidelberg.de/index.php/jddm/article/download/",article.ids),
+		downloads,frontdoor);
+
+	if(F){
+		if(any(rowSums(is.na(downloads[,(current.year-2013):dim(downloads)[2]]))>11)|
+		   any(rowSums(is.na(frontdoor[,(current.year-2013):dim(frontdoor)[2]]))>11))warning("only a subset of papers is returned. please try again next month")
+
+		df=df[(rowSums(is.na(downloads[,(current.year-2013):dim(downloads)[2]]))<12 &
+		       rowSums(is.na(frontdoor[,(current.year-2013):dim(frontdoor)[2]]))<12),]
+	}
+
+	if(plot){
+		downloads2=downloads[,colnames(downloads)!=as.character(current.year-1)&colnames(downloads)!=as.character(current.year)]
+ 		rownames(downloads2)=article.labels;
+		downloads2=downloads2[order(rowSums(downloads2,na.rm=T),decreasing=T)[1:min(dim(downloads2)[1],25)],]
+		dev.new(width=10,height=7)
+		plotMAT(downloads2,main="Cumulation of Downloads")
+
+		frontdoor2=frontdoor[,colnames(frontdoor)!=as.character(current.year-1)&colnames(frontdoor)!=as.character(current.year)]
+ 		rownames(frontdoor2)=article.labels;
+		frontdoor2=frontdoor2[order(rowSums(frontdoor2,na.rm=T),decreasing=T)[1:min(dim(frontdoor2)[1],25)],]
+		dev.new(width=10,height=7)
+		plotMAT(frontdoor2,main="Cumulation of Reads")
+	}
+
+	return(df)
+
+}
+scrapeJDDM=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+###########################################
+# Plotting
+###########################################
+
+n="saveDevs"
+d <- paste0(
+	"#' Function saveDevs\n",
+	"#' \n#' Saves each element of dev.list() to a graphical device such as pdf, png or similar.\n",
+	"#' @param prefix Character Graphical device (currently, pdf, png, bmp, jpg and tiff are supported).\n",
+	"#' @param width width of the devices. If NA (default), width of the devices is left unchanged.\n",
+	"#' @param width height of the devices. If NA (default), height of the devices is left unchanged.\n",
+	"#' @param dev Graphical device (currently, pdf, png, bmp, jpg and tiff are supported).\n",
+	"#' @param units Parameter passed to dev.copy. Defaults to \"in\". Is ignored if dev==pdf.\n",
+	"#' @param res Resolution (dots per inch) of the devices. Defaults to 300. Is ignored if dev==pdf.\n",
+	"#' @param mess Logical value specifying if a message should be printed after saving the devices. Defaults to T.\n",
+	"#' @param close Logical value specifying whether to close devices after saving them.\n",
+	"#' @details Saves each element of dev.list() to a graphical device such as pdf, png or similar.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' saveDevs();"
+);
+f=function(prefix=NA, width=NA, height=NA, dev=png, units="in", res=300, mess=T, close=F, ...){
+	n=deparse(substitute(dev));
+	l=dev.list()
+	if(length(prefix)!=length(l)) prefix=rep(prefix[1],length(l))
+	if(length(width)!=length(l)) width=rep(width[1],length(l))
+	if(length(height)!=length(l)) height=rep(height[1],length(l))
+	for(i in 1:length(l)) {
+		d=l[i]    
+		dev.set(d);
+		width1=width[i];height1=height[i];prefix1=prefix[i];
+		if(is.na(width1))width1=(dev.size()[1]);
+		if(is.na(height1))height1=(dev.size()[2]);
+		if(is.na(prefix1))prefix1="";
+		if(length(grep("(bmp|png|jpg|tiff)",n))>0) dev.copy(dev, paste0(prefix1,"Dev", d, ".",n),width=width1,height=height1,units=units,res=res,...) else
+		if(length(grep("(pdf)",n))>0) dev.copy(dev, paste0(prefix1,"Dev", d, ".",n),width=width1,height=height1,...) else
+		dev.copy(dev, paste0(prefix1,"Dev", d, ".",n),width=width1,height=height1,...) 
+		dev.off()
+	}
+	if(close) graphics.off()
+	if(mess) message(ifelse(length(l)>1,paste0(length(l)," devices saved to\n",getwd()),paste0(length(l)," device saved to\n",getwd())))
+}
+saveDevs=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n="plotXY"
+#-------------
+d <- paste0(	"#' Function plotXY\n",
+		"#' \n#' Plots bivariate correlation based on two numeric vectors.\n",
+		"#' @param x Numeric vector.\n",
+		"#' @param y Numeric vector of the same length as x.\n",
+		"#' @param complexity Numeric value specifying the amount of nonlinearity modelled. Defaults to 0 (i.e., a linear model).\n",
+		"#' @param na.rm Logical value indicating whether missing values should be skipped. Defaults to T.\n",
+		"#' @param color1 Color of points in the scattergram. Defaults to rgb(0,0,0,.7).\n",
+		"#' @param color2 Color of the regression line. Defaults to rgb(0,0,1).\n",
+		"#' @param color3 Color of the prediction interval. Defaults to rgb(0,0,1,.2).\n",
+		"#' @param ... additional parameters passed to the plot function.\n",
+		"#' @details Plots scattergram and bivariate correlation based on two numeric vectors.\n",
+		"#' @keywords plotting\n",
+		"#' @export\n",
+		"#' @examples\n",
+		"#' plotXY()")
+
+f<- function (x = NULL, y = NULL, complexity = 0, rep.nnet = 10, 
+    attrModel = T, na.rm = T, color1 = rgb(0, 0, 0, 0.7), color2 = rgb(0, 
+        0, 1), color3 = rgb(0, 0, 1, 0.2), xlab = "x", ylab = "y", 
+    axes = T, add = F, main = "Bivariate Relation", sub = NULL, 
+    pch = 16, lwd = 2, cex = 0.7, cex.sub = 0.7, generalize = F, 
+    ...) 
+{
+    if (is.null(sub)) 
+        sub = ifelse(complexity == 0, "Shaded area represents 95%-confidence interval.", 
+            "Shaded area represents 95%-prediction interval.")
+    if (is.null(x) & is.null(y)) {
+        x = rnorm(100)
+        y = rnorm(100)
+    }
+    data = data.frame(x, y)
+    if (na.rm == T) 
+        data = data[complete.cases(data), ]
+    data0 = data
+    data = data.frame(scale(data))
+    colnames(data) = colnames(data0)
+    nnet = NULL
+    lm = NULL
+
+    if (complexity>0)
+    if (length(grep("^quantqual$", (installed.packages()[, "Package"]))) == 0) {
+	complexity=0;
+	warning("complexity set to 0 because quantqual-package is not installed.\nYou may install it via devtools::install_github(\"AndreasFischer1985/quantqual\")")
+    }
+
+    if (complexity > 0) {
+        if (!generalize) 
+             nnet = quantqual::nnets(data, "y", size = complexity, linout = T, rep.nnet = rep.nnet)[[1]]
+        else nnet = quantqual::af.nnet(data, "y", size = complexity, decay = NULL, linout = T, rep.nnet = rep.nnet)
+        xTrain = data[colnames(data) != "y"]
+        yTrain = data["y"]
+        p = quantqual::predintNNET(nnet, xTrain, yTrain, main = main, sub = sub, 
+            color1 = color1, color2 = color2, color3 = color3, 
+            xlab = xlab, ylab = ylab, axes = axes, plot = F)
+        p = p[order(data[, 1]), ]
+        len = dim(p)[1]
+        in1 = sort(data[, 1])
+        ou1 = p[, 1]
+        inner = p[, 2]
+        outer = p[, 3]
+    }
+    else {
+        l1 = lm(data[, 2] ~ data[, 1])
+        lm = l1
+        co1 = confint(l1)
+        len = 100
+        in1 = seq(min(data[, 1]), max(data[, 1]), length.out = len)
+        ou1 = in1 * coef(l1)[2] + coef(l1)[1]
+        ou2 = data.frame(in1 * co1[2, 1] + co1[1, 1], in1 * co1[2, 
+            2] + co1[1, 2], in1 * co1[2, 1] + co1[1, 2], in1 * 
+            co1[2, 2] + co1[1, 1])
+        inner = apply(ou2, 1, min)
+        outer = apply(ou2, 1, max)
+    }
+    unscale = function(x, m, s) x * s + m
+    in1 = unscale(in1, mean(data0[, 1], na.rm = T), sd(data0[, 
+        1], na.rm = T))
+    ou1 = unscale(ou1, mean(data0[, 2], na.rm = T), sd(data0[, 
+        2], na.rm = T))
+    inner = unscale(inner, mean(data0[, 2], na.rm = T), sd(data0[, 
+        2], na.rm = T))
+    outer = unscale(outer, mean(data0[, 2], na.rm = T), sd(data0[, 
+        2], na.rm = T))
+    if (add == F) 
+        plot(data0[, 1], data0[, 2], xlab = xlab, ylab = ylab, 
+            main = main, type = "n", axes = axes, ...)
+    if (add == F) 
+        if (!is.null(sub)) 
+            title(sub = sub, cex.sub = cex.sub)
+    polygon(c(in1, in1[length(in1):1]), c(inner, outer[length(outer):1]), 
+        col = color3[1], border = NA)
+    points(data0[, 1], data0[, 2], pch = pch, col = color1[1])
+    lines(in1, ou1, , col = color2[1], lwd = lwd)
+    dat = data.frame(predictor = in1, prediction = ou1, lower.bound = inner, 
+        upper.bound = outer)
+    if (attrModel) 
+        if (!is.null(nnet)) 
+            attr(dat, "model") = nnet
+        else attr(dat, "model") = lm
+    return(dat)
+}
+plotXY=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+n <- "cols" 
+#------------
+d <- paste0(
+	"#' Function cols\n",
+	"#' \n#' Returns a vector of colors of a certain length.\n",
+	"#' @param num Number of colors to return or a numeric vector containing indices of colors. Defaults to 1.\n",
+	"#' @param col2 Character vector specifying the darker color of the specturm to be returned.\n",
+	"#' @param col1 Character vector specifying the lighter color of the specturm to be returned.\n",
+	"#' @details Returns a vector of colors of a certain length. If col1 and col2 are NULL (default) a rainbow palette is returned. If col2 is specified, col1 is set to \"white\". If col1 is specified, col2 is set to \"black\". In addition to regular color labels, the cols-function accepts some pre-defined color-labels (such as \"jddm\" or \"jddmLight\" for the Logo-colors of the Journal of Dynamic Decision Making). If num is a numeric vector, the color palette will have max(num) colors, the number of colors returned equals length(num), and num itself is applied as a vector of indices for the color palette returned. \n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' bp(1:10,col=cols(10,\"jddm\"))"
+);
+f<-function(num=1,col2=NULL,col1=NULL){
+	if(is.null(col1)&is.null(col2))if(length(num)>1){num[num<1]=1;return(rainbow(max(num))[num]);} else return(rainbow(num))
+	if(is.null(col1))col1="white";
+	if(is.null(col2))col2="black"
+	x="jddm";y=rgb(135/255,44/255,40/255);	 if(col1==x)col1=y;if(col2==x)col2=y;
+	x="jddmLight";y=rgb(118/255,119/255,118/255);if(col1==x)col1=y;if(col2==x)col2=y;
+	x="fbb";y=rgb(0/255,84/255,122/255);	 if(col1==x)col1=y;if(col2==x)col2=y;
+	x="fbbLight";y=rgb(217/255,231/255,239/255); if(col1==x)col1=y;if(col2==x)col2=y;
+	x="bst";y=rgb(0/255,50/255,100/255);	 if(col1==x)col1=y;if(col2==x)col2=y;
+	x="ba";y=rgb(226/255,0/255,26/255);	 if(col1==x)col1=y;if(col2==x)col2=y;
+	if(length(num)>1){num[num<1]=1;return(colorRampPalette(c(col1,col2))(max(num))[num]);}
+	if(num==1)return(col2)
+	return(colorRampPalette(c(col1,col2))(num));
+}
+cols=f 
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n<-"cols2"
+#------------
+d <- paste0(
+	"#' Function cols2\n",
+	"#' \n#' Returns a vector of transparent colors based on a vector of colors.\n",
+	"#' @param col Character vector specifying the colors to be transformed.\n",
+	"#' @param transparency Numberic value specifying the transparency of the colors to be returned. Defaults to .3\n",
+	"#' @details Returns a vector of transparent colors based on a vector of colors.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' cols2(cols(10,\"jddm\")))"
+);
+f<-function(col,transparency=.3){apply(col2rgb(col),2,function(x)rgb(x[1]/255,x[2]/255,x[3]/255,transparency))}
+cols2=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n="decollide"
+#-------------
+d <- paste0(
+	"#' Function decollide\n",
+	"#' \n#' Returns a matrix with coordinates and text for plotting texts without collisions.\n",
+	"#' @param x Numeric vector containing x-coordinates of text elements.\n",
+	"#' @param y Numeric vector containing x-coordinates of text elements.\n",
+	"#' @param text Character vector containing text-elements to be plotted.\n",
+	"#' @param jitter Logical value specifying whether to add a small random component after each step.\n",
+	"#' @param cex Numeric value specifying the relative font size of the text. Defaults to 1.\n",
+	"#' @param frame Numeric value specifying the relative font size of an invisible frame around the text. Defaults to 1.5\n",
+	"#' @param lock.x Logical value specifying whether to skip shifts on the x-axis. Defaults to F.\n",
+	"#' @param lock.y Logical value specifying whether to skip shifts on the y-axis. Defaults to F.\n",
+	"#' @param verbose Logical value specifying whether to give information on the process after each step.\n",
+	"#' @param cex Numeric value specifying the maximum number of steps. Defaults to 100.\n",
+	"#' @details Returns a matrix with coordinates and text for plotting texts without collisions. Iteratively shifts text elements until all collisions are eliminated or the maximum number of repetitions is reached.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' set.seed(0);decollide(x=rnorm(10),y=rnorm(10),text=paste0(1:10,\":\",round(rnorm(10),3)),cex=1,font=1,plot=T)"
+);
+f<-function(x,y,text,jitter=F,cex=1,font=1,frame=1.5,plot=F,lock.x=F,lock.y=F,verbose=T,repetitions=100){
+	x0=x;y0=y;
+	if(plot){xrange=max(x)-min(x);yrange=max(y)-min(y);plot(x,y,type="n",xlim=c(min(x)-xrange/2,max(x)+xrange/2),ylim=c(min(y)-yrange/2,max(y)+yrange/2));text(x,y,text,font=font,cex=cex);}else
+		xrange=par("usr")[2]-par("usr")[1];yrange=par("usr")[4]-par("usr")[3];
+	sw=strwidth(text,font=font,cex=cex*frame,units="user");
+	sh=strheight(text,font=font,cex=cex*frame,units="user");
+	co=cbind(x-sw/2,x+sw/2,y-sh/2,y+sh/2)
+	m=matrix(0,nrow=dim(co)[1],ncol=dim(co)[1])
+	for(i in 1:repetitions){
+	for(i in 1:dim(co)[1])for(j in 1:dim(co)[1])if(i!=j){
+		col=co[j,1]<=co[i,2]&co[j,2]>=co[i,1]&((co[j,3]<=co[i,4]&co[j,4]>=co[i,3])|(co[j,4]>=co[i,3]&co[j,3]<=co[i,4]))
+		m[i,j]=col;
+		if(col){
+			if(x[i]>=x[j]&!lock.x) x[i]=x[i]+xrange/100;
+			if(x[i]<x[j]&!lock.x) x[i]=x[i]-xrange/100;
+			if(y[i]>=y[j]&!lock.y) y[i]=y[i]+yrange/100;
+			if(y[i]<y[j]&!lock.x) y[i]=y[i]-yrange/100;
+			if(jitter){
+					co=cbind(x-sw/2,x+sw/2,y-sh/2,y+sh/2)
+					col=co[j,1]<co[i,2]&co[j,2]>co[i,1]&((co[j,3]<co[i,4]&co[j,4]>co[i,3])|(co[j,4]>co[i,3]&co[j,3]<co[i,4]))
+					if(col){
+						if(abs(x[i]-x[j])>=0&!lock.x) x[i]=x[i]+ifelse(jitter,rnorm(1,sd=sd(x)/100),0);
+						if(abs(y[i]-y[j])>=0&!lock.y) y[i]=y[i]+ifelse(jitter,rnorm(1,sd=sd(y)/100),0);
+					}
+			}
+
+		}
+		co=cbind(x-sw/2,x+sw/2,y-sh/2,y+sh/2)
+	};if(verbose)message(sum(m)/2); if(plot){plot(x,y,type="n",xlim=c(min(x)-xrange/2,max(x)+xrange/2),ylim=c(min(y)-yrange/2,max(y)+yrange/2));text(x,y,text,font=font,cex=cex);}
+	if(sum(m)/2==0)break;
+	}
+	return(data.frame(x,y,text))
+}
+decollide=f; #set.seed(0);decollide(x=rnorm(10),y=rnorm(10),text=paste0(1:10,":",round(rnorm(10),3)),cex=1,font=1,plot=T)
+
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+n <- "bp" 
+#------------
+d <- paste0(
+	"#' Function bp\n",
+	"#' \n#' Custom barplot with labeled bars.\n",
+	"#' @param x Numeric vector, matrix or data.frame containing the values to be displayed.\n",
+	"#' @param sd Numeric vector, matrix or data.frame of same format as x containing standard deviations.\n",
+	"#' @param cex Size of axis fonts. Defaults to 1.\n",
+	"#' @param beside Logical value indicating if bars should be placed next to each other. Defaults to T.\n",
+	"#' @param horiz Logical value indicating if bars should be placed horizontal. Defaults to F.\n",
+	"#' @param add.numbers Logical value indicating if numbers should be placed above bars. Defaults to F.\n",
+	"#' @param ndigits Numeric value specifying the number of digits to be plotted (if add.numbers==T). Defaults to 2.\n",
+	"#' @param ncex Size of fonts. If NA (default) is set to cex.\n",
+	"#' @param nsrt Numeric value specifying the rotation of the numbers (between 0 and 360 degrees). Defaults to 0.\n",
+	"#' @param npos Numeric value specifying the position of numbers. If NA (default) it is determined automatically.\n",
+	"#' @param ncol Vector containing the color of bars. Defaults to \"black\".\n",
+	"#' @param grid Logical value indicating whether to plot a grid. Defaults to T.\n",
+	"#' @param plot Logical value indicating whether to plot the barplot. Defaults to T.\n",
+	"#' @param main Character vector with one element containing the barplot's title. Defaults to NULL\n",
+	"#' @param sub Character vector with one element containing the barplot's subtitle. Defaults to NULL\n",
+	"#' @param xlim.factor Numeric value for adding extra space to the right of the barplot. Defaults to 1.\n",
+	"#' @param xlim Numeric vector containing xlim.\n",
+	"#' @param las Numeric value specifying the rotation of the y-axis (0 for 90 percent rotation, 1 for 0 percent rotation). Defaults to 1.\n",
+	"#' @param srt Numeric value specifying the rotation of the x-axis (between 0 and 360 degrees). Defaults to 45.\n",
+	"#' @param names.arg Character vector containing names of bars. If NULL (default) colnames of x will be applied as names.arg.\n",
+	"#' @param legend.text Legend text. Set to NA or to F to supress legend. If NULL (default) rownames of x will be applied as legend.text.\n",
+	"#' @param args.legend List with arguments to pass to legend(). Defaults to list(bg = \"white\").\n",
+	"#' @param density Vector giving the density of shading lines, in lines per inch, for the bars or bar components. The default value of NULL means that no shading lines are drawn. Non-positive values of density also inhibit the drawing of shading lines.\n",
+	"#' @param angle Slope of shading lines, given as an angle in degrees (counter-clockwise), for the bars or bar components.\n",
+	"#' @param col Vector containing the color of bars. If NULL (default) colors are generated based on the rainbow-palette.\n",
+	"#' @param grid.col Character or rgb value containing the color of grid lines. Defaults to \"grey\".\n",
+	"#' @param axes Logical value indicating whether to plot axes. Defaults to T.\n",
+	"#' @param add Logical value indicating whether to plot the barplot to the current device. Defaults to F.\n",
+	"#' @param adj Numeric value between 0 and 1, indicating where to plot main title and axis labels - if any - between left (0) and right (1). Defaults to 0.5\n",
+	"#' @param default.labels Logical value, indicating whether to use traditional barplot-labels (which, e.g., hide in case of overlap) instead of bp-style labels. Defaults to F.\n",
+	"#' @param xlab Character value representing the label to be drawn next to the x-axis. Defaults to NA.\n",
+	"#' @param ylab Character value representing the label to be drawn next to the y-axis. Defaults to NA.\n",
+	"#' @param border Color of the bars' border. Defaults to NA.\n",
+	"#' @param grid.mode Numeric value specifying when to plot the grid. 0 for grid in the background, 1 for grid in the foreground. Defaults to 0.\n",
+	"#' @param ... Additional graphical parameters for barplot.\n",
+	"#' @details Plots a bar and adds labels and numbers to bars. Optionally allows for plotting standard deviations around each bar.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' bp(data.frame(group1=c(variable1=1,variable2=2),group2=c(variable1=3,variable2=4)),horiz=T,main=\"Example\")"
+);
+f <- function(x=NULL,sd=NULL,cex=1,beside=T,horiz=F,add.numbers=F,ndigits=2,ncex=NA,nsrt=0,npos=NA,ncol="black",grid=T,plot=T,main=NULL,sub=NULL,xlim.factor=1.5,las=1,srt=45,xlim=NULL,names.arg=NULL,legend.text=NULL,args.legend=list(bg = "white"),density=NULL,angle=45,col=NULL,grid.col="grey",axes=T,add=F,adj=0.5,default.labels=F,xlab=NA,ylab=NA,border=NA,grid.mode=0,
+	main1=NULL,main2=NULL,main3=NULL,
+	adj.main1=0,adj.main2=0,adj.main3=0,
+	col.main1="black",col.main2="black",col.main3="black",
+	cex.main1=1.2,cex.main2=1.2,cex.main3=1.2,
+	font.main1=1,font.main2=2,font.main3=4,
+	...){
+	addChars=ifelse(is.character(add.numbers),add.numbers,"")
+	if(is.character(add.numbers))add.numbers=T
+	if(is.null(ncex))ncex=cex else if(is.na(ncex))ncex=cex
+	if(!is.null(npos))if(is.na(npos)) if(beside==T) npos=ifelse(horiz==T,4,3) else npos=NULL
+	if(is.null(x))x=data.frame(test1=c(1,2,3),test2=c(2,3,4)) else 
+	if(is.table(x)){
+		y=matrix(sapply(x,as.numeric),nrow=dim(x)[1]);
+		if(length(dim(x))==1) {rownames(y)=names(x);} else {rownames(y)=rownames(x);colnames(y)=colnames(x);}
+		x=y;
+	}
+	el=list(...);#el=list(space=c(.2,.7,.1,.7,.1),adj=0,border=NA,ylim=c(0,100))
+	x=as.matrix(x);
+	x2=ifelse(dim(x)[2]==1,list(x[,1]),list(x))[[1]]; #x2 is a vector if x contains only one column
+	if(!is.null(sd)){sd=ifelse(dim(x)[2]==1,list(as.matrix(sd)[,1]),list(as.matrix(sd)))[[1]];} 
+	if(is.null(rownames(x)))rownames(x)=1:dim(x)[1]
+	if(is.null(colnames(x)))colnames(x)=1:dim(x)[2]
+	if(is.matrix(x2)) {rownames(x2)=rownames(x);colnames(x2)=colnames(x);} else names(x2)=rownames(x);	
+	width=unlist(ifelse(length(el[["width"]])>0,el["width"],list(1))[[1]])
+	space=unlist(ifelse(length(el[["space"]])>0,el["space"],ifelse(beside&dim(x)[2]>1,list(c(0,1)),list(.2)))[[1]])
+	if(dim(x)[2]==1)beside=T;
+	if(is.null(col)) col=rainbow(dim(x)[1])
+	if(is.null(legend.text) & dim(x)[2]>1) legend.text=rownames(x) 
+	if(is.null(xlim)) 
+	if(!horiz){
+		#don't draw barplot, but get coordinates
+		b=barplot(x2,beside=beside,horiz=horiz,plot=F,add=add,
+			...);
+	
+		xlim=c(min(b)-(width[1]/2),max(b)+(width[1]/2));if(!is.null(legend.text))xlim[2]=xlim[2]*xlim.factor;
+	}else{	
+		if(beside){xlim=c(min(c(min(x),0)),max(c(max(x),0)));}else{xlim=c(min(c(min(colSums(x)),0)),max(c(max(colSums(x)),0)));}
+		if(!is.null(legend.text))xlim[2]=xlim[2]*xlim.factor;}
+	if(sum(is.na(legend.text))>0) legend.text=NULL else if(length(legend.text)==1)if(legend.text[[1]]==F) legend.text=NULL
+	if(!is.null(names.arg)){
+		if(length(names.arg)==1)if(is.na(names.arg)) names.arg=rep(NA,dim(x)[2])
+		if(dim(x)[2]==1)rownames(x)=names.arg else colnames(x)=names.arg
+	} else names.arg=ifelse(dim(x)[2]==1,list(rownames(x)),list(colnames(x)))[[1]]
+	b=NULL;
+	if(grid.mode==0){
+		# if barplot is drawn later (after grid)
+		b=as.matrix(barplot(x2,beside=beside,horiz=horiz,density=density,angle=angle,xlim=xlim,plot=plot,las=las,add=add,adj=adj,#legend.text=legend.text,args.legend=args.legend
+			main=NA,sub=NA,col=NA,xlab=NA,ylab=NA,border=NA,axes=F,names.arg=rep("",dim(x)[2]),
+			...));
+
+	} else {
+		# if barplot is drawn now
+		b=as.matrix(barplot(x2,border=border,xlab=xlab,ylab=ylab,names.arg=ifelse(default.labels==T,list(names.arg),list(rep("",dim(x)[2])))[[1]],beside=beside,horiz=horiz,density=density,angle=angle,col=col,xlim=xlim,main=main,sub=sub,plot=plot,las=las,axes=axes,add=add,adj=adj,#legend.text=legend.text,args.legend=args.legend
+			...));} 
+
+	abline2=function(xl,xlf,...){xaxp<-par("xaxp");yaxp<-par("yaxp");segments(x0=min(xl),y0=seq(yaxp[1], yaxp[2],(yaxp[2]-yaxp[1])/yaxp[3]),x1=max(xl)/xlf,y1=seq(yaxp[1], yaxp[2],(yaxp[2]-yaxp[1])/yaxp[3]),...);}
+	abline3=function(xl,xlf,...){xaxp<-par("xaxp");yaxp<-par("yaxp");segments(y0=min(xl),x0=seq(xaxp[1], xaxp[2],(xaxp[2]-xaxp[1])/xaxp[3]),y1=max(xl)/xlf,x1=seq(xaxp[1], xaxp[2],(xaxp[2]-xaxp[1])/xaxp[3]),...);}
+
+	if(!horiz){	if(grid!=F) abline2(xlim,ifelse(!is.null(legend.text),xlim.factor,1),col=grid.col);
+	} else {	if(grid!=F) abline3(par("usr")[1:2],1,col=grid.col); }
+
+	if(grid.mode==0 & plot!=F) 
+		#if no barplot was drawn yet
+		b=as.matrix(barplot(x2,border=border,xlab=xlab,ylab=ylab,names.arg=ifelse(default.labels==T,list(names.arg),list(rep("",dim(x)[2])))[[1]],beside=beside,horiz=horiz,density=density,angle=angle,col=col,xlim=xlim,main=main,sub=sub,plot=plot,las=las,axes=axes,add=T,adj=adj,#legend.text=legend.text,args.legend=args.legend
+			...));
+
+	if(!is.null(sd)&beside) 
+	if(!horiz){	arrows(b,x2+sd,b,x2-sd,angle=90,code = 3,length = 0.1,xpd=T);
+	}else{		arrows(x2+sd,b,x2-sd,b,angle=90,code = 3,length = 0.1,xpd=T);}
+	if(beside==T){rownames(b)=rownames(x);colnames(b)=colnames(x);}else{rownames(b)=colnames(x);}
+	b2=ifelse(dim(b)[2]==1,list(t(b)),list(as.matrix(b)))[[1]]; #if b has only one column (because x is a vector or beside==T) b2 is t(b)
+	if(!is.null(el[["ylim"]]))
+			{x0=data.frame(rep(min(el[["ylim"]]),dim(x)[1]),rep(max(el[["ylim"]])/dim(x)[1],dim(x)[1]));} else
+			{x0=data.frame(rep(0,dim(x)[1]),x);}
+	if(beside)	{x0=min(x0,na.rm=T)-.05*(max(x0,na.rm=T)-min(x0,na.rm=T));} else 		
+			{x0=min(colSums(x0,na.rm=T))-.05*(max(colSums(x0,na.rm=T))-min(colSums(x0,na.rm=T)));}
+        #x[x==0]=NA
+	if(plot!=F)
+	if(!horiz){	#if(grid!=F)	abline2(xlim,ifelse(!is.null(legend.text),xlim.factor,1),col=grid.col);
+			if(axes!=F & default.labels!=T)	text(colMeans(b2),0+x0,colnames(b2),srt=srt,pos=ifelse((srt==0|srt==180|srt==360),1,2),xpd=T,cex=cex);
+			if(add.numbers) 
+			if(beside){	text(b,x,paste0(round(x,ndigits),addChars),pos=npos,col=ncol,cex=ncex,srt=nsrt,xpd=T);
+			}else{		
+				text(b,x[1,]/2,paste0(round(x[1,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos);
+				if(dim(x)[1]>1)for(i in 2:dim(x)[1]){
+					m=as.matrix(x[c(1:i),]);dim(m)=c(length(c(1:i)),dim(x)[2]);
+					text(b,(colSums(rbind(m[1:i,]))+colSums(rbind(m[1:(i-1),])))/2,labels=paste0(round(x[i,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos);
+			}}
+	}else{		#if(grid!=F)	abline3(par("usr")[1:2],1,col=grid.col);
+			if(axes!=F & default.labels!=T)	text(0+x0,colMeans(b2),colnames(b2),srt=srt-45,pos=2,xpd=T,cex=cex);
+			if(add.numbers)
+			if(beside){	text(x,b,paste0(round(x,ndigits),addChars),pos=npos,col=ncol,cex=ncex,srt=nsrt,xpd=T);
+			}else{		
+				text(x[1,]/2,b,paste0(round(x[1,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos); 
+				if(dim(x)[1]>1)for(i in 2:dim(x)[1]){
+					m=as.matrix(x[c(1:i),]);dim(m)=c(length(c(1:i)),dim(x)[2]);
+					text((colSums(rbind(m[1:i,]))+colSums(rbind(m[1:(i-1),])))/2,b,labels=paste0(round(x[i,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos);
+			}}
+	}	
+    	xy <- par("usr")
+	if(!is.null(legend.text))
+        if(is.null(args.legend)) {
+                legend(xy[2L] - xinch(0.1), xy[4L] - yinch(0.1), legend = legend.text, angle = angle, density = density, fill = col, xjust = 1, yjust = 1)
+         } else {
+                args.legend1 <- list(x = xy[2L] - xinch(0.1), y = xy[4L] - yinch(0.1), legend = legend.text, angle = angle, density = density, fill = col, xjust = 1, yjust = 1)
+                args.legend1[names(args.legend)] <- args.legend
+                do.call("legend", args.legend1)
+	}
+	if(!is.null(main1)) title(main1,line=1,adj=adj.main1,cex.main=cex.main1,col=col.main1,font.main=font.main1)
+	if(!is.null(main2)) title(main2,line=2,adj=adj.main2,cex.main=cex.main2,col=col.main2,font.main=font.main2)
+	if(!is.null(main3)) title(main3,line=3,adj=adj.main3,cex.main=cex.main3,col=col.main3,font.main=font.main3)
+	return(b)
+}
+bp=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n<-"compareDocs"
+#------------
+d <- paste0(
+	"#' Function compareDocs\n",
+	"#' \n#' Plots difference between two documents as a modified dotchart.\n",
+	"#' @param a Character value.\n",
+	"#' @param b Character value.\n",
+	"#' @param relative Logical value. Defaults to T.\n",
+	"#' @param vertLine Logical value specifying whether to plot a vertical line at x=0. Defaults to T.\n",
+	"#' @param horizLines Logical value specifying whether to plot horizontal lines between each point and the y axis. Defaults to T.\n",
+	"#' @param max Numeric value indicating the maximum number of word frequencies to be displayed. Defaults to 40.\n",
+	"#' @param main Character value specifying the plot's title. Defaults to \"Comparison of Word Frequencies\"\n",
+	"#' @param pch Numeric element speccifying the symbol to represent points. Defaults to 16\n",
+	"#' @param cex Numeric value indicating the text size. Defaults to .7.\n",
+	"#' @details Plots difference between two documents as a modified dotchart. Returns matrix with relative frequencies and differences between documents a and b.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' compareDocs(\"This is document 1\",\"this is another document\")"
+);
+n<-"compareDocs"
+f<-function(a=NULL,b=NULL,relative=T,vertLine=T,horizLines=T,max=40,main="Comparison of Word Frequencies",pch=16,cex=.7,...){
+	if(is.null(a)&is.null(b)){a="a a b d c c"; b="a b b b b c"}
+	if(is.null(a)|is.null(b))stop("Please provide two character elements a and b")
+	a=paste(a,collapse=" ")
+	b=paste(b,collapse=" ")
+	common.terms=vecToTDM(c(a,b))
+	#common.terms=subset(c,c[,1]>0&c[,2]>0);unique.terms=subset(c,(c[,1]==0&c[,2]>0)|(c[,1]>0&c[,2]==0))
+	if(relative)common.terms= apply(common.terms,2,function(x)x/sum(x))
+	common.terms=common.terms/colSums(common.terms)
+	diff=(common.terms[,1]-common.terms[,2]);common.terms=cbind(common.terms,diff)
+	common.terms=common.terms[order(common.terms[,3],decreasing=F),];
+	com=common.terms;#com=com[abs(com[,3])>0,]
+	if(dim(com)[1]>max){com=com[c(1:floor(max/2),(dim(com)[1]-floor(max/2)):dim(com)[1]),];warning(paste("Only",max,"differences are displayed"));}
+	dotchart(com[,3],pch=pch,main=main,cex=cex,...);
+	if(horizLines)segments(x0=0,y0=1:dim(com)[1],x1=round(com[,3],2),y1=1:dim(com)[1]);
+	if(vertLine)abline(v=0)
+	return(common.terms)
+}
+compareDocs=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n<-"dotplot"
+#------------
+d <- paste0(
+	"#' Function dotplot\n",
+	"#' \n#' Plots a modified dotchart.\n",
+	"#' @param x Numeric vector.\n",
+	"#' @param vertLine Logical value specifying whether to plot a vertical line at x=0. Defaults to T.\n",
+	"#' @param horizLines Logical value specifying whether to plot horizontal lines between each point and the y axis. Defaults to T.\n",
+	"#' @param max Numeric value indicating the maximum number of frequencies to be displayed. Defaults to 40.\n",
+	"#' @param main Character value specifying the plot's title. Defaults to \"Comparison of Word Frequencies\"\n",
+	"#' @param pch Numeric element speccifying the symbol to represent points. Defaults to 16\n",
+	"#' @param cex Numeric value indicating the text size. Defaults to .7.\n",
+	"#' @details Plots vector as modified dotchart.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' dotplot(rnorm(100))"
+);
+n<-"dotplot"
+f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("cex"),
+    pt.cex = cex, pch = 16, gpch = 21, bg = par("bg"),
+    color = par("fg"), gcolor = par("fg"), lcolor = "gray",
+    xlim = range(x[is.finite(x)]), main = NULL, xlab = NULL,
+    ylab = NULL, deviations=NA, x2=NA, vertLine = 0, horizLines = T, max = 40, sort=F,...)
+{
+    opar <- par("mai", "mar", "cex", "yaxs")
+    on.exit(par(opar))
+    par(cex = cex, yaxs = "i")
+    if (!is.numeric(x))
+        stop("'x' must be a numeric vector or matrix")
+    n <- length(x)
+
+    if(sort==T) {
+	if(!is.na(deviations[1]))
+		if (is.matrix(x)) deviations = deviations[order(x[,1]),] else deviations = deviations[order(x)] 
+	if(!is.na(x2[1]))
+		if (is.matrix(x)) x2 = x2[order(x[,1]),] else x2 = x2[order(x)] 
+	if (is.matrix(x)) x = x[order(x[,1]),] else x = x[order(x)] 
+    }
+
+    if (is.matrix(x)) {
+        if (is.null(labels))
+            labels <- rownames(x)
+        if (is.null(labels))
+            labels <- as.character(1L:nrow(x))
+        labels <- rep_len(labels, n)
+        if (is.null(groups))
+            groups <- col(x, as.factor = TRUE)
+        glabels <- levels(groups)
+    }
+    else {
+        if (is.null(labels))
+            labels <- names(x)
+        glabels <- if (!is.null(groups))
+            levels(groups)
+        if (!is.vector(x)) {
+            warning("'x' is neither a vector nor a matrix: using as.numeric(x)")
+            x <- as.numeric(x)
+        }	
+    }	
+
+    if (is.null(x)) {
+        x = rnorm(100)
+        names(x) = paste0("Var", 1:100)
+    }
+
+    if (length(x) > max) {
+	if(!is.na(deviations[1]))
+		deviations = deviations[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
+	if(!is.na(x2[1]))
+		x2 = x2[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
+        x = x[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
+        warning(paste("Only", max, "values are displayed"))
+    }
+
+    plot.new()
+    linch <- if (!is.null(labels))
+        max(strwidth(labels, "inch"), na.rm = TRUE)
+    else 0
+    if (is.null(glabels)) {
+        ginch <- 0
+        goffset <- 0
+    }
+    else {
+        ginch <- max(strwidth(glabels, "inch"), na.rm = TRUE)
+        goffset <- 0.4
+    }
+    if (!(is.null(labels) && is.null(glabels))) {
+        nmai <- par("mai")
+        nmai[2L] <- nmai[4L] + max(linch + goffset, ginch) +
+            0.1
+        par(mai = nmai)
+    }
+    if (is.null(groups)) {
+        o <- 1L:n
+        y <- o
+        ylim <- c(0, n + 1)
+    }
+    else {
+        o <- sort.list(as.numeric(groups), decreasing = TRUE)
+        x <- x[o]
+	if(!is.na(x2[1]))x2 <- x2[o]
+	if(!is.na(deviations[1]))deviations <- deviations[o]
+        groups <- groups[o]
+        color <- rep_len(color, length(groups))[o]
+        lcolor <- rep_len(lcolor, length(groups))[o]
+        offset <- cumsum(c(0, diff(as.numeric(groups)) != 0))
+        y <- 1L:n + 2 * offset
+        ylim <- range(0, y + 2)
+    }
+    plot.window(xlim = xlim, ylim = ylim, log = "")
+    lheight <- par("csi")
+    if (!is.null(labels)) {
+        linch <- max(strwidth(labels, "inch"), na.rm = TRUE)
+        loffset <- (linch + 0.1)/lheight
+        labs <- labels[o]
+        mtext(labs, side = 2, line = loffset, at = y, adj = 0,
+            col = color, las = 2, cex = cex, ...)
+    }
+    abline(h = y, lty = "dotted", col = lcolor)
+
+    if (horizLines&is.na(x2[1])&is.na(deviations[1])) {
+      xlim[1]=min(0,xlim[1])
+      xlim[2]=max(0,xlim[2])
+      segments(x0 = 0, y0 = y, x1 = x, y1 = y, col=color)
+    }
+    if(!is.na(deviations[1])){
+      segments(x0 = x+deviations, y0 = y, x1 = x-deviations, y1 = y, col=color)
+    }
+    if(!is.na(x2[1])){
+      horizLines=F
+      segments(x0 = x, y0 = y, x1 = x2, y1 = y, col=color)
+      points(x2, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
+    }
+    points(x, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
+    if (!is.null(groups)) {
+        gpos <- rev(cumsum(rev(tapply(groups, groups, length)) +
+            2) - 1)
+        ginch <- max(strwidth(glabels, "inch"), na.rm = TRUE)
+        goffset <- (max(linch + 0.2, ginch, na.rm = TRUE) + 0.1)/lheight
+        mtext(glabels, side = 2, line = goffset, at = gpos, adj = 0,
+            col = gcolor, las = 2, cex = cex, ...)
+        if (!is.null(gdata)) {
+            abline(h = gpos, lty = "dotted")
+            points(gdata, gpos, pch = gpch, col = gcolor, bg = bg,
+                cex = pt.cex/cex, ...)
+        }
+    }
+    axis(1)
+    box()
+    title(main = main, xlab = xlab, ylab = ylab, ...)
+    if(!is.na(vertLine))abline(v=vertLine, col=color)
+    invisible()
+}
+dotplot=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "spiderplot";
+#-------------
+d <- paste0(	"#' Function spiderplot\n",
+	"#' \n#' Plots a radar chart based on a numeric vector.\n",
+	"#' @param x Numeric vector containing the values to be displayed. Values should be between 0 and 1.\n",
+	"#' @param lower Numeric vector of the same length as x, containing the values to be displayed as an lower bound. Not displayed if NULL (if !is.null(x)).\n",
+	"#' @param upper Numeric vector of the same length as x, containing the values to be displayed as an upper bound. Not displayed if NULL (if !is.null(x)).\n",
+	"#' @param weights Numeric vector of the same length as x, containing the relative length of dimensions. Values should be between 0 and 1.\n",
+	"#' @param main Character vector with one element containing the barplot's title. Defaults to NULL\n",
+	"#' @param max Numeric value determining the largest possible value of the data to be displayed. Defaults to 1.\n",
+	"#' @param xylim Numeric value determining both upper and lower limits on both x and y axis (xlim & ylim). Defaults to 1.5.\n",
+	"#' @param col Character or rgb value specifying the line's color. Defaults to rgb(0,0,1).\n",
+	"#' @param col2 Character or rgb value specifying the color of the area between upper and lower bound. Defaults to rgb(0,0,1,.5).\n",
+	"#' @param border Character or rgb value specifying the color of the polygon border. Defaults to NA.\n",
+	"#' @param mode Numeric value specifying whether to draw a polygon (mode=1) or arrows (mode!=1), and whether to draw a polygon for x (mode>=0) or not (mode<0). Defaults to 0.\n",
+	"#' @param arrows.lwd Numeric value specifying lwd for arrows (if any). Defaults to 2.\n",
+	"#' @param arrows.length Numeric value specifying lwd for arrows (if any). Defaults to .01.\n",
+	"#' @param add.numbers Logical value specifying whether to add numbers to labels. Defaults to F.\n",
+	"#' @param add.grid Logical value specifying whether to add numbers to add grid lines. Defaults to T.\n",
+	"#' @param add.labels Logical value specifying whether to add labels to the plot. Defaults to T.\n",
+	"#' @details Plots a radar chart based on a numeric vector. Each dimension of the radar chart can be assigned a weight and/or an upper and lower bound.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' spiderplot()")
+f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL, 
+    names = NULL, main = NULL, max = 1, min = 0, xylim = 1.5, 
+    add.scale = T, col = "#00547A", col2 = "#FFA500E6", 
+    border = NA, mode = 0, arrows.lwd = 3, arrows.length = 0.01, 
+    add.numbers = F, numbers = 2, add.grid = T, add.labels = T,
+    line.type="o",grid.detail=1, grid.points=NULL) 
+{
+    dimensions = x
+    if(!is.null(grid.points))
+	if(is.null(names(grid.points))) 
+		names(grid.points)=grid.points;
+
+    if (!is.null(upper) & !is.null(dimensions)) {
+        if (max < max(c(lower, upper, dimensions))) 
+            max = max(c(lower, upper, dimensions))
+        if (min > min(c(lower, upper, dimensions))) 
+            min = min(c(lower, upper, dimensions))
+    }
+    else {
+        if (!is.null(dimensions)) {
+            if (max < max(dimensions)) 
+                max = max(dimensions)
+            if (min > min(dimensions)) 
+                min = min(dimensions)
+        }
+        if (!is.null(upper)) {
+            if (max < max(upper)) 
+                max = max(upper)
+            if (min > min(upper)) 
+                min = min(upper)
+        }
+        if (!is.null(lower)) {
+            if (max < max(lower)) 
+                max = max(lower)
+            if (min > min(lower)) 
+                min = min(lower)
+        }
+    }
+    if (is.null(dimensions) & is.null(weights) & is.null(main)) {
+        dimensions = c(0.1, 0.2, 0.3, 0.8, 0.7, 0.1, 0.1, 0.1, 
+            0.1, 0.2)
+        x = dimensions
+        lower = c(0, 0, 0.2, 0.7, 0.6, 0, 0, 0, 0, 0)
+        upper = c(0.2, 0.4, 0.4, 0.9, 0.8, 0.2, 0.2, 0.2, 0.1, 
+            0.3)
+        weights = 1
+        main = "Consideration of option 1"
+        names = c("artist's opinion", "restoration ethics", 
+            "historicity", "authenticity", "functionality", 
+            "relative importance", "legal aspects", 
+            "technical limit./poss.", "aest./art. factors", 
+            "financial limit./poss.")
+    }
+    if (length(weights) == 1) 
+        weights = rep(weights[1], length(dimensions))
+    if (is.null(weights)) 
+        weights = rep(1, length(dimensions))
+    weights2 = c(weights, weights[1])
+    if (is.null(names(dimensions))) 
+        names(dimensions) = 1:length(dimensions)
+    if (!is.null(names)) 
+        names(dimensions) = names
+    theta = seq(0, 2 * pi, length = length(dimensions) + 1)
+    plot(weights2 * cos(theta), weights2 * sin(theta), type = "l", 
+        lty = 1, col = rgb(0, 0, 0), axes = F, xlab = "", 
+        ylab = "", xlim = c(-xylim, xylim), ylim = c(-xylim, 
+            xylim))
+    no = function(x) {
+        (x - min(c(min, x)))/(max(c(max, max(x))) - min(min, 
+            min(x)))
+    }
+    if (!is.null(upper) & !is.null(lower)) {
+        if (mode == 1) {
+            polygon(weights2 * no(c(upper, upper[1])) * cos(theta), 
+                weights2 * no(c(upper, upper[1])) * sin(theta), 
+                col = col2, border = border, lty = 1)
+            polygon(weights2 * no(c(lower, lower[1])) * cos(theta), 
+                weights2 * no(c(lower, lower[1])) * sin(theta), 
+                col = rgb(1, 1, 1), border = border, lty = 1)
+        }
+        else {
+            arrows((weights2 * no(c(lower, lower[1])) * cos(theta))[-length(weights2)], 
+                (weights2 * no(c(lower, lower[1])) * sin(theta))[-length(weights2)], 
+                (weights2 * no(c(upper, upper[1])) * cos(theta))[-length(weights2)], 
+                (weights2 * no(c(upper, upper[1])) * sin(theta))[-length(weights2)], 
+                col = col2, angle = 90, length = arrows.length, 
+                code = 3, lwd = arrows.lwd)
+        }
+    }
+    if (add.grid) {
+	if(is.null(grid.points)){
+		sapply(1:grid.detail,function(x)lines(weights2 * x/(grid.detail+1) * cos(theta), weights2 * x/(grid.detail+1) * sin(theta), 
+		            lty = 2, col = rgb(0, 0, 0, 0.2)))
+	} else {
+		sapply(grid.points,function(x)lines(weights2 * no(x) * cos(theta), weights2 * no(x) * sin(theta), 
+		            lty = 2, col = rgb(0, 0, 0, 0.2)))
+	}
+        segments(0, 0, weights2 * cos(theta), weights2 * sin(theta), 
+            lty = 1, col = rgb(0, 0, 0, 0.2))	 
+    }
+    if (!is.null(dimensions) & mode >= 0) 
+        lines(weights2 * no(c(dimensions, dimensions[1])) * cos(theta), 
+            weights2 * no(c(dimensions, dimensions[1])) * sin(theta), 
+            col = col, lwd = 2, type=line.type, pch=16)
+    if (add.grid & numbers > 0) {
+	if(is.null(grid.points)){
+            text(1 * weights2[1], 0.05, round(max, numbers), cex = 0.6, pos = 2, col = "darkgrey")
+	    if (length(dimensions)/2 == round(length(dimensions)/2)) 
+        	    text(-1 * weights2[1], 0.05, round(max, numbers), cex = 0.6, pos = 4, col = "darkgrey")
+   
+ 	    sapply(1:grid.detail,function(x)
+	            text(x/(grid.detail+1) * weights2[1], 0.05, round(((max + 
+	                min)*x/(grid.detail+1)), numbers), cex = 0.6, pos = 2, col = "darkgrey"))
+            if (length(dimensions)/2 == round(length(dimensions)/2)) 
+		sapply(1:grid.detail,function(x)
+	                text(-x/(grid.detail+1) * weights2[round(length(weights2)/2)], 0.05, round(((max + 
+	                    min)*x/(grid.detail+1)), numbers), cex = 0.6, pos = 4, col = "darkgrey"))
+	} else{
+	    for (x in 1:length(grid.points))
+	        text(no(grid.points[x]) * weights2[1], 0.05, names(grid.points)[x], cex = 0.6, pos = 2, col = "darkgrey")
+            if (length(dimensions)/2 == round(length(dimensions)/2)) 
+		for (x in 1:length(grid.points))
+	                text(-no(grid.points[x]) * weights2[round(length(weights2)/2)], 0.05, names(grid.points)[x], cex = 0.6, pos = 4, col = "darkgrey")
+	}
+    }
+    if (add.labels) 
+        if (add.numbers) {
+            text(weights * cos(theta)[-(length(dimensions) + 
+                1)], weights * sin(theta)[-(length(dimensions) + 
+                1)], paste0(1:length(dimensions), ". ", 
+                names(dimensions)), pos = ifelse(cos(theta)[-(length(dimensions) + 
+                1)] < 0, 2, 4), xpd = T, cex = 0.6)
+        }
+        else {
+            text(weights * cos(theta)[-(length(dimensions) + 
+                1)], weights * sin(theta)[-(length(dimensions) + 
+                1)], paste0(names(dimensions)), pos = ifelse(cos(theta)[-(length(dimensions) + 
+                1)] < 0, 2, 4), xpd = T, cex = 0.6)
+        }
+    title(main, cex.main = 0.8)
+}
+spiderplot=f#f(c(-1,.25,.5))
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "flowerplot" 
+#------------
+d <- paste0(
+	"#' Function flowerplot\n",
+	"#' \n#' Plots data.frame as a field of flowers.\n",
+	"#' @param x Numeric data.frame or matrix containing the values to be displayed.\n",
+	"#' @param maximum Numeric value representing the maximum value. Only needs to be specified when the data does not contain the theoretically possible maximum.\n",
+	"#' @param rownames Character vector of the same length as x, containing the row names to be displayed. If NULL (default) rownames of x are applied.\n",
+	"#' @param colnames Character vector of the same length as x, containing the column names to be displayed. If NULL (default) colnames of x are applied.\n",
+	"#' @param main Character value, containing the title to be displayed. Defaults to NULL.\n",
+	"#' @param color Character vector, containing the colors of petals. If NULL (default) rainbow palette is applied.\n",
+	"#' @param color2 Character value, containing the color of the background petals. If NULL, no background petals are plotted. Defaults to \"lightgrey\".\n",
+	"#' @details Plots data.frame as a field of flowers. Each column is represented as a separate flower, each row as a flower's petal.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' flowerplot()")
+f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NULL,color2="lightgrey"){
+	if(!is.null(x))data=data.frame(x)else data=NULL;
+	if(is.null(data))data=data.frame(option1=c(1,1,1,1,1,1,1),option2=c(.9,.8,.5,.9,1,0,.1),option3=c(.8,.9,.8,.9,1,.9,.7),option4=c(.9,1,.7,.5,.5,.5,.5),option5=c(.4,.4,.4,1,1,1,1))
+	dist=4;
+	x=seq(-2,(dim(data)[2]-1)*dist+2,length.out=2)
+	if(!is.numeric(as.matrix(data))) stop("Wrong input. Please provide a numerical matrix.");
+	data=as.matrix(data);
+	if(is.null(maximum))maximum=max(data)
+	data=data/max(c(data,maximum));
+	if(!(dim(data)[1]>1 & dim(data)[2]>1)) stop("Wrong input. Please provide a matrix with at least two rows and two columns.");
+	if(is.null(rownames(data)) && is.null(rownames)) rownames=paste0("v",1:dim(data)[1]); # Wenn keinerlei Namen angegeben wurden, nummeriere Spalten
+	if(!is.null(rownames(data)) && is.null(rownames)) rownames=rownames(data); # Wenn die data mit Namen geliefert wurden, verwende diese Namen
+	if(is.null(colnames(data)) && is.null(colnames)) colnames=1:dim(data)[2]; # Wenn keinerlei Namen angegeben wurden, nummeriere Spalten
+	if(!is.null(colnames(data)) && is.null(colnames)) colnames=colnames(data); # Wenn die data mit Namen geliefert wurden, verwende diese Namen
+	helleFarbe=rgb(.9,.9,.9)
+	if(is.null(color)){color=rainbow(dim(data)[1]);}#rgb(0/255,84/255,122/255);helleFarbe=rgb(217/255,231/255,239/255)}
+        if(length(color)!=dim(data)[1])farben=colorRampPalette(c(helleFarbe,color))(dim(data)[1]+1) else farben=color;
+	petal=function(a=.5,b=1,l=1,max.l=7,fl=1,he=0,col=farben[l],border=NULL){
+		theta<-seq(0,2*pi,length=100);
+		x0=b*sin(seq(0,2*pi,length.out=max.l))[l];
+		y0=b*cos(seq(0,2*pi,length.out=max.l))[l];
+		r=seq(0,2*pi,length.out=max.l)[l]
+		x=a*b*cos(theta);y=b*sin(theta)		
+		xr=dist*(fl-1)+x0+x*cos(r)+y*sin(r)
+		yr=he+y0-x*sin(r)+y*cos(r)
+		polygon(xr,yr,col=col,border=border);
+	}	
+	plot(x,x,type="n", xlab="",ylab="", axes = FALSE,xlim=c(-2-dist/2,dist*3/4+dist*(dim(data)[2]))+dist/2) 
+	for(flower1 in 1:dim(data)[2]){
+		height=(max(x)-2)*(colSums(data)/max(colSums(data)))[flower1]
+		segments(dist*(flower1-1),0,dist*(flower1-1),height,col="darkgreen",lwd=3);
+		for(petal1 in 1:dim(data)[1]){
+			petal(.3,1,petal1,dim(data)[1]+1,flower1,height,col=color2[1],border=NA)
+			petal(.3,data[petal1,flower1],petal1,dim(data)[1]+1,flower1,height)
+		}
+		polygon(dist*(flower1-1)+.5*sin(seq(0,2*pi,length.out=dim(data)[1]+1)),height+.5*cos(seq(0,2*pi,length.out=dim(data)[1]+1)), col="black");
+		text(dist*(flower1-1),0,colnames[flower1],pos=1)
+	}
+	segments(-2,0,dist*(dim(data)[2])+1,0,col="darkgreen",lwd=3);	
+	if(!is.null(main)) title(main);
+	legX=dist*3/4+dist*(dim(data)[2]);
+	legend(x=legX-dist,y=legX-dist, legend=c(rownames), fill = farben[1:(dim(data)[1]+1)],bg="white",bty="n",xpd=T);	
+	return(data);
+}
+flowerplot=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n<-"plotMAT";
+#------------
+d <- paste0(
+	"#' Function plotMAT\n",
+	"#' \n#' Plots a numeric matrix as one line per row.\n",
+	"#' @param matrix Numeric matrix containing the values to be displayed.\n",
+	"#' @param main Character value representing the barplot's title. If NULL (default) it's set to \"Cumulation over time\"\n",
+	"#' @param xlab Character value representing the x-axis label. If NULL it's set to \"time\". Defaults to \"\"\n",
+	"#' @param ylab Character value representing the y-axis label. If NULL (default) it's set to \"cumulated sum\" if cumsum==T, and to \"value\" otherwise.\n",
+	"#' @param lwd Numeric vector specifying line width. Defaults to 2.\n",
+	"#' @param lty Numeric vector specifying line type. Defaults to 1.\n",
+	"#' @param pch Numeric vector specifying points type. Defaults to NULL.\n",
+	"#' @param type Numeric vector specifying plot-type of lines. Defaults to \"l\".\n",
+	"#' @param main Character value representing the title. If NULL (default) it's set to \"Cumulation over Time\" if cumsum==T, and to \"Development over Time\" otherwise.\n",
+	"#' @param xlim Numeric vector with two elements. If NULL (default) xlim is detemined automatically.\n",
+	"#' @param ylim Numeric vector with two elements. If NULL (default) ylim is detemined automatically.\n",
+	"#' @param xlim.factor Numeric value for adding extra space to the right of the plot. Defaults to 1.\n",
+	"#' @param las Numeric value specifying the rotation of the y-axis (0 for 90 percent rotation, 1 for 0 percent rotation). Defaults to 1.\n",
+	"#' @param srt Numeric value specifying the rotation of the x-axis (between 0 and 360 degrees). Defaults to 45.\n",
+	"#' @param cumsum Logical value indicating whether the cumsum of each row in the matrix of each row should be plotted. Defaults to T.\n",
+	"#' @param show.legend Logical value indicating whether a legend should be drawn instead of texts. Defaults to T.\n",
+	"#' @param add Logical value indicating whether to draw lines to an existing plot. Defaults to F.\n",
+	"#' @param add.shadow Logical value indicating whether lines should be surrounded ba a black line. Defaults to F.\n",
+	"#' @param grid Logical value indicating whether a grid should be drawn. Defaults to T.\n",
+	"#' @param col Vector containing each line's color. If NULL (default) colors are generated based on the rainbow-palette.\n",
+	"#' @param cex Relative size of legend font. Defaults to .7.\n",
+	"#' @param cex.axis1 Relative size of x-axis font. Defaults to .7.\n",
+	"#' @param cex.axis2 Relative size of y-axis font. Defaults to .7.\n",
+	"#' @param frame Relative size of invisible frame around fonts. Defaults to 1.\n",
+	"#' @param manual.addon Numeric vector containing verical adjustments.\n",
+	"#' @details Plots a numeric matrix as one line per row. By default cumsum of each row is plotted.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' plotMAT()"
+);
+
+f<-function(matrix=NULL,main=NULL,xlab="",ylab=NULL,lwd=2,lty=1,pch=NULL,type="l",xlim=NULL,ylim=NULL,xlim.factor=1.5,las=1,srt=45,cumsum=T,show.legend=F,add=F,add.shadow=F,grid=T,col=NULL,cex=.7,cex.axis1=.5,cex.axis2=.7,frame=1,manual.addon=NULL){
+	if(is.null(matrix)){ matrix=t(data.frame(
+		"ID 15455/20157"=c(32,254,22,54,35,30,46,245,10,6,17,24,16,14,16,22,36,192,89,133,14,5,11,13,18,5),
+		"ID 34608/32684"=c(NA,NA,NA,NA,NA,NA,83,76,37,26,17,29,29,30,14,24,9,20,9,19,23,11,15,17,13,	4),
+		"ID 17663/17669"=c(153,175,12,38,5,24,33,6,44,108,33,31,6,25,15,12,13,11,15,12,8,10,7,9,6,	5),
+		"ID 28510/27028"=c(NA,174,28,30,22,34,47,22,20,16,14,23,23,7,22,20,34,226,99,156,13,13,13,31,19,17),
+		"ID 43102/40459"=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,62,70,51,49,34,64,84,87,	62),
+		"ID 33651/27352"=c(NA,33,3,6,7,10,3,2,3,0,4,7,4,4,6,2,1,3,3,4,4,1,1,0,1,			2),
+		"ID 29308/26102"=c(NA,94,5,8,6,8,13,13,7,6,10,12,8,7,13,12,2,12,6,6,14,7,8,5,5,			6),
+		"ID 43868/37385"=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,3,26,9,3,8,3,6,11,2,4,2,2,		2),
+		"ID 37687/35162"=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,39,23,19,21,39,50,241,90,128,15,13,18,10,24,17),
+		"ID 23807/17668"=c(130,173,8,9,1,2,11,2,56,1,11,14,11,14,9,5,4,5,11,9,6,3,6,4,5,		5),
+		"ID 13131/19021"=c(102,241,17,23,14,4,20,5,11,3,9,15,9,3,9,9,2,15,11,7,10,5,7,7,9,		7),
+		"ID 26416/21633"=c(12,142,5,7,10,2,24,9,5,6,10,9,8,5,14,5,1,17,4,7,8,2,5,3,1,			4),
+		"ID 40004/35160"=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,30,11,18,20,15,17,17,17,12,24,11,21,5,17,	11),
+		"ID 33724/29549"=c(NA,NA,NA,NA,53,26,38,27,24,16,22,24,30,32,25,25,28,27,21,19,11,7,12,19,7,	16),
+		"ID 28995/22724"=c(NA,184,15,14,21,9,18,3,8,1,7,10,9,5,13,7,2,3,3,7,5,2,4,4,1,			5),
+		"ID 23945/22084"=c(12,447,22,17,12,11,23,4,10,5,18,14,11,9,11,4,18,13,17,19,21,20,20,6,8,	9),
+		"ID 41543/37287"=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,55,27,20,24,32,8,13,13,8,11,11,20,	5),
+		"ID 33346/29578"=c(NA,NA,NA,12,44,23,12,6,11,2,10,15,17,4,6,4,4,6,5,7,6,3,5,1,3,		4),
+		row.names=c("2015","2016","Jan 2017","Feb 2017","Mar 2017","Apr 2017","May 2017","Jun 2017","Jul 2017","Aug 2017","Sep 2017","Oct 2017","Nov 2017","Dec 2017","Jan 2018","Feb 2018","Mar 2018","Apr 2018","May 2018","Jun 2018","Jul 2018","Aug 2018","Sep 2018","Oct 2018","Nov 2018","Dec 2018")));}
+	if(is.null(xlab))xlab="time";
+	if(is.null(ylab))ylab=ifelse(cumsum,"cumulated sum","value");
+	if(is.null(main))main=ifelse(cumsum,"Cumulation over Time","Development over Time");
+	if(!is.null(manual.addon))if(length(manual.addon)!=dim(matrix)[1]/2)manual.addon=rep(0,dim(matrix)[1]/2)	
+	cs=matrix;if(cumsum)cs=t(apply(matrix,1,function(x){x[is.na(x)]=0;return(cumsum(x))}))
+	if(cumsum)cs=cs[order(cs[,dim(cs)[2]],decreasing=T),]
+	if(!cumsum)cs=cs[order(rowSums(cs,na.rm=T),decreasing=T),]
+	if(is.null(rownames(cs)))rownames(cs)=1:dim(cs)[1]
+	if(is.null(colnames(cs)))colnames(cs)=1:dim(cs)[2]
+	if(is.null(col))col=rainbow(dim(cs)[1])
+	if(is.null(ylim))ylim=c(min(cs,na.rm=T),max(cs,na.rm=T))
+	if(is.null(xlim))xlim=c(1,dim(cs)[2]*xlim.factor)
+	if(is.null(lwd))lwd=1;		if(length(lwd)!=dim(cs)[1])lwd=rep(lwd[1],dim(cs)[1])
+	if(is.null(lty))lty=1;		if(length(lty)!=dim(cs)[1])lty=rep(lty[1],dim(cs)[1])
+	if(is.null(pch))pch=15;		if(length(pch)!=dim(cs)[1])pch=rep(pch[1],dim(cs)[1])
+	if(is.null(type))type="l";	if(length(type)!=dim(cs)[1])type=rep(type[1],dim(cs)[1])
+	if(!add)
+	plot(1:dim(cs)[2],seq(0,max(cs,na.rm=T),length.out=dim(cs)[2]),type="n",ylim=ylim,xlim=xlim,xaxt="n", xlab=xlab,ylab=ylab,main=main,las=las,cex.axis=cex.axis2);
+	if(grid){
+		abline2=function(cs,...){xaxp<-par("xaxp");yaxp<-par("yaxp");segments(x0=0,y0=seq(yaxp[1], yaxp[2],(yaxp[2]-yaxp[1])/yaxp[3]),x1=dim(cs)[2],y1=seq(yaxp[1], yaxp[2],(yaxp[2]-yaxp[1])/yaxp[3]),...);}
+		abline2(cs,col=rgb(0,0,0,.1));
+	};
+	for(i in 1:dim(cs)[1]){ if(add.shadow)lines(1:dim(cs)[2],cs[i,],col="black",lwd=lwd[i]+2,lty=lty[i],type=type[i],pch=pch[i])
+		lines(1:dim(cs)[2],cs[i,],col=col[i],lwd=lwd[i],lty=lty[i],type=type[i],pch=pch[i])}
+	axis(1, at=1:dim(cs)[2],labels=rep(NA,dim(cs)[2]),cex.axis=cex.axis1,las);x0=cs;x0=min(x0)-.08*(max(x0)-min(x0));
+	text((1:dim(cs)[2])+(0.02*dim(cs)[2]),x0,colnames(cs),pos=2,srt=srt,xpd=T,cex=cex.axis1)
+	order=order(cs[,dim(cs)[2]],decreasing=T);cs=cs[order,];
+	if(!is.null(manual.addon)&!show.legend){
+		text(dim(cs)[2]+1,cs[,dim(cs)[2]]+manual.addon,rownames(cs),pos=4,cex=cex);
+		points(x=rep(dim(cs)[2]+1,dim(cs)[1]),y=cs[,dim(cs)[2]]+manual.addon,col=col[order],pch=15)#15&0  19&1 col[rainbow(dim(cs)[1])[order(cs[,dim(cs)[2]],decreasing=T)]
+		points(x=rep(dim(cs)[2]+1,dim(cs)[1]),y=cs[,dim(cs)[2]]+manual.addon,col="black",pch=0)
+	}else
+	if(!show.legend){
+		x1=rep(dim(cs)[2]+1,dim(cs)[1])
+		y1=cs[,dim(cs)[2]]
+		text1=rownames(cs)
+		d=qqBaseX::decollide(x1,y1,text1,cex=cex,verbose=F,frame=frame,lock.x=T);
+		x1=as.numeric(d[,1]);y1=as.numeric(d[,2]);text1=d[,3]
+		text(x1,y1,text1,pos=4,cex=cex);
+		points(x=x1,y=y1,col=col[order],pch=15)#15&0  19&1 #rainbow(dim(cs)[1])[order(y1,decreasing=T)]
+		points(x=x1,y=y1,col="black",pch=0)
+	}
+	if(show.legend)legend("right",rownames(cs),fill=col[order],cex=cex)
+}
+plotMAT=f #f()
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n<-"plotLM"
+#-------------
+d <- paste0(	"#' Function plotLM\n",
+		"#' \n#' Plots regression coefficiens based on lm object.\n",
+		"#' @param lm Object of class lm.\n",
+		"#' @details Plots regression coefficiens based on lm object.\n",
+		"#' @keywords plotting\n",
+		"#' @export\n",
+		"#' @examples\n",
+		"#' plotLM()")
+f<-function(lm=NULL,...){
+	if(is.null(lm))lm=lm(y~.,data=data.frame(y=rnorm(100),x=rnorm(100),z=rnorm(100)));
+	data=data.frame(coef(lm),confint(lm))
+	data=(data+1)/2
+	spiderplot(x=data[,1],lower=data[,2],upper=data[,3],names=names(coef(lm)),...);
+	title(sub=paste0(expression(R^2)," = ",round(summary(lm)$r.squared,2)))
+	return(summary(lm));
+}
+plotLM=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n<-"plotDF"
+#-------------
+d <- paste0(	"#' Function plotDF\n",
+		"#' \n#' Plots each vector of a data.frame.\n",
+		"#' @param data Numeric data.frame.\n",
+		"#' @param col Character vector specifying each plot's color. If NULL (default) the rainbow palette is applied.\n",
+		"#' @details Plots each vector of a data.frame either as histogram or as barplot.\n",
+		"#' @keywords plotting\n",
+		"#' @export\n",
+		"#' @examples\n",
+		"#' plotDF()")
+f<-function(data=NULL,col=NULL,...){
+	if(is.null(data))data=data.frame(x=rnorm(100),y=rnorm(100),z=as.factor(round(rnorm(100))))
+	if(is.null(dim(data)))stop("data should be a data.frame or a numeric matrix");
+	if(is.null(col))col=rainbow(dim(data)[2])
+	par(mfrow=c(ceiling(sqrt(dim(data)[2])),ceiling(sqrt(dim(data)[2]))));
+	for(i in 1:dim(data)[2]) 
+		if(is.numeric(data[,i])){hist(data[,i],xlab=colnames(data)[i],main=colnames(data)[i],col=col[i],...)}else{
+					 qqBaseX::bp(c(table(data[,i])),main=colnames(data)[i],col=col[i],...)}
+}
+plotDF=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+
+
+n<-"boxedText"
+#-----------
+d <- paste0(	"#' Function boxedText\n",
+		"#' \n#' Adds a boxed text to a plot.\n",
+		"#' @param x Numeric value specifying the text's position on the x-axis.\n",
+		"#' @param y Numeric value specifying the text's position on the y-axis.\n",
+		"#' @param x2 Numeric value specifying the arrow's position on the x-axis.\n",
+		"#' @param y2 Numeric value specifying the arrow's position on the y-axis.\n",
+		"#' @param txt Character value specifying the text to be plotted.\n",
+		"#' @param col Character value specifying the color of the box. Defaults to \"yellow\".\n",
+		"#' @param col Character value specifying the color of the border. Defaults to \"black\".\n",
+		"#' @param pos Numeric value specifying the position of the arrow relative to the box (0=no arrow plotted, 1=down, 2=left, 3=up, 4=right).\n",
+		"#' @param ... Additional graphical parameters for text.\n",
+		"#' @details Adds a boxed text to a plot.\n",
+		"#' @keywords plotting\n",
+		"#' @export\n",
+		"#' @examples\n#' plot(1:10,1:10);boxedText(7,2.5,text=\"This (3;3) is a remarkable point worth emphasizing\",3,3,col=\"yellow\",maxlength=20)"
+		)
+f<-function(x,y,text="Hello \nWorld",x2=NULL,y2=NULL,maxlength=NULL,col="yellow",border="black",pos=NULL,font=1,hspace=1,vspace=1.2,cex=1,decollide=F,decollide.repetitions=10,...){
+
+	if(length(x)>1|length(y)>1){
+		if(length(y)>length(x))x=rep(x[1],length(y))
+		if(length(y)<length(x))y=rep(y[1],length(x))
+		if(length(text)!=length(x))text=rep(text[1],length(x))
+		if(is.null(x2))x2=x;
+		if(is.null(y2))y2=y;
+		if(length(x2)!=length(x))x2=rep(x2[1],length(x))
+		if(length(y2)!=length(x))y2=rep(y2[1],length(x))
+		if(length(col)!=length(x))col=rep(col[1],length(x))
+		if(length(border)!=length(x))border=rep(border[1],length(x))
+		if(length(pos)!=length(x))pos=rep(pos[1],length(x))
+		if(length(cex)!=length(x))cex=rep(cex[1],length(x))
+		if(!is.null(maxlength))
+		for(i in 1:length(x))text[i]=qqBaseX::trim(qqBaseX::textbreaker(text[i],maxlength=maxlength))
+		if(decollide){print(paste0("x=",x,"\ny=",y,"\ntext=",text));d=qqBaseX::decollide(x,y,text,repetitions=decollide.repetitions);x=d[,"x"];y=d[,"y"]}
+		for(i in 1:length(x))
+			boxedText(x=x[i],y=y[i],text=text[i],x2=x2[i],y2=y2[i],maxlength=maxlength,col=col[i],border=border[i],pos=pos[i],font=font,hspace=hspace,vspace=vspace,cex=cex[i],...)		
+		return()
+	}
+
+	if(is.null(x2)|is.null(y2))pos=NA;
+	if(!is.null(pos))if(!is.numeric(pos))pos=NA else if(pos>4)pos=NA;
+	if(!is.null(maxlength))text=qqBaseX::trim(qqBaseX::textbreaker(text,maxlength=maxlength))
+	if(decollide){d=qqBaseX::decollide(x,y,text,repetitions=decollide.repetitions);x=d[,"x"];y=d[,"y"]}
+	sw=strwidth(text,font=font,cex=cex,units="user")*hspace;sh=strheight(text,font=font,cex=cex,units="user")*vspace;
+	if(is.null(pos))
+		if(( y2<=y+sh/2 & y2>=y-sh/2 & x2<=x+sw/2 & x2>=x-sw/2))pos=NA else
+		if(abs(y2-y)-sh/2>abs(x2-x)-sw/2){if((y2-y)< 0)pos=1 else pos=3}else
+		if(abs(x2-x)-sw/2>=abs(y2-y)-sh/2){if((x2-x)< 0)pos=2 else pos=4}
+
+	if(is.na(pos)){
+	polygon(x=c(x-sw/2,x+sw/2,
+	    	x+sw/2,x-sw/2),
+		y=c(y+sh/2,y+sh/2,
+	    	y-sh/2,y-sh/2),col=col,border=border)
+	}else{
+	if(pos==0)
+	polygon(x=c(x-sw/2,x+sw/2,
+	    	x+sw/2,x-sw/2),
+		y=c(y+sh/2,y+sh/2,
+	    	y-sh/2,y-sh/2),col=col,border=border)
+	if(pos==1)
+	polygon(x=c(x-sw/2,x+sw/2,
+		x+sw/2,x+sw/6,x2,x-sw/6,x-sw/2),
+		y=c(y+sh/2,y+sh/2,
+		y-sh/2,y-sh/2,y2,y-sh/2,y-sh/2),col=col,border=border)
+	if(pos==2)
+	polygon(x=c(x-sw/2,x+sw/2,
+		x+sw/2,x-sw/2,x-sw/2,x2,x-sw/2),
+		y=c(y+sh/2,y+sh/2,
+	    	y-sh/2,y-sh/2,y-sh/6,y2,y+sh/6),col=col,border=border)
+	if(pos==3)	
+	polygon(x=c(x-sw/2,x-sw/6,x2,x+sw/6,x+sw/2,
+	    	x+sw/2,x-sw/2),
+		y=c(y+sh/2,y+sh/2,y2,y+sh/2,y+sh/2,
+	    	y-sh/2,y-sh/2),col=col,border=border)
+	if(pos==4)
+	polygon(x=c(x-sw/2,x+sw/2,x+sw/2,x2,x+sw/2,
+	    	x+sw/2,x-sw/2),
+		y=c(y+sh/2,y+sh/2,y+sh/6,y2,y-sh/6,
+	    	y-sh/2,y-sh/2),col=col,border=border)
+	}
+	text(x,y,text,cex=cex,font=font,...);
+}
+boxedText=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+###########################################
+# Fitting
+###########################################
+
+n<-"af.hclust"
+#----------
+d <- paste0(	"#' Function af.hclust\n",
+		"#' \n#' Cluster analysis of data.frame.\n",
+		"#' @param data Numeric data.frame.\n",
+		"#' @details Cluster analysis of data.frame.\n",
+		"#' @keywords modeling\n",
+		"#' @export\n",
+		"#' @examples\n#' af.hclust(data.frame(x=rnorm(100),y=rnorm(100)+scale(1:100),z=rnorm(100)+scale(1:100)));"
+		)
+f<-function(data,dist.function=function(x)as.dist(1-cor(x)),method="complete",k=NULL,plot=T){
+	hclustering=hclust(dist.function(data),method=method);
+	if(plot)plot(hclustering,main="hierarchical cluster analysis",cex=.6) 
+	clusters=cutree(hclustering,k=1)
+	if(!is.null(k))if(k>0)clusters=cutree(hclustering,k=k)
+	hclustering[["clusters"]]=clusters
+	return(hclustering)
+}
+af.hclust=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+###########################################
+# Analyzing
+###########################################
+
+n <- "deltas"
+#------------
+d <- paste0(	"#' Function deltas\n",
+		"#' \n#' Calculates the difference in \\eqn{expression(R^2)} that results from omitting a predictor for each predictor.\n",
+		"#' @param model Any object that works as input for function predict.\n",
+		"#' @param x data.frame with numeric vectors.\n",
+		"#' @param y numeric vector.\n",
+		"#' @param fun A function that specifies what a predictor should be replaced with to remove its influence. Defaults at mean.\n",
+		"#' @param plot Logical value indicating whether to plot the barplot. Defaults zo T.\n",
+		"#' @param main Character vector with one element containing the barplot's title. Defaults to \"Fischer's Delta\".\n",
+		"#' @param xlab Character vector with one element containing the barplot's x-axis label. Defaults to \"Predictor\".\n",
+		"#' @param ylab Character vector with one element containing the barplot's y-axis label. Defaults to \"\\eqn{R^2}\".\n",
+		"#' @param col Vector containing the color of bars. If NULL (default) colors are generated based on the rainbow-palette.\n",
+		"#' @param ... Additional graphical parameters for barplot.\n",
+		"#' @details Calculates the difference in R^2 that results from omitting a predictor for each predictor as described by Fischer(2015).\n",
+		"#' @keywords modeling\n",
+		"#' @export\n",
+		"#' @references Fischer (2015). How to determine the unique contributions of input-variables to the nonlinear regression function of a multilayer perceptron. Ecological Modelling, 309, 60-63.\n",
+		"#' @examples\n",
+		"#' data=data.frame(y=rnorm(100)+scale(1:100),x1=rnorm(100)+scale(1:100),x2=rnorm(100));\n",
+		"#' l=lm(y~.,data=data)\n",
+		"#' deltas(l,data[c(\"x1\",\"x2\")],data[\"y\"])"		
+		)
+f <- function (model, x=NULL, y=NULL, fun=mean, plot=T, main="Fischer's Delta",xlab="Predictor",ylab=expression(R^2),col=NULL,...) {
+	el=list(...)
+	if(is.null(x)|is.null(y))stop("Please specify predictor x and criterion y!");
+	if(sd(predict(model),na.rm=T)==0)stop("No variation in model predictions")
+       	if(dim(data.frame(x))[2]<2) {val=rep(cor(predict(model),data.frame(y)[[1]])[1]^2,2);names(val)=c("x1","reference");return(val);} 
+        l=list();for(j in 1:dim(data.frame(x))[2]){
+		d=data.frame(x);for(i in 1:dim(d)[2]){if(i==j)d[,i]=fun(d[,i],na.rm=T);};l[[j]]=predict(model, newdata=d);}; 
+        l[[dim(data.frame(x))[2]+1]]=predict(model,newdata=data.frame(x));l=as.data.frame(l);names(l)=c(1: (length(l)-1));names(l)[length(l)]=c("reference"); 
+       	val=(cor(data.frame(l,y))[length(l)+1,][-(length(l)+1)])^2; val[1:(length(val)-1)]=val[length(val)]-(val[1:(length(val)-1)]); 
+        val[apply(l,2,var)==0]=val[length(val)] # if omitting a predictor results in prediction with zero vaiance, use R^2 of reference
+       	if(plot==T){if(is.null(col))col=rainbow(length(val)-1);bp=barplot(val[1:(length(val)-1)], ylab=ylab,xlab=xlab,ylim=c(0,1),col=col,main=main,...);
+	text(x=bp, y= val[1:(length(val)-1)], labels=round(val[1:(length(val)-1)],2), pos=3,xpd=T);
+	title(sub=paste("(Overall",expression(R^2),"=",round(val[length(l)],2),")"));};
+	return (val);
+}
+deltas=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "af.sensitivity"
+#-----------------
+d <- paste0(	"#' Function af.sensitivity\n",
+		"#' \n#' Plots Lek-Pofiles and Fischer's Deltas.\n",
+		"#' @param model Any object that works as input for function predict.\n",
+		"#' @param x data.frame with numeric predictor variables.\n",
+		"#' @param y numeric criterion variable.\n",
+		"#' @details Plots Lek-Pofiles and Fischer's Deltas (i.e., the difference in R^2 that results from omitting a predictor for each predictor, as described by Fischer(2015)).\n",
+		"#' @keywords modeling\n",
+		"#' @export\n",
+		"#' @examples\n",
+		"#' data=data.frame(y=rnorm(100)+scale(1:100),x1=rnorm(100)+scale(1:100),x2=rnorm(100));\n",
+		"#' l=lm(y~.,data=data)\n#' sensitivity(l,data[c(\"x1\",\"x2\")],data[\"y\"])"
+)
+f <- function (model, x=NULL, y=NULL, steps=100, splitseq=seq(0,1,by=0.25), plot=T, ...){
+	el=list(...)
+	if(is.null(x)|is.null(y))stop("Please specify predictor x and criterion y!");
+	x=as.data.frame(x);y=as.data.frame(y);
+	if(is.null(colnames(x)))colnames(x)=paste0("Input ",1:dim(x)[2]);
+
+	con=deltas(model,x,y,plot=F)
+	vars=dim(x)[2];splits=length(splitseq);ar=array(dim=c(steps,dim(x)[2]));
+        for(i in 1:vars)ar[,i]=seq(from=min(x[,i]), to=max(x[,i]), length.out=steps); #fülle für jede Inputvariable i in "vars" das Array "ar" mit "steps" Schritten die den Wertebereich von i abdecken
+        ar1=array(dim=c(steps,vars,splits));ar2=array(dim=c(steps,splits,vars));
+        for(j in 1:splits)for(i in 1:vars){for(k in 1:steps){
+                    for(z in 1:vars) ar1[k,z,j]=quantile(x[,z], probs=splitseq)[j]; #schreibe für jede Variable z das j-te Quantil in ar1
+                    ar1[k,i,j]=ar[k,i];                                             #überschreibe für die aktuelle Variable den Eintrag in ar1 mit dem aktuellen Wert
+            };dat=data.frame(ar1[,,j]);colnames(dat)=colnames(x);ar2[,j,i]=predict(model, newdata=dat);}; #berechne Vorhersage für jeden split j                   
+        ar=ar2;tryCatch({ar=(ar2-mean(y[[1]],na.rm=T))/sd(y[[1]],na.rm=T);},error=function(cond){;}); #scale all predictions based on y-values
+	re=array(dim=c(steps,vars));for(j in 1:vars)for(k in 1:steps)re[k,j]=median(ar[k,,j]);
+        if(plot==T){
+		plot(seq(1:steps),re[,1], xlim=c(0,steps), 
+		ylim=ifelse(length(el[["ylim"]])>0,el["ylim"],list(c(min(y),max(y))))[[1]],
+		main=ifelse(length(el[["main"]])>0,el["main"],list(paste0("Sensitivity Analysis\n","(",expression(R^2),"=",round(con[length(con)],2),")")))[[1]], 
+		type="n", ylab="median prediction",xlab="% of input range");		
+		colors1=apply(col2rgb(rainbow(vars)),2,function(x)rgb(x[1]/255,x[2]/255,x[3]/255,1));
+		colors2=apply(col2rgb(rainbow(vars)),2,function(x)rgb(x[1]/255,x[2]/255,x[3]/255,.3));
+        	for (i in 1:vars){for(s in 1:splits)lines(seq(1:steps),ar[,s,i], lty=i, lwd=1, col=colors2[i]);lines(seq(1:steps),re[,i], lty=i, lwd=3, col=colors1[i]);};
+		legend("bottomright",legend=paste0(colnames(x)," (",expression(R^2),"=",round(con[1:length(con)-1],2),")"), lty=1:vars, col=colors1, bg = "white", inset=0.01,cex=.7);
+	};
+	ri=array(dim=c(vars));for (i in 1:vars)ri[i]=max(re[,i])-min(re[,i]);
+	return(data.frame(Fischer.Delta=con[-length(con)],Lek.Range=ri,row.names=colnames(x)));
+}
+af.sensitivity=f; #data=data.frame(y=rnorm(100),x=rnorm(100),z=rnorm(100));n1=nnet(y~.,data,size=3,linout=T);af.sensitivity(n1,data[,2:3],data[,1])
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+###########################################
+# Preprocessing
+###########################################
+
+n<-"prepareDF"
+#----------
+d <- paste0(	"#' Function prepareDF\n",
+		"#' \n#' Scales numeric data and dummy codes factors, omits outliers and missing values.\n",
+		"#' @param data data.frame containing data.\n",
+		"#' @param output index or name of criterion in data.\n",
+		"#' @param out.omit logical value, specifying whether outlier (scale(data)>3) shoud be set to NA.\n",
+		"#' @param na.omit logical value, specifying whether NA shoud be omitted.\n",
+		"#' @keywords preprocessing\n",
+		"#' @export\n",
+		"#' @examples\n",
+		"#' data=data.frame(y=rnorm(100),x1=rnorm(100),x2=rnorm(100));\n",
+		"#' prepareDF(data,\"y1\")"
+		)
+f <- function(data,output=NULL,scale=T,out.omit=T,na.omit=T){
+	data=data.frame(data)
+	if(is.null(names(data)))names(data)=1:dim(data)[2]
+	if(is.numeric(output)) output=ifelse(output>dim(data)[2],1,output);
+	if(is.character(output)) output=ifelse(length(grep(output,names(data)))==0,1,which(names(data)==output)[1])
+	if(!is.null(output))names(data)[output]="output";
+	if(is.null(output))names(data)[1]="output";
+	data=data.frame(data);
+	if(scale) data0=data.frame(scale(data[!sapply(data,function(x)is.factor(x))])) else
+		  data0=data.frame(data[!sapply(data,function(x)is.factor(x))]);
+	data1=data[sapply(data,function(x)is.factor(x))];
+	if(dim(data1)[2])
+	for(i in 1:dim(data1)[2]){
+		dum=psych::dummy.code(data1[,i]);colnames.dum=paste0(colnames(data1)[i],".",colnames(dum));
+		dum=data.frame(dum[,-dim(psych::dummy.code(data1[,i]))[2]]);colnames(dum)=colnames.dum[-dim(psych::dummy.code(data1[,i]))[2]];
+		data0=data.frame(data0,dum);}
+	data=data0;
+	if(out.omit & sum(abs(scale(data))>3)>0){while(sum(abs(scale(data))>3)>0)data[abs(scale(data))>3,]=NA;message("Ouliers set to NA");}
+	if(na.omit & sum(complete.cases(data))!=dim(data)[1]){data=data[complete.cases(data),];message("Rows with NA removed");}
+	return(data);
+}
+prepareDF=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n<-"matchAll"
+#----------------
+d<-paste0(
+	"#' Function matchAll\n",
+	"#' \n#' Search for matches to argument pattern within each element of a character vector. Returns corresponding substrings (compare stringr::str_match_all).\n",
+	"#' @param string Character vector where matches are sought.\n",
+	"#' @param pattern  Character string containing a regular expression (or character string for fixed = TRUE) to be matched in the given character vector.\n",
+	"#' @param value  Logical value. If T (default) returns substrings. Otherwise returns positions.\n",
+	"#' @keywords helper\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' matchAll(string=c(\"Hello world\",\"Hello\"),pattern=\"wo.*\")"
+);
+f<-function(string=NA,pattern=".*",value=T,...){
+	y=gregexpr(pattern,string,...)
+	l=(lapply(y,function(x)rbind(x,attr(x,"match.length"))))
+	if(value==F) return(lapply(l,t)) else
+	t=lapply(1:length(l),function(i){l1=l[[i]];cbind(apply(l1,2,function(x1)if(x1[2]>-1)return(substr(string[[i]],x1[1],x1[1]+x1[2]-1)) else return(matrix(NA,ncol=0,nrow=0))))})
+	return(t)
+}
+matchAll=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+n<-"matchOne"
+#----------------
+d<-paste0(
+	"#' Function matchOne\n",
+	"#' \n#' Search for first match to argument pattern within each element of a character vector. Returns corresponding substrings (compare stringr::str_match).\n",
+	"#' @param string Character vector where matches are sought.\n",
+	"#' @param pattern  Character string containing a regular expression (or character string for fixed = TRUE) to be matched in the given character vector.\n",
+	"#' @param value  Logical value. If T (default) returns substrings. Otherwise returns positions.\n",
+	"#' @keywords helper\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' matchOne(string=c(\"Hello world\",\"Hello\"),pattern=\"wo.*\")"
+);
+f<-function(string=NA,pattern=".*",value=T,...){
+	y=regexpr(pattern,string,...)
+	z=y + attr(y, "match.length")-1;
+	#z[attr(y, "match.length")==-1]=NA
+	l=cbind(y,z)
+	t=t(t(substr(string, y, z)))
+	if(value==F) return(l) else return(t)
+}
+matchOne=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+n <- "textbreaker";
+#-------------
+d <- paste0(	"#' Function textbreaker\n",
+		"#' \n#' Adds linebreaks to text.\n",
+		"#' @param text Character value containing the text to be split into multiple lines.\n",
+		"#' @param maxlength Numeric value specifying the maximum number of characters per line.\n",
+		"#' @details Adds linebreaks to text.\n",
+		"#' @keywords helper\n",
+		"#' @export\n",
+		"#' @examples\n#' textbreaker(\"hello world hello world hello world hello world\")"
+		)
+f <- function(
+	    text="Let's write some text with many different words and plot it in a nice little device.", 
+	    maxlength=30,
+	    lspace=1,
+	    size=1,
+	    centered=F,
+	    separator="\n     ",
+	    plot=F
+	){     
+	     count=1;text=gsub("<br>"," ",text);
+	     while(nchar(text[length(text)])>maxlength){
+		count=count+1;
+		if(count>10)break;
+	        spacePos=as.vector(gregexpr ("( |\n|/)", text[length(text)])[[1]])
+	        spacePos=spacePos[spacePos<maxlength];
+	        spacePos=spacePos[length(spacePos)];
+	        if(length(spacePos)==0){
+	            spacePos=maxlength;#spacePos=as.vector(gregexpr (" ", text[length(text)])[[1]]);spacePos=spacePos[length(spacePos)];
+	        }
+	        if(length(spacePos)==0)break;
+	        text=c(
+	            text[-length(text)],
+	            substr(text[length(text)],1,spacePos),
+	            substr(text[length(text)],spacePos+1,nchar(text[length(text)]))
+	        );
+	    }    
+	    p1=par("mai");p2=p1*0;par(mai=p2)
+	    th=par()$ps*1/72;
+	    fac=(th*lspace*1/dev.size()[2]*6*size*length(text));
+	    pos=NULL;if(!centered)pos=4;
+	    x=.05;if(centered)x=.5;
+	    y=(length(text):1)/length(text)*fac+(1-fac)-(1/dev.size()[2]^2)
+	    lines=length(text);
+	    text=paste0(text,collapse=separator);y=.5;
+	    if(plot){plot(0,0,type="n",axes=F);text(0,0,text);}
+	    par(mai=p1)
+	    return(text)
+}
+textbreaker=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "labelbreaker";
+#-------------
+d <- paste0(	"#' Function textbreaker\n",
+		"#' \n#' Adds linebreaks to each element of a character vector.\n",
+		"#' @details Adds linebreaks to each element of a character vector.\n",
+		"#' @keywords helper\n",
+		"#' @export\n",
+		"#' @examples\n#' textbreaker(\"hello world hello world hello world hello world\")"
+		)
+f <- function(x,length=30){e=character(0);for(i in x)e=c(e,textbreaker(i,maxlength=length));return(e);}
+labelbreaker=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+#####################################################################################
+# Text mining
+#####################################################################################
+
+n<-"tfIdf"
+#---------
+d <- paste0(	"#' Function tfIdf\n",
+		"#' \n#' Term-Frequency-Inverse-Term-Frequency.\n",
+		"#' @param dtm Document Term Matrix.\n",
+		"#' @param docs Numeric element specifying a document in the dtm. If NA (default tfIdf is calculated for each document)\n",
+		"#' @keywords text mining\n",
+		"#' @export"
+		)	
+f<-function (dtm, docs=NA,relative=T,bool=F) 
+{
+    if(is.null(docs)) docs=1:nrow(dtm) else
+    if(is.na(docs)) docs=1:nrow(dtm);
+    res=sapply(docs,function(x){
+	    doc=x
+	    tf <-  as.vector(dtm[doc, ]) #term-frequency
+	    if(bool) tf=as.numeric(tf>0) else
+	    if(relative) tf=tf/sum(as.vector(dtm[doc, ]))	
+	    idf <- log2(nrow(dtm)/colSums(dtm > 0))
+	    tfIdf <- tf * idf
+	    names(tfIdf) <- colnames(dtm)
+	    return(sort(tfIdf, decreasing = T))
+   })
+   return(res)
+}
+tfIdf=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+n <- "vecToTDM" 
+#------------------
+d <- paste0(	"#' Function vecToTDM\n",
+		"#' \n#' Term-Document matrix based on character vector.\n",
+		"#' @param corpus Character vector containing one document per element.\n",
+		"#' @details Term-Document matrix based on character vector.\n",
+		"#' @keywords text mining\n",
+		"#' @export\n",
+		"#' @examples\n#' vecToTDM(\"hello world\")"
+		)	
+f <- function(corpus="hello,  \nworld",stopwords=NULL,lowerCase=T,min=0,minDocs=0,sort=F,plot=F){
+        	if(lowerCase)corpus=tolower(corpus);s=list();n=character(0);
+        	for (i in 1:length(corpus)){dtm=gsub("\\W"," ",corpus[i]);#dtm=gsub("\n"," ",corpus[i]);dtm=gsub("-"," ",dtm);
+             	s[i]=strsplit(dtm," ");s[[i]]=s[[i]][s[[i]]!=""];s[[i]]=sort(table(s[[i]]),decreasing=T);n=c(n,names(s[[i]]))}
+        	n=levels(as.factor(n));m=matrix(nrow=length(n),ncol=length(corpus));rownames(m)=n;colnames(m)=paste0("d",1:length(corpus));
+        	for(i in 1:length(n))for(j in 1:length(corpus)){m[i,j]=s[[j]][n[i]];};m[is.na(m)]=0;m=data.frame(m);
+		if(!is.null(stopwords))m=m[is.na(match(rownames(m),stopwords)),]
+		if(sort)m=m[order(rowSums(m)),]
+		m1=NULL
+		m1=as.matrix(m[,colSums(m)>0])
+		if(is.null(colnames(m1))){colnames(m1)=colnames(m)[colSums(m)>0];rownames(m1)=rownames(m)};if(sum(dim(m))!=sum(dim(m1)))m=m1
+        	if(!is.null(min))m1=as.matrix(m[rowSums(m)>=min,]);
+		if(is.null(min)) m1=as.matrix(m[c(1:10,(dim(m)[1]-9):dim(m)[1]),]);
+		if(is.null(colnames(m1))){colnames(m1)=colnames(m);rownames(m1)=rownames(m)[rowSums(m>0)>=minDocs]};if(sum(dim(m))!=sum(dim(m1)))m=m1
+		if(!is.null(minDocs))	m1=as.matrix(m1[rowSums(m1>0)>=minDocs,]);
+ 		if(is.null(colnames(m1))){colnames(m1)=colnames(m);rownames(m1)=rownames(m)[rowSums(m>0)>=minDocs]};if(sum(dim(m))!=sum(dim(m1)))m=m1
+		if(paste(dim(m),collapse="")!=paste(dim(m1),collapse=""))warning("Dimensions of document-term-matrix reduced")
+       		if(plot)bp=qqBaseX::bp(t(m1),main="Word frequencies per document",beside=F);
+       		return(m1);
+};
+vecToTDM=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "classify";
+#-------------
+d <- paste0(	"#' Function classify\n",
+		"#' @param corpus Character vector containing one document per element.\n",
+		"#' @keywords text mining\n",
+		"#' @export\n"
+		)	
+f <- function(dat,cat=character(0), cod=character(0),pos=numeric(0),resort=T){ 
+	if(dim(data.frame(dat))[2]==1) 
+	{dat=data.frame(dat,1:length(dat));names(dat)=c("code","category");}; 
+	dat=apply(dat,c(1,2),as.character);  
+	f1=function(d, category=cat, codes=cod,positions=pos){ 
+		d=apply(d,c(1,2),as.character);  				  
+		d[suppressWarnings(d[,1]==codes),2]=category;   		  			#klassifiziert Elemente, die cod ensprechen mit cat
+		if(length(codes)>0)for(i in 1:length(codes))d[grepl(codes[i],d[,1]),2]=category;  	#klassifiziert Elemente, die cod enthalten mit cat
+		d[positions,2]=category;return(d);				  			#klassifiziert Elemente, an Position pos mit cat
+	}; 
+	f2=function(d){return(d[order(d[,2],d[,1]), ]);}; 
+	f3=function(d){return(levels(as.factor(d[,2])));}; 
+	dat=f1(dat,cat,cod,pos); 
+	if(resort)dat=f2(dat); 
+	message(paste0("Kategorien: ",paste(f3(dat),collapse=";"))); 
+	return(dat); 
+} 
+classify=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "wordCountCorpus";
+#-------------
+d <- paste0(	"#' Function wordCountCorpus\n",
+		"#' \n#' Returns word frequencies based on a character vector.\n",
+		"#' @param corpus Character vector containing one document per element.\n",
+		"#' @details Returns word frequencies based on a character vector.\n",
+		"#' @keywords text mining\n",
+		"#' @export\n",
+		"#' @examples\n#' wordCountCorpus(\"<1>hello</1> world\")"
+		)	
+f <- function(corpus,lowerCase=T,min=0,sort=T,plot=T){
+    uncodeCorpus=function(corpus=c("Die Veranstaltung war toll","Sehr gelungen, wirklich toll.","Toll. Einfach <c1>toll</c1>"),mess=T,assign=T){
+	    for(i in 1:length(corpus)) {corpus[i]=gsub("<[/]?[A-Za-z0-9]+>","",corpus[i]);}
+	    if(mess)message(paste0(1:length(corpus),":\n",corpus,collapse="\n"))
+	    if(assign) assign(deparse(substitute(corpus)),corpus,envir=.GlobalEnv)
+	    return(corpus)
+    }
+    corpus=uncodeCorpus(corpus,mess=F,assign=F);
+    if(lowerCase)corpus=tolower(corpus)
+    dtm=paste(corpus,collapse=" ");
+    dtm=gsub("\n"," ",dtm)    
+    dtm=gsub("\\W"," ",dtm)    
+    dtm=gsub("-"," ",dtm)    
+    for(r in 1:2)dtm=gsub("  "," ",dtm)    
+    s=strsplit(dtm," ")
+    s=s[[1]][s[[1]]!=""]
+    if(!sort)s=table(s);
+    if(sort)s=sort(table(s),decreasing=T)
+    if(!is.null(min))s1=s[s>=min]
+    if(is.null(min))s1=s[c(1:10,(length(s)-9):length(s))];
+    if(is.null(dim(s1))){dim(s1)=c(1,length(s1));rownames(s1)=names(s)[s>=min];}
+    if(plot)bp=qqBaseX::bp(c(s1),main="Word frequencies");
+    return(s)
+}
+wordCountCorpus=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n <- "summarizeWordFrequencies";
+#-------------
+d <- paste0(	"#' Function summarizeWordFrequencies\n",
+		"#' \n#' Summarizes word frequencies based on a character vector.\n",
+		"#' @param corpus Character vector containing one document per element.\n",
+		"#' @details Summarizes word frequencies based on a character vector.\n",
+		"#' @keywords text mining\n",
+		"#' @export\n",
+		"#' @examples\n#' summarizeWordFrequencies(\"<1>hello</1> world\")"
+		)
+f <- function(corpus,plot=T){
+    frequencies=t(vecToTDM(corpus,min=0,plot=F))    
+    min=apply(frequencies,2,min);
+    max=apply(frequencies,2,max);
+    median=apply(frequencies,2,median);
+    mean=apply(frequencies,2,mean);
+    sd=apply(frequencies,2,sd);
+    freq=apply(frequencies,2,sum);
+    docs=apply(frequencies>0,2,sum);
+    d=data.frame(min,max,median,mean,sd,freq,docs);
+    if(plot)qqBaseX::bp(frequencies,main="Frequencies",beside=F)
+    return(d);
+}
+summarizeWordFrequencies=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n <- "correlateWordFrequencies";
+#-------------
+d <- paste0(	"#' Function correlateCodeFrequencies\n",
+		"#' \n#' Correlates word frequencies across documents.\n",
+		"#' @param corpus Character vector containing one document per element.\n",
+		"#' @details Correlates word frequencies across documents.\n",
+		"#' @keywords text mining\n",
+		"#' @export\n",
+		"#' @examples\n#' correlateWordFrequencies(c(\"<1>hello</1> world\",\"<1>hello</1> world\",\"<2>hallo</2>\"))"
+		)	
+f <- function(corpus,binary=T,min=NULL,returnVector=T,plot=T){
+    t=vecToTDM(corpus,min=0,plot=F)
+    if(binary)t=apply(t>0,c(1,2),as.numeric)
+    a=cor(t(t));
+    co2=a;diag(co2)=NA;co2=c(co2);
+    names(co2)=paste(rep(colnames(a),length(rownames(a))),rep(rownames(a),each=length(colnames(a))));
+    co2=sort(co2,decreasing=T)
+    if(!is.null(min))co2=co2[abs(co2)>=min];
+    if(length(co2)>10)
+    if(is.null(min))co2=co2[c(1:10,(length(co2)-9):length(co2))];
+    if(plot & length(co2)>2)spiderplot((co2+1)/2,main="Correlations of word-frequencies")
+    if(returnVector)return(co2);
+    if(!returnVector)return(co);
+}
+correlateWordFrequencies=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "predictWordFrequencies";
+#-------------
+d <- paste0(	"#' Function predictCodeFrequencies\n",
+		"#' \n#' Correlates word frequencies across documents with a numeric vector.\n",
+		"#' @param corpus Character vector containing one document per element.\n",
+		"#' @details Correlates word frequencies across documents with a numeric vector.\n",
+		"#' @keywords text mining\n",
+		"#' @export\n",
+		"#' @examples\n#' correlateWordFrequencies(c(\"<1>hello</1> world\"),c(\"<1>hello</1> world\",\"<2>hallo</2>\"))"
+		)	
+f <- function(corpus,predictor,binary=T,min=NULL,mostFrequent=10,plot=T){
+    t=t(vecToTDM(corpus,plot=F));    
+    if(binary)t=apply(t>0,c(1,2),as.numeric);
+    a=cor(data.frame(predictor,t),use="pairwise.complete")[-1,1]
+    b=numeric(0); 
+    if(mostFrequent>0){ # redefine t by means of interaction terms (correlations with predictor are stored in b)
+            i=0;while(sum(colSums(t,na.rm=T)>i,na.rm=T)>mostFrequent)i=i+1;
+            if(sum(colSums(t,na.rm=T)>i,na.rm=T)!=dim(t)[2]){
+		message(paste0("Focus on interactions of ",sum(colSums(t,na.rm=T)>i,na.rm=T)," most relevant terms (out of ",dim(t)[2]," Begriffen); i=",i));
+	    	t=t[,colSums(t,na.rm=T)>i];
+	    }
+	    m=matrix(nrow=dim(t)[1],ncol=dim(t)[2]*dim(t)[2])
+	    for(i in 1:dim(t)[2])
+	    for(j in 1:dim(t)[2])m[,((i-1)*dim(t)[2])+j]=t[,i]*t[,j]
+	    colnames(m)=c(paste0( rep(colnames(t),dim(t)[2]),"*", rep(colnames(t),each=dim(t)[2]) ));
+	    rownames(m)=rownames(t)
+	    t=m;colnames(t)=colnames(m);
+	    b=cor(data.frame(predictor,t),use="pairwise.complete")[-1,1];names(b)=colnames(m);
+    }   
+    a=sort(a,decreasing=T);
+    b=sort(b,decreasing=T);
+    c=sort(c(a,b),decreasing=T); 
+    if(!is.null(min))c=c[abs(c)>=min];
+    if(is.null(min))c=c[c(1:10,(length(c)-9):length(c))];
+    if(plot & length(c)>2)spiderplot((c+1)/2,main="Correlations with predictor")
+    return(a,b,c);    
+}
+predictWordFrequencies=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "clusterWordFrequencies";
+#-------------
+d <- paste0(	"#' Function clusterWordFrequencies\n",
+		"#' \n#' Cluster analysis of words based on a character vector.\n",
+		"#' @param corpus Character vector containing one document per element.\n",
+		"#' @details Cluster analysis of words based on a character vector.\n",
+		"#' @keywords text mining\n",
+		"#' @export\n",
+		"#' @examples\n#' clusterWordFrequencies(c(\"<1>hello</1> world\"),c(\"<1>hello</1> world\",\"<2>hallo</2>\"))"
+		)	
+f <- function(corpus,cor=F,binary=T,min=0,plot=T){
+	data=t(vecToTDM(corpus,min=0,plot=F))
+        if(binary)t=apply(data>0,c(1,2),as.numeric)    
+        docs=apply(data>0,2,sum);
+	if(is.null(min))min=1;
+        dat=data[,docs>=min]
+	if(cor)cluster=(hclust(dist(cor(dat))))
+	if(!cor)cluster=(hclust(dist(t(dat))))
+	if(plot) plot(cluster);
+}
+clusterWordFrequencies=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n<-"outlier.analysis"
+#-------------
+d <- paste0(	"#' Function outlier.anaysis\n",
+		"#' \n#' Determines outliers based on boxplots mahalanobis distance.\n",
+		"#' @param df A data.frame containing numeric vectors.\n",
+		"#' @details Determines outliers based on boxplots and mahalanobis distance. Returns boxplots with additional attribute \"mahalanobis\"\n",
+		"#' @keywords preprocessing\n",
+		"#' @export\n",
+		"#' @examples\n#' outlier.analysis(data.frame(c(1,2,100)))"
+		)		
+f<-function(df=NULL,cutoff=NULL,plot=T,col=rgb(106/255,160/255,186/255),varwidth=T,outline=T,main="Outlier Analysis",cex=.8,...){
+	if(is.null(df))df=c(Unknown=4067,"Russian Federation"=4884,Somalia=6836,Nigeria=7811,Turkey=8027,Iran=8608,Eritrea=10226,Afghanistan=16423,Iraq=21930,Syria=48974 )
+	rn=rownames(df)
+	if(is.data.frame(df))df=scale(df[sapply(df,is.numeric)]) 
+	if(is.numeric(df))df=scale(df) 
+	rownames(df)=rn
+	if(is.null(rownames(df)))rownames(df)=1:dim(df)[1]
+	b=boxplot(df,varwidth=varwidth,outline=outline,col=col,main=main,plot=plot,...);
+	if(length(b$out)!=0){
+  		out.rows<-sapply(1:length(b$out),function(i) which(df[,b$group[i]]==b$out[i]))
+  		text(b$group,b$out,rownames(df)[out.rows],pos=4,cex=cex,col=col)
+	}
+	dist <- mahalanobis(df, colMeans(df,na.rm=T), cov(df,use="pairwise.complete.obs"))
+	if(!is.null(cutoff))attr(b,"mahalanobis")=(dist > cutoff)
+	if( is.null(cutoff))attr(b,"mahalanobis")=(round(dist,2))
+	return(b)
+}
+outlier.analysis=f;
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n="last"
+#-------------
+d <- paste0(	"#' Function last\n",
+		"#' \n#' Returns the last element of a vector.\n",
+		"#' @param x A vector or list.\n",
+		"#' @details Returns the last element of a vector.\n",
+		"#' @keywords preprocessing\n",
+		"#' @export\n",
+		"#' @examples\n#' last(c(1,2,3))"
+		)		
+f=function(x,s=0)ifelse(length(x)>0,x[[length(x)-s]],NA)
+last=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n="first"
+#-------------
+d <- paste0(	"#' Function first\n",
+		"#' \n#' Returns the first element of a vector.\n",
+		"#' @param x A vector or list.\n",
+		"#' @details Returns the first element of a vector.\n",
+		"#' @keywords preprocessing\n",
+		"#' @export\n",
+		"#' @examples\n#' first(c(1,2,3))"
+		)		
+f=function(x,s=0)ifelse(length(x)>0,x[[1+s]],NA)
+first=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+n<-"trim"
+#-------------
+d <- paste0(	"#' Function trim\n",
+	"#' \n#' Trims elements of a character vector.\n",
+	"#' @param x A character vector.\n",
+	"#' @details Trims elements of a character vector.\n",
+	"#' @keywords preprocessing\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' trim(getHTML(\" Hi  \"")
+f=function(x)gsub("(^[ ]+|[ ]+$)","",x);
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+setwd("..");
+devtools::document();
+setwd("..");
+devtools::install(package.name);
+
+setwd(g)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
