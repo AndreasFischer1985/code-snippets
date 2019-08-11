@@ -11,6 +11,24 @@ if(F){
 	devtools::install_github("AndreasFischer1985/qqBaseX")
 }
 
+create=function(
+	name="qqBaseX",
+	description=list("Package"="qqBaseX","Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.","Version"="0.1.4","Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))","Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>","Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.","Depends"="R (>=3.0.0)","License"="GPL-2","Encoding"="UTF-8","LazyData"="true","RoxygenNote"="6.1.0","VignetteBuilder"="knitr"),
+	rproj=list("Version"="1.0","RestoreWorkspace"="No","SaveWorkspace"="No","AlwaysSaveHistory"="Default","EnableCodeIndexing"="Yes","Encoding"="UTF-8","AutoAppendNewline"="Yes","StripTrailingWhitespace"="Yes","BuildType"="Package","PackageUseDevtools"="Yes","PackageInstallArgs"="--no-multiarch --with-keep.source","PackageRoxygenize"="rd,collate,namespace"),
+	gitignore=c(".Rproj.user"),
+	rbuildignore=c(paste0("^",name,"\\.Rproj$"),"^\\.Rproj\\.user$")
+){
+	wd=getwd()
+	if(!dir.exists(name))dir.create(name);
+	setwd(name)
+	writeList=function(list,file)write(paste0(names(list),(unlist(lapply(list,function(x)paste0(": ",x))))),file=file)
+	writeList(list=description,file="DESCRIPTION")
+	writeList(list=rproj,file=paste0(name,".Rproj"))
+	write(gitignore,file=".gitignore")
+	write(rbuildignore,file=".RBuildignore")
+	setwd(wd)
+};
+
 create(package.name,
 description=list(
 "Package"="qqBaseX",
@@ -19,6 +37,7 @@ description=list(
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
+"Depends"="R (>= 3.0.0)",
 "License"="GPL-2",
 "Encoding"="UTF-8",
 "LazyData"="true",
@@ -26,12 +45,14 @@ description=list(
 "VignetteBuilder"="knitr")
 );
 
+setwd(package.name)
+readLines("DESCRIPTION")
+
 ####################################
 # set up R-functions
 ####################################
 
-setwd(package.name)
-dir.create("R");
+if(!dir.exists("R"))dir.create("R");
 setwd("R")
 
 ###########################################
@@ -620,119 +641,273 @@ d <- paste0(
 	"#' @examples\n",
 	"#' bp(data.frame(group1=c(variable1=1,variable2=2),group2=c(variable1=3,variable2=4)),horiz=T,main=\"Example\")"
 );
-f <- function(x=NULL,sd=NULL,cex=1,beside=T,horiz=F,add.numbers=F,ndigits=2,ncex=NA,nsrt=0,npos=NA,ncol="black",grid=T,plot=T,main=NULL,sub=NULL,xlim.factor=1.5,las=1,srt=45,xlim=NULL,names.arg=NULL,legend.text=NULL,args.legend=list(bg = "white"),density=NULL,angle=45,col=NULL,grid.col="grey",axes=T,add=F,adj=0.5,default.labels=F,xlab=NA,ylab=NA,border=NA,grid.mode=0,
-	main1=NULL,main2=NULL,main3=NULL,
-	adj.main1=0,adj.main2=0,adj.main3=0,
-	col.main1="black",col.main2="black",col.main3="black",
-	cex.main1=1.2,cex.main2=1.2,cex.main3=1.2,
-	font.main1=1,font.main2=2,font.main3=4,
-	...){
-	addChars=ifelse(is.character(add.numbers),add.numbers,"")
-	if(is.character(add.numbers))add.numbers=T
-	if(is.null(ncex))ncex=cex else if(is.na(ncex))ncex=cex
-	if(!is.null(npos))if(is.na(npos)) if(beside==T) npos=ifelse(horiz==T,4,3) else npos=NULL
-	if(is.null(x))x=data.frame(test1=c(1,2,3),test2=c(2,3,4)) else 
-	if(is.table(x)){
-		y=matrix(sapply(x,as.numeric),nrow=dim(x)[1]);
-		if(length(dim(x))==1) {rownames(y)=names(x);} else {rownames(y)=rownames(x);colnames(y)=colnames(x);}
-		x=y;
+f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F, 
+    add.numbers = F, ndigits = 2, ncex = NA, nsrt = 0, npos = NA, 
+    ncol = "black", grid = T, plot = T, main = NULL, sub = NULL, 
+    xlim.factor = 1.5, las = 1, srt = 45, xlim = NULL, names.arg = NULL, 
+    legend.text = NULL, args.legend = list(bg = "white"), density = NULL, 
+    angle = 45, col = NULL, grid.col = "grey", axes = T, add = F, 
+    adj = 0.5, default.labels = F, xlab = NA, ylab = NA, border = NA, 
+    grid.mode = 0, main1 = NULL, main2 = NULL, main3 = NULL, 
+    adj.main1 = 0, adj.main2 = 0, adj.main3 = 0, col.main1 = "black", 
+    col.main2 = "black", col.main3 = "black", cex.main1 = 1.2, 
+    cex.main2 = 1.2, cex.main3 = 1.2, font.main1 = 1, font.main2 = 2, 
+    font.main3 = 4, omitZeros=T, mar=NA, ...) 
+{
+    addChars = ifelse(is.character(add.numbers), add.numbers, 
+        "")
+    mar0=NULL;
+    if (is.numeric(mar)) {mar0=par("mar");par(mar=mar)} 
+    if (is.character(add.numbers)) 
+        add.numbers = T
+    if (is.null(ncex)) 
+        ncex = cex
+    else if (is.na(ncex)) 
+        ncex = cex
+    if (!is.null(npos)) 
+        if (is.na(npos)) 
+            if (beside == T) 
+                npos = ifelse(horiz == T, 4, 3)
+            else npos = NULL
+    if (is.null(x)) 
+        x = data.frame(test1 = c(1, 2, 3), test2 = c(2, 3, 4))
+    else if (is.table(x)) {
+        y = matrix(sapply(x, as.numeric), nrow = dim(x)[1])
+        if (length(dim(x)) == 1) {
+            rownames(y) = names(x)
+        }
+        else {
+            rownames(y) = rownames(x)
+            colnames(y) = colnames(x)
+        }
+        x = y
+    }
+    el = list(...)
+    x = as.matrix(x)
+    if (is.character(x)) stop("Please provide numeric data!")
+    x2 = ifelse(dim(x)[2] == 1, list(x[, 1]), list(x))[[1]]
+    if (!is.null(sd)) {
+        sd = ifelse(dim(x)[2] == 1, list(as.matrix(sd)[, 1]), 
+            list(as.matrix(sd)))[[1]]
+    }
+    if (is.null(rownames(x))) 
+        rownames(x) = 1:dim(x)[1]
+    if (is.null(colnames(x))) 
+        colnames(x) = 1:dim(x)[2]
+    if (is.matrix(x2)) {
+        rownames(x2) = rownames(x)
+        colnames(x2) = colnames(x)
+    }
+    else names(x2) = rownames(x)
+    width = unlist(ifelse(length(el[["width"]]) > 0, el["width"], 
+        list(1))[[1]])
+    space = unlist(ifelse(length(el[["space"]]) > 0, el["space"], 
+        ifelse(beside & dim(x)[2] > 1, list(c(0, 1)), list(0.2)))[[1]])
+    if (dim(x)[2] == 1) 
+        beside = T
+    if (is.null(col)) 
+        col = rainbow(dim(x)[1])
+    if (is.null(legend.text) & dim(x)[2] > 1) 
+        legend.text = rownames(x)
+    if (is.null(xlim)) 
+        if (!horiz) {
+            b = barplot(x2, beside = beside, horiz = horiz, plot = F, 
+                add = add, ...)
+            xlim = c(min(b) - (width[1]/2), max(b) + (width[1]/2))
+            if (!is.null(legend.text)) 
+                xlim[2] = xlim[2] * xlim.factor
+        }
+        else {
+            if (beside) {
+                xlim = c(min(c(min(x), 0)), max(c(max(x), 0)))
+            }
+            else {
+                xlim = c(min(c(min(colSums(x)), 0)), max(c(max(colSums(x)), 
+                  0)))
+            }
+            if (!is.null(legend.text)) 
+                xlim[2] = xlim[2] * xlim.factor
+        }
+    if (sum(is.na(legend.text)) > 0) 
+        legend.text = NULL
+    else if (length(legend.text) == 1) 
+        if (legend.text[[1]] == F) 
+            legend.text = NULL
+    if (!is.null(names.arg)) {
+        if (length(names.arg) == 1) 
+            if (is.na(names.arg)) 
+                names.arg = rep(NA, dim(x)[2])
+        if (dim(x)[2] == 1) 
+            rownames(x) = names.arg
+        else colnames(x) = names.arg
+    }
+    else names.arg = ifelse(dim(x)[2] == 1, list(rownames(x)), 
+        list(colnames(x)))[[1]]
+    b = NULL
+    if (grid.mode == 0) {
+        b = as.matrix(barplot(x2, beside = beside, horiz = horiz, 
+            density = density, angle = angle, xlim = xlim, plot = plot, 
+            las = las, add = add, adj = adj, main = NA, sub = NA, 
+            col = NA, xlab = NA, ylab = NA, border = NA, axes = F, 
+            names.arg = rep("", dim(x)[2]), ...))
+    }
+    else {
+        b = as.matrix(barplot(x2, border = border, xlab = xlab, 
+            ylab = ylab, names.arg = ifelse(default.labels == 
+                T, list(names.arg), list(rep("", dim(x)[2])))[[1]], 
+            beside = beside, horiz = horiz, density = density, 
+            angle = angle, col = col, xlim = xlim, main = main, 
+            sub = sub, plot = plot, las = las, axes = axes, add = add, 
+            adj = adj, ...))
+    }
+    abline2 = function(xl, xlf, ...) {
+        xaxp <- par("xaxp")
+        yaxp <- par("yaxp")
+        segments(x0 = min(xl), y0 = seq(yaxp[1], yaxp[2], (yaxp[2] - 
+            yaxp[1])/yaxp[3]), x1 = max(xl)/xlf, y1 = seq(yaxp[1], 
+            yaxp[2], (yaxp[2] - yaxp[1])/yaxp[3]), ...)
+    }
+    abline3 = function(xl, xlf, ...) {
+        xaxp <- par("xaxp")
+        yaxp <- par("yaxp")
+        segments(y0 = min(xl), x0 = seq(xaxp[1], xaxp[2], (xaxp[2] - 
+            xaxp[1])/xaxp[3]), y1 = max(xl)/xlf, x1 = seq(xaxp[1], 
+            xaxp[2], (xaxp[2] - xaxp[1])/xaxp[3]), ...)
+    }
+    if (!horiz) {
+        if (grid != F) 
+            abline2(xlim, ifelse(!is.null(legend.text), xlim.factor, 
+                1), col = grid.col)
+    }
+    else {
+        if (grid != F) 
+            abline3(par("usr")[3:4], 1, col = grid.col)
+    }
+    if (grid.mode == 0 & plot != F) 
+        b = as.matrix(barplot(x2, border = border, xlab = xlab, 
+            ylab = ylab, names.arg = ifelse(default.labels == 
+                T, list(names.arg), list(rep("", dim(x)[2])))[[1]], 
+            beside = beside, horiz = horiz, density = density, 
+            angle = angle, col = col, xlim = xlim, main = main, 
+            sub = sub, plot = plot, las = las, axes = axes, add = T, 
+            adj = adj, ...))
+    if (!is.null(sd) & beside) 
+        if (!horiz) {
+            arrows(b, x2 + sd, b, x2 - sd, angle = 90, code = 3, 
+                length = 0.1, xpd = T)
+        }
+        else {
+            arrows(x2 + sd, b, x2 - sd, b, angle = 90, code = 3, 
+                length = 0.1, xpd = T)
+        }
+    if (beside == T) {
+        rownames(b) = rownames(x)
+        colnames(b) = colnames(x)
+    }
+    else {
+        rownames(b) = colnames(x)
+    }
+    b2 = ifelse(dim(b)[2] == 1, list(t(b)), list(as.matrix(b)))[[1]]
+    if (!is.null(el[["ylim"]])) {
+        x0 = data.frame(rep(min(el[["ylim"]]), dim(x)[1]), rep(max(el[["ylim"]])/dim(x)[1], 
+            dim(x)[1]))
+    }
+    else {
+        x0 = data.frame(rep(0, dim(x)[1]), x)
+    }
+    if (beside) {
+        x0 = min(x0, na.rm = T) - 0.05 * (max(x0, na.rm = T) - 
+            min(x0, na.rm = T))
+    }
+    else {
+        x0 = min(colSums(x0, na.rm = T)) - 0.05 * (max(colSums(x0, 
+            na.rm = T)) - min(colSums(x0, na.rm = T)))
+    }
+    if (plot != F) {
+	round2=function(x,...){
+		x2=as.character(round(x,...))
+		x2[is.na(x)]="";
+		if(omitZeros==T)x2[x2==0]="";
+		message(x2)
+		return(x2);
 	}
-	el=list(...);#el=list(space=c(.2,.7,.1,.7,.1),adj=0,border=NA,ylim=c(0,100))
-	x=as.matrix(x);
-	x2=ifelse(dim(x)[2]==1,list(x[,1]),list(x))[[1]]; #x2 is a vector if x contains only one column
-	if(!is.null(sd)){sd=ifelse(dim(x)[2]==1,list(as.matrix(sd)[,1]),list(as.matrix(sd)))[[1]];} 
-	if(is.null(rownames(x)))rownames(x)=1:dim(x)[1]
-	if(is.null(colnames(x)))colnames(x)=1:dim(x)[2]
-	if(is.matrix(x2)) {rownames(x2)=rownames(x);colnames(x2)=colnames(x);} else names(x2)=rownames(x);	
-	width=unlist(ifelse(length(el[["width"]])>0,el["width"],list(1))[[1]])
-	space=unlist(ifelse(length(el[["space"]])>0,el["space"],ifelse(beside&dim(x)[2]>1,list(c(0,1)),list(.2)))[[1]])
-	if(dim(x)[2]==1)beside=T;
-	if(is.null(col)) col=rainbow(dim(x)[1])
-	if(is.null(legend.text) & dim(x)[2]>1) legend.text=rownames(x) 
-	if(is.null(xlim)) 
-	if(!horiz){
-		#don't draw barplot, but get coordinates
-		b=barplot(x2,beside=beside,horiz=horiz,plot=F,add=add,
-			...);
-	
-		xlim=c(min(b)-(width[1]/2),max(b)+(width[1]/2));if(!is.null(legend.text))xlim[2]=xlim[2]*xlim.factor;
-	}else{	
-		if(beside){xlim=c(min(c(min(x),0)),max(c(max(x),0)));}else{xlim=c(min(c(min(colSums(x)),0)),max(c(max(colSums(x)),0)));}
-		if(!is.null(legend.text))xlim[2]=xlim[2]*xlim.factor;}
-	if(sum(is.na(legend.text))>0) legend.text=NULL else if(length(legend.text)==1)if(legend.text[[1]]==F) legend.text=NULL
-	if(!is.null(names.arg)){
-		if(length(names.arg)==1)if(is.na(names.arg)) names.arg=rep(NA,dim(x)[2])
-		if(dim(x)[2]==1)rownames(x)=names.arg else colnames(x)=names.arg
-	} else names.arg=ifelse(dim(x)[2]==1,list(rownames(x)),list(colnames(x)))[[1]]
-	b=NULL;
-	if(grid.mode==0){
-		# if barplot is drawn later (after grid)
-		b=as.matrix(barplot(x2,beside=beside,horiz=horiz,density=density,angle=angle,xlim=xlim,plot=plot,las=las,add=add,adj=adj,#legend.text=legend.text,args.legend=args.legend
-			main=NA,sub=NA,col=NA,xlab=NA,ylab=NA,border=NA,axes=F,names.arg=rep("",dim(x)[2]),
-			...));
-
-	} else {
-		# if barplot is drawn now
-		b=as.matrix(barplot(x2,border=border,xlab=xlab,ylab=ylab,names.arg=ifelse(default.labels==T,list(names.arg),list(rep("",dim(x)[2])))[[1]],beside=beside,horiz=horiz,density=density,angle=angle,col=col,xlim=xlim,main=main,sub=sub,plot=plot,las=las,axes=axes,add=add,adj=adj,#legend.text=legend.text,args.legend=args.legend
-			...));} 
-
-	abline2=function(xl,xlf,...){xaxp<-par("xaxp");yaxp<-par("yaxp");segments(x0=min(xl),y0=seq(yaxp[1], yaxp[2],(yaxp[2]-yaxp[1])/yaxp[3]),x1=max(xl)/xlf,y1=seq(yaxp[1], yaxp[2],(yaxp[2]-yaxp[1])/yaxp[3]),...);}
-	abline3=function(xl,xlf,...){xaxp<-par("xaxp");yaxp<-par("yaxp");segments(y0=min(xl),x0=seq(xaxp[1], xaxp[2],(xaxp[2]-xaxp[1])/xaxp[3]),y1=max(xl)/xlf,x1=seq(xaxp[1], xaxp[2],(xaxp[2]-xaxp[1])/xaxp[3]),...);}
-
-	if(!horiz){	if(grid!=F) abline2(xlim,ifelse(!is.null(legend.text),xlim.factor,1),col=grid.col);
-	} else {	if(grid!=F) abline3(par("usr")[1:2],1,col=grid.col); }
-
-	if(grid.mode==0 & plot!=F) 
-		#if no barplot was drawn yet
-		b=as.matrix(barplot(x2,border=border,xlab=xlab,ylab=ylab,names.arg=ifelse(default.labels==T,list(names.arg),list(rep("",dim(x)[2])))[[1]],beside=beside,horiz=horiz,density=density,angle=angle,col=col,xlim=xlim,main=main,sub=sub,plot=plot,las=las,axes=axes,add=T,adj=adj,#legend.text=legend.text,args.legend=args.legend
-			...));
-
-	if(!is.null(sd)&beside) 
-	if(!horiz){	arrows(b,x2+sd,b,x2-sd,angle=90,code = 3,length = 0.1,xpd=T);
-	}else{		arrows(x2+sd,b,x2-sd,b,angle=90,code = 3,length = 0.1,xpd=T);}
-	if(beside==T){rownames(b)=rownames(x);colnames(b)=colnames(x);}else{rownames(b)=colnames(x);}
-	b2=ifelse(dim(b)[2]==1,list(t(b)),list(as.matrix(b)))[[1]]; #if b has only one column (because x is a vector or beside==T) b2 is t(b)
-	if(!is.null(el[["ylim"]]))
-			{x0=data.frame(rep(min(el[["ylim"]]),dim(x)[1]),rep(max(el[["ylim"]])/dim(x)[1],dim(x)[1]));} else
-			{x0=data.frame(rep(0,dim(x)[1]),x);}
-	if(beside)	{x0=min(x0,na.rm=T)-.05*(max(x0,na.rm=T)-min(x0,na.rm=T));} else 		
-			{x0=min(colSums(x0,na.rm=T))-.05*(max(colSums(x0,na.rm=T))-min(colSums(x0,na.rm=T)));}
-        #x[x==0]=NA
-	if(plot!=F)
-	if(!horiz){	#if(grid!=F)	abline2(xlim,ifelse(!is.null(legend.text),xlim.factor,1),col=grid.col);
-			if(axes!=F & default.labels!=T)	text(colMeans(b2),0+x0,colnames(b2),srt=srt,pos=ifelse((srt==0|srt==180|srt==360),1,2),xpd=T,cex=cex);
-			if(add.numbers) 
-			if(beside){	text(b,x,paste0(round(x,ndigits),addChars),pos=npos,col=ncol,cex=ncex,srt=nsrt,xpd=T);
-			}else{		
-				text(b,x[1,]/2,paste0(round(x[1,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos);
-				if(dim(x)[1]>1)for(i in 2:dim(x)[1]){
-					m=as.matrix(x[c(1:i),]);dim(m)=c(length(c(1:i)),dim(x)[2]);
-					text(b,(colSums(rbind(m[1:i,]))+colSums(rbind(m[1:(i-1),])))/2,labels=paste0(round(x[i,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos);
-			}}
-	}else{		#if(grid!=F)	abline3(par("usr")[1:2],1,col=grid.col);
-			if(axes!=F & default.labels!=T)	text(0+x0,colMeans(b2),colnames(b2),srt=srt-45,pos=2,xpd=T,cex=cex);
-			if(add.numbers)
-			if(beside){	text(x,b,paste0(round(x,ndigits),addChars),pos=npos,col=ncol,cex=ncex,srt=nsrt,xpd=T);
-			}else{		
-				text(x[1,]/2,b,paste0(round(x[1,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos); 
-				if(dim(x)[1]>1)for(i in 2:dim(x)[1]){
-					m=as.matrix(x[c(1:i),]);dim(m)=c(length(c(1:i)),dim(x)[2]);
-					text((colSums(rbind(m[1:i,]))+colSums(rbind(m[1:(i-1),])))/2,b,labels=paste0(round(x[i,],ndigits),addChars),col=ncol,xpd=T,cex=ncex,srt=nsrt,pos=npos);
-			}}
-	}	
-    	xy <- par("usr")
-	if(!is.null(legend.text))
-        if(is.null(args.legend)) {
-                legend(xy[2L] - xinch(0.1), xy[4L] - yinch(0.1), legend = legend.text, angle = angle, density = density, fill = col, xjust = 1, yjust = 1)
-         } else {
-                args.legend1 <- list(x = xy[2L] - xinch(0.1), y = xy[4L] - yinch(0.1), legend = legend.text, angle = angle, density = density, fill = col, xjust = 1, yjust = 1)
-                args.legend1[names(args.legend)] <- args.legend
-                do.call("legend", args.legend1)
-	}
-	if(!is.null(main1)) title(main1,line=1,adj=adj.main1,cex.main=cex.main1,col=col.main1,font.main=font.main1)
-	if(!is.null(main2)) title(main2,line=2,adj=adj.main2,cex.main=cex.main2,col=col.main2,font.main=font.main2)
-	if(!is.null(main3)) title(main3,line=3,adj=adj.main3,cex.main=cex.main3,col=col.main3,font.main=font.main3)
-	return(b)
+        if (!horiz) {
+            if (axes != F & default.labels != T) 
+                text(colMeans(b2), 0 + x0, colnames(b2), srt = srt, 
+                  pos = ifelse((srt == 0 | srt == 180 | srt == 
+                    360), 1, 2), xpd = T, cex = cex)
+            if (add.numbers) 
+                if (beside) {
+                  text(b, x, paste0(round2(x, ndigits), addChars), 
+                    pos = npos, col = ncol, cex = ncex, srt = nsrt, 
+                    xpd = T)
+                }
+                else {
+                  text(b, x[1, ]/2, paste0(round2(x[1, ], ndigits), 
+                    addChars), col = ncol, xpd = T, cex = ncex, 
+                    srt = nsrt, pos = npos)
+                  if (dim(x)[1] > 1) 
+                    for (i in 2:dim(x)[1]) {
+                      m = as.matrix(x[c(1:i), ])
+                      dim(m) = c(length(c(1:i)), dim(x)[2])
+                      text(b, (colSums(rbind(m[1:i, ])) + colSums(rbind(m[1:(i - 
+                        1), ])))/2, labels = paste0(round2(x[i, 
+                        ], ndigits), addChars), col = ncol, xpd = T, 
+                        cex = ncex, srt = nsrt, pos = npos)
+                    }
+                }
+        }
+        else {
+            if (axes != F & default.labels != T) 
+                text(0 + x0, colMeans(b2), colnames(b2), srt = srt - 
+                  45, pos = 2, xpd = T, cex = cex)
+            if (add.numbers) 
+                if (beside) {
+                  text(x, b, paste0(round2(x, ndigits), addChars), 
+                    pos = npos, col = ncol, cex = ncex, srt = nsrt, 
+                    xpd = T)
+                }
+                else {
+                  text(x[1, ]/2, b, paste0(round2(x[1, ], ndigits), 
+                    addChars), col = ncol, xpd = T, cex = ncex, 
+                    srt = nsrt, pos = npos)
+                  if (dim(x)[1] > 1) 
+                    for (i in 2:dim(x)[1]) {
+                      m = as.matrix(x[c(1:i), ])
+                      dim(m) = c(length(c(1:i)), dim(x)[2])
+                      text((colSums(rbind(m[1:i, ])) + colSums(rbind(m[1:(i - 
+                        1), ])))/2, b, labels = paste0(round2(x[i, 
+                        ], ndigits), addChars), col = ncol, xpd = T, 
+                        cex = ncex, srt = nsrt, pos = npos)
+                    }
+                }
+        }
+    }
+    if (is.numeric(mar)) par(mar=mar0)
+    xy <- par("usr")
+    if (!is.null(legend.text)) 
+        if (is.null(args.legend)) {
+            legend(xy[2L] - xinch(0.1), xy[4L] - yinch(0.1), 
+                legend = legend.text, angle = angle, density = density, 
+                fill = col, xjust = 1, yjust = 1)
+        }
+        else {
+            args.legend1 <- list(x = xy[2L] - xinch(0.1), y = xy[4L] - 
+                yinch(0.1), legend = legend.text, angle = angle, 
+                density = density, fill = col, xjust = 1, yjust = 1)
+            args.legend1[names(args.legend)] <- args.legend
+            do.call("legend", args.legend1)
+        }
+    if (!is.null(main1)) 
+        title(main1, line = 1, adj = adj.main1, cex.main = cex.main1, 
+            col = col.main1, font.main = font.main1)
+    if (!is.null(main2)) 
+        title(main2, line = 2, adj = adj.main2, cex.main = cex.main2, 
+            col = col.main2, font.main = font.main2)
+    if (!is.null(main3)) 
+        title(main3, line = 3, adj = adj.main3, cex.main = cex.main3, 
+            col = col.main3, font.main = font.main3)
+    return(b)
 }
 bp=f;
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
