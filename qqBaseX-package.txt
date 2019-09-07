@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.1.4",
+"Version"="0.1.5",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
@@ -179,7 +179,7 @@ f=function(x,reg.up=NULL,reg.down=NULL,reg.left="^",reg.right="$",reg.fix=NULL,h
 		x=substr(x,min(rows),max(rows));
 	}
 	cells=x[nchar(x)>0&!(grepl("^[ ]+$",x))] #streiche leere zeilen
-	t=data.frame(sapply(cells,function(y)paste0(y,paste(rep(" ",max(nchar(cells))-nchar(y)),collapse="")))) #vereinheitliche Länge und setze in data.frame
+	t=data.frame(sapply(cells,function(y)paste0(y,paste(rep(" ",max(nchar(cells))-nchar(y)),collapse="")))) 
 	t2=strsplit(as.character(t[,1]),"")
 	d1=data.frame(t2[[1]]);for(i in 2:length(t2))d1=data.frame(d1,t2[[i]])
 	t2=t(d1)
@@ -358,6 +358,7 @@ d <- paste0(
 );
 f=function(prefix=NA, width=NA, height=NA, dev=png, units="in", res=300, mess=T, close=F, ...){
 	n=deparse(substitute(dev));
+	n[n=="win.metafile"]="emf"
 	l=dev.list()
 	if(length(prefix)!=length(l)) prefix=rep(prefix[1],length(l))
 	if(length(width)!=length(l)) width=rep(width[1],length(l))
@@ -370,7 +371,7 @@ f=function(prefix=NA, width=NA, height=NA, dev=png, units="in", res=300, mess=T,
 		if(is.na(height1))height1=(dev.size()[2]);
 		if(is.na(prefix1))prefix1="";
 		if(length(grep("(bmp|png|jpg|tiff)",n))>0) dev.copy(dev, paste0(prefix1,"Dev", d, ".",n),width=width1,height=height1,units=units,res=res,...) else
-		if(length(grep("(pdf)",n))>0) dev.copy(dev, paste0(prefix1,"Dev", d, ".",n),width=width1,height=height1,...) else
+		if(length(grep("(pdf|emf)",n))>0) dev.copy(dev, paste0(prefix1,"Dev", d, ".",n),width=width1,height=height1,...) else
 		dev.copy(dev, paste0(prefix1,"Dev", d, ".",n),width=width1,height=height1,...) 
 		dev.off()
 	}
@@ -1816,16 +1817,19 @@ d <- paste0(	"#' Function textbreaker\n",
 f <- function(
 	    text="Let's write some text with many different words and plot it in a nice little device.", 
 	    maxlength=30,
+	    maxlines=10,
 	    lspace=1,
 	    size=1,
 	    centered=F,
-	    separator="\n     ",
-	    plot=F
-	){     
-	     count=1;text=gsub("<br>"," ",text);
+	    separator="\n",
+	    plot=F,
+	    trim=T
+	){
+	     text[is.na(text)]=" "     
+	     count=0;text=gsub("<br>"," ",text);
 	     while(nchar(text[length(text)])>maxlength){
 		count=count+1;
-		if(count>10)break;
+		if(count>=maxlines)break;
 	        spacePos=as.vector(gregexpr ("( |\n|/)", text[length(text)])[[1]])
 	        spacePos=spacePos[spacePos<maxlength];
 	        spacePos=spacePos[length(spacePos)];
@@ -1846,8 +1850,9 @@ f <- function(
 	    x=.05;if(centered)x=.5;
 	    y=(length(text):1)/length(text)*fac+(1-fac)-(1/dev.size()[2]^2)
 	    lines=length(text);
-	    text=paste0(text,collapse=separator);y=.5;
-	    if(plot){plot(0,0,type="n",axes=F);text(0,0,text);}
+	    if(trim==T) text=paste0(gsub("(^[ ]+|[ ]+$)","",text),collapse=separator) else text=paste0(text,collapse=separator);
+	    y=.5;
+	    if(plot){plot(0,0,type="n",axes=F,xlab="",ylab="");text(0,0,text);}
 	    par(mai=p1)
 	    return(text)
 }
@@ -1864,7 +1869,7 @@ d <- paste0(	"#' Function textbreaker\n",
 		"#' @export\n",
 		"#' @examples\n#' textbreaker(\"hello world hello world hello world hello world\")"
 		)
-f <- function(x,length=30){e=character(0);for(i in x)e=c(e,textbreaker(i,maxlength=length));return(e);}
+f <- function(x,length=30,separator="\n     ",trim=F,...){el=list(...);if(length(el$maxlength)>0)length=el$maxlength;e=character(0);for(i in x)e=c(e,textbreaker(i,length,...,separator=separator,trim=trim));return(e);}
 labelbreaker=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
