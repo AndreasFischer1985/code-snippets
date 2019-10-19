@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.1.6",
+"Version"="0.1.7",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
@@ -386,8 +386,6 @@ f <- function (filename = NA, width = NA, height = NA, dev = png, units = "in",r
     if (close) graphics.off()
     if (mess) message(ifelse(length(l) > 1, paste0(length(l), " devices saved to\n", getwd()), paste0(length(l), " device saved to\n", getwd())))
 }
-
-
 saveDevs=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
@@ -493,7 +491,7 @@ f<- function (x = NULL, y = NULL, complexity = 0, rep.nnet = 10,
         if (!is.null(nnet)) 
             attr(dat, "model") = nnet
         else attr(dat, "model") = lm
-    return(dat)
+    invisible(dat)
 }
 plotXY=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -870,8 +868,7 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
         }
         else {
             if (axes != F & default.labels != T) 
-                text(0 + x0, colMeans(b2), colnames(b2), srt = srt - 
-                  45, pos = 2, xpd = T, cex = cex)
+                text(0, colMeans(b2), colnames(b2), srt = srt - 45, pos = 2, xpd = T, cex = cex) #+ x0
             if (add.numbers) 
                 if (beside) {
                   text(x, b, paste0(round2(x, ndigits), addChars), 
@@ -910,15 +907,12 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
             do.call("legend", args.legend1)
         }
     if (!is.null(main1)) 
-        title(main1, line = 1, adj = adj.main1, cex.main = cex.main1, 
-            col = col.main1, font.main = font.main1)
+        title(main1, line = 1, adj = adj.main1, cex.main = cex.main1, col = col.main1, font.main = font.main1)
     if (!is.null(main2)) 
-        title(main2, line = 2, adj = adj.main2, cex.main = cex.main2, 
-            col = col.main2, font.main = font.main2)
+        title(main2, line = 2, adj = adj.main2, cex.main = cex.main2, col = col.main2, font.main = font.main2)
     if (!is.null(main3)) 
-        title(main3, line = 3, adj = adj.main3, cex.main = cex.main3, 
-            col = col.main3, font.main = font.main3)
-    return(b)
+        title(main3, line = 3, adj = adj.main3, cex.main = cex.main3, col = col.main3, font.main = font.main3)
+    invisible(b)
 }
 bp=f;
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -950,7 +944,7 @@ f<-function(a=NULL,b=NULL,relative=T,vertLine=T,horizLines=T,max=40,main="Compar
 	if(is.null(a)|is.null(b))stop("Please provide two character elements a and b")
 	a=paste(a,collapse=" ")
 	b=paste(b,collapse=" ")
-	common.terms=vecToTDM(c(a,b))
+	common.terms=qqBaseX::vecToTDM(c(a,b))
 	#common.terms=subset(c,c[,1]>0&c[,2]>0);unique.terms=subset(c,(c[,1]==0&c[,2]>0)|(c[,1]>0&c[,2]==0))
 	if(relative)common.terms= apply(common.terms,2,function(x)x/sum(x))
 	common.terms=common.terms/colSums(common.terms)
@@ -961,7 +955,7 @@ f<-function(a=NULL,b=NULL,relative=T,vertLine=T,horizLines=T,max=40,main="Compar
 	dotchart(com[,3],pch=pch,main=main,cex=cex,...);
 	if(horizLines)segments(x0=0,y0=1:dim(com)[1],x1=round(com[,3],2),y1=1:dim(com)[1]);
 	if(vertLine)abline(v=0)
-	return(common.terms)
+	invisible(common.terms)
 }
 compareDocs=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -1142,6 +1136,7 @@ d <- paste0(	"#' Function spiderplot\n",
 	"#' @param mode Numeric value specifying whether to draw a polygon (mode=1) or arrows (mode!=1), and whether to draw a polygon for x (mode>=0) or not (mode<0). Defaults to 0.\n",
 	"#' @param arrows.lwd Numeric value specifying lwd for arrows (if any). Defaults to 2.\n",
 	"#' @param arrows.length Numeric value specifying lwd for arrows (if any). Defaults to .01.\n",
+	"#' @param add Logical value specifying whether to add graph to the current device. Defaults to F.\n",
 	"#' @param add.numbers Logical value specifying whether to add numbers to labels. Defaults to F.\n",
 	"#' @param add.grid Logical value specifying whether to add numbers to add grid lines. Defaults to T.\n",
 	"#' @param add.labels Logical value specifying whether to add labels to the plot. Defaults to T.\n",
@@ -1154,7 +1149,7 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     names = NULL, main = NULL, max = 1, min = 0, xylim = 1.5, 
     add.scale = T, col = "#00547A", col2 = "#FFA500E6", 
     border = NA, mode = 0, arrows.lwd = 3, arrows.length = 0.01, 
-    add.numbers = F, numbers = 2, add.grid = T, add.labels = T,
+    add =F, add.numbers = F, numbers = 2, add.grid = T, add.labels = T,
     line.type="o",grid.detail=1, grid.points=NULL) 
 {
     dimensions = x
@@ -1189,12 +1184,10 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
         }
     }
     if (is.null(dimensions) & is.null(weights) & is.null(main)) {
-        dimensions = c(0.1, 0.2, 0.3, 0.8, 0.7, 0.1, 0.1, 0.1, 
-            0.1, 0.2)
+        dimensions = c(0.1, 0.2, 0.3, 0.8, 0.7, 0.1, 0.1, 0.1, 0.1, 0.2)
         x = dimensions
         lower = c(0, 0, 0.2, 0.7, 0.6, 0, 0, 0, 0, 0)
-        upper = c(0.2, 0.4, 0.4, 0.9, 0.8, 0.2, 0.2, 0.2, 0.1, 
-            0.3)
+        upper = c(0.2, 0.4, 0.4, 0.9, 0.8, 0.2, 0.2, 0.2, 0.1, 0.3)
         weights = 1
         main = "Consideration of option 1"
         names = c("artist's opinion", "restoration ethics", 
@@ -1213,13 +1206,12 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     if (!is.null(names)) 
         names(dimensions) = names
     theta = seq(0, 2 * pi, length = length(dimensions) + 1)
-    plot(weights2 * cos(theta), weights2 * sin(theta), type = "l", 
+   if(add==F) 
+   plot(weights2 * cos(theta), weights2 * sin(theta), type = "l", 
         lty = 1, col = rgb(0, 0, 0), axes = F, xlab = "", 
-        ylab = "", xlim = c(-xylim, xylim), ylim = c(-xylim, 
-            xylim))
+        ylab = "", xlim = c(-xylim, xylim), ylim = c(-xylim, xylim))
     no = function(x) {
-        (x - min(c(min, x)))/(max(c(max, max(x))) - min(min, 
-            min(x)))
+        (x - min(c(min, x)))/(max(c(max, max(x))) - min(min, min(x)))
     }
     if (!is.null(upper) & !is.null(lower)) {
         if (mode == 1) {
@@ -1239,6 +1231,7 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
                 code = 3, lwd = arrows.lwd)
         }
     }
+    if(add==F)
     if (add.grid) {
 	if(is.null(grid.points)){
 		sapply(1:grid.detail,function(x)lines(weights2 * x/(grid.detail+1) * cos(theta), weights2 * x/(grid.detail+1) * sin(theta), 
@@ -1253,7 +1246,8 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     if (!is.null(dimensions) & mode >= 0) 
         lines(weights2 * no(c(dimensions, dimensions[1])) * cos(theta), 
             weights2 * no(c(dimensions, dimensions[1])) * sin(theta), 
-            col = col, lwd = 2, type=line.type, pch=16)
+            col = col, lwd = 2, type=line.type, pch=16) 
+    if(add==F)
     if (add.grid & numbers > 0) {
 	if(is.null(grid.points)){
             text(1 * weights2[1], 0.05, round(max, numbers), cex = 0.6, pos = 2, col = "darkgrey")
@@ -1275,6 +1269,7 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
 	                text(-no(grid.points[x]) * weights2[round(length(weights2)/2)], 0.05, names(grid.points)[x], cex = 0.6, pos = 4, col = "darkgrey")
 	}
     }
+    if(add==F)
     if (add.labels) 
         if (add.numbers) {
             text(weights * cos(theta)[-(length(dimensions) + 
@@ -1289,7 +1284,9 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
                 1)], paste0(names(dimensions)), pos = ifelse(cos(theta)[-(length(dimensions) + 
                 1)] < 0, 2, 4), xpd = T, cex = 0.6)
         }
-    title(main, cex.main = 0.8)
+    if(add==F)
+    title(main, cex.main = 0.8) 
+    invisible()
 }
 spiderplot=f#f(c(-1,.25,.5))
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -1354,7 +1351,7 @@ f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NU
 	if(!is.null(main)) title(main);
 	legX=dist*3/4+dist*(dim(data)[2]);
 	legend(x=legX-dist,y=legX-dist, legend=c(rownames), fill = farben[1:(dim(data)[1]+1)],bg="white",bty="n",xpd=T);	
-	return(data);
+	invisible(data);
 }
 flowerplot=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -1461,6 +1458,7 @@ f<-function(matrix=NULL,main=NULL,xlab="",ylab=NULL,lwd=2,lty=1,pch=NULL,type="l
 		points(x=x1,y=y1,col="black",pch=0)
 	}
 	if(show.legend)legend("right",rownames(cs),fill=col[order],cex=cex)
+	invisible()
 }
 plotMAT=f #f()
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -1481,7 +1479,7 @@ f<-function(lm=NULL,...){
 	data=(data+1)/2
 	spiderplot(x=data[,1],lower=data[,2],upper=data[,3],names=names(coef(lm)),...);
 	title(sub=paste0(expression(R^2)," = ",round(summary(lm)$r.squared,2)))
-	return(summary(lm));
+	invisible(summary(lm));
 }
 plotLM=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -1597,6 +1595,7 @@ f<-function(x,y,text="Hello \nWorld",x2=NULL,y2=NULL,maxlength=NULL,col="yellow"
 	    	y-sh/2,y-sh/2),col=col,border=border)
 	}
 	text(x,y,text,cex=cex,font=font,...);
+	invisible()
 }
 boxedText=f;
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
