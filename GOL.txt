@@ -1,0 +1,135 @@
+########################################################################################
+#
+# "Game of Life" Simulation consisting of the following functions:
+#
+# - addObject: 	adds a being to a symmetric matrix
+# - world:	creates a symmetric binary matrix (optionally with borders set to 1)
+# - helloWorld: creates a demo-worlds, filled with various beings
+# - step: 	returns a symmetric matrix (or a series of matrices, 
+#		stored in a three-dimensional matrix) after applying the 
+#		Game-of-Life-rules one or more times (optionally with borders set to 
+#		1 after each step)
+# - plotWorld:  plots a symmetric matrix and returns it (by default it applies 1 step
+#		before returning the matrix)
+#
+########################################################################################
+
+addObject<-function(mat,name="glider",x=1,y=1){
+    m=matrix(c(0,0,1, 1,1,0, 0,1,1),nrow=3);
+    if(name=="r-pentomino")m=matrix(c(0,1,0, 1,1,1, 1,0,0),nrow=3);
+    if(name=="glider")m=matrix(c(1,1,0, 1,0,1, 1,0,0),nrow=3);
+    if(name=="LWSS")m=matrix(c(1,1,1,1,0, 1,0,0,0,1, 1,0,0,0,0, 0,1,0,0,1),nrow=5);
+    if(name=="MWSS")m=matrix(c(1,1,1,1,1,0, 1,0,0,0,0,1, 1,0,0,0,0,0, 0,1,0,0,0,1, 0,0,0,1,0,0),nrow=6);
+    if(name=="HWSS")m=matrix(c(1,1,1,1,1,1,0, 1,0,0,0,0,0,1, 1,0,0,0,0,0,0, 0,1,0,0,0,0,1, 0,0,0,1,1,0,0),nrow=7);
+    if(name=="loafer")m=matrix(c(0,1,0,0,0,0,0,0,0, 1,0,1,0,0,0,0,0,0, 1,0,0,1,0,0,0,0,0, 0,1,1,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0, 1,0,0,0,0,0,1,0,0, 0,1,0,0,0,1,0,1,0, 1,1,0,0,0,1,0,0,1, 1,0,0,0,1,1,0,0,1),nrow=9);
+    if(name=="weekender")m=matrix(c( 0,0,1,0,0,0,0,0,0,0,0, 1,1,0,1,1,0,0,0,0,0,0, 0,0,1,0,0,1,0,1,0,0,0, 0,0,0,0,0,0,0,1,0,0,0, 0,0,0,0,0,0,0,1,0,1,0, 0,0,0,0,0,0,0,1,0,0,1, 0,0,0,0,0,1,1,0,0,0,1, 0,0,0,0,0,1,1,0,0,0,0,
+    0,0,0,0,0,1,1,0,0,0,0, 0,0,0,0,0,1,1,0,0,0,1, 0,0,0,0,0,0,0,1,0,0,1, 0,0,0,0,0,0,0,1,0,1,0, 0,0,0,0,0,0,0,1,0,0,0, 0,0,1,0,0,1,0,1,0,0,0, 1,1,0,1,1,0,0,0,0,0,0, 0,0,1,0,0,0,0,0,0,0,0),nrow=11);
+    if(name=="explo")m=matrix(c(1,1,1,0,1,1,1, 1,0,0,0,0,0,1, 1,1,1,0,1,1,1),nrow=7);
+    if(name=="glidergun.gosper")m=matrix(c(
+    0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,1,1,0,0,0,0, 0,0,0,0,0,1,1,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,1,1,1,0,0,0, 0,0,0,0,1,0,0,0,1,0,0, 0,0,0,1,0,0,0,0,0,1,0, 0,0,0,1,0,0,0,0,0,1,0, 0,0,0,0,0,0,1,0,0,0,0, 0,0,0,0,1,0,0,0,1,0,0, 0,0,0,0,0,1,1,1,0,0,0, 0,0,0,0,0,0,1,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0, 0,0,0,1,1,1,0,0,0,0,0, 0,0,0,1,1,1,0,0,0,0,0, 0,0,1,0,0,0,1,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,1,1,0,0,0,1,1,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0, 0,0,0,1,1,0,0,0,0,0,0, 0,0,0,1,1,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0
+    ),nrow=11);
+    for(i in 1:dim(m)[1])for(j in 1:dim(m)[2]) mat[i+(x-1),j+(y-1)]=m[i,j];
+    return(mat);
+}
+
+addGlider=function(mat,x,y){addObject(mat=mat,name="glider",x=x,y=y);}
+addLWSS=function(mat,x,y){addObject(mat=mat,name="LWSS",x=x,y=y);}
+addMWSS=function(mat,x,y){addObject(mat=mat,name="MWSS",x=x,y=y);}
+addHWSS=function(mat,x,y){addObject(mat=mat,name="HWSS",x=x,y=y);}
+addLoafer=function(mat,x,y){addObject(mat=mat,name="loafer",x=x,y=y);}
+addWeekender=function(mat,x,y){addObject(mat=mat,name="loafer",x=x,y=y);}
+addExplo=function(mat,x,y){addObject(mat=mat,name="explo",x=x,y=y);}
+addGlidergunGosper=function(mat,x,y){addObject(mat=mat,name="glidergun.gosper",x=x,y=y);}
+
+world <- function(side=200, livingBorders=F, randomize=F){
+	if(randomize)
+		mat <- rbinom(side^2,1,0.4) else
+		mat <- matrix(0,nrow=side, ncol=side)
+  	if(livingBorders){
+		mat[1,] <-1;
+		mat[,1] <-1;
+		mat[side,] <-1;
+		mat[,side] <-1;
+	}
+	return(mat)
+}
+
+helloWorld<-function(){
+    m1=world()
+    m1=addObject(m1,"explo",20,180)
+    m1=addObject(m1,"glidergun.gosper",10,10)
+    m1=addObject(m1,"glider",20,60)
+    m1=addObject(m1,"LWSS",170,10)
+    m1=addObject(m1,"MWSS",180,20)
+    m1=addObject(m1,"HWSS",190,30)
+    m1=addObject(m1,"r-pentomino",100,100)
+    m1=addObject(m1,"loafer",180,150)
+    m1=addObject(m1,"weekender",180,100)
+    return(m1)
+}
+
+step <- function(mat, steps=1, storeAll=F, livingBorders=F){
+	print(dim(mat))
+	if(steps==1) storeAll=F
+	if(dim(mat)[1]!=dim(mat)[2] | is.null(dim(mat))) stop("Please provide a symmetric matrix")
+	side=dim(mat)[1]
+	if(storeAll) {
+		storage <- array(0, c(side, side, steps))
+ 		for (i in 1:steps){
+     			allW = cbind( rep(0,side) , mat[,-side] )
+			allNW = rbind(rep(0,side),cbind(rep(0,side-1),mat[-side,-side]))
+	     		allN = rbind(rep(0,side),mat[-side,])
+     			allNE = rbind(rep(0,side),cbind(mat[-side,-1],rep(0,side-1)))
+     			allE = cbind(mat[,-1],rep(0,side))
+    	 		allSE = rbind(cbind(mat[-1,-1],rep(0,side-1)),rep(0,side))
+     			allS = rbind(mat[-1,],rep(0,side))
+     			allSW = rbind(cbind(rep(0,side-1),mat[-1,-side]),rep(0,side))
+     			mat2 <- allW + allNW + allN + allNE + allE + allSE + allS + allSW
+	     		mat3 <- mat
+     			mat3[mat==0 & mat2==3] <- 1
+     			mat3[mat==1 & mat2<2] <- 0
+     			mat3[mat==1 & mat2>3] <- 0
+     			mat <- mat3
+     			if(livingBorders){mat[1,] <-1;mat[,1] <-1; mat[side,] <-1; mat[,side] <-1;}
+     			storage[,,i] <- mat#mat2 # note that I am storing the array of Ni values - this is in order to make the animation prettier
+		}
+	return (storage)
+	} else {
+	        for (i in 1:steps){
+			allW = cbind( rep(0,side) , mat[,-side] )
+			allNW = rbind(rep(0,side),cbind(rep(0,side-1),mat[-side,-side]))
+	     		allN = rbind(rep(0,side),mat[-side,])
+	   		allNE = rbind(rep(0,side),cbind(mat[-side,-1],rep(0,side-1)))
+	     		allE = cbind(mat[,-1],rep(0,side))
+	    	 	allSE = rbind(cbind(mat[-1,-1],rep(0,side-1)),rep(0,side))
+	     		allS = rbind(mat[-1,],rep(0,side))
+	     		allSW = rbind(cbind(rep(0,side-1),mat[-1,-side]),rep(0,side))
+	     		mat2 <- allW + allNW + allN + allNE + allE + allSE + allS + allSW
+		     	mat3 <- mat
+	     		mat3[mat==0 & mat2==3] <- 1
+	     		mat3[mat==1 & mat2<2]  <- 0
+	     		mat3[mat==1 & mat2>3]  <- 0
+	     		mat <- mat3
+	     		if(livingBorders){mat[1,] <-1;mat[,1] <-1; mat[side,] <-1; mat[,side] <-1;}
+		}
+	return(mat)
+     	}
+}
+
+plotWorld=function(mat, steps=1) {
+	image( ifelse( length(dim(mat))==2, list(mat), list(mat[,,1]) )[[1]], axes=F, col=c("white","black"))
+	if(stepUp>0) return(invisible(step(mat,steps=steps)))
+	return(invisible(mat))
+}
+
+#########################
+# Demo
+#########################
+
+mat=helloWorld()
+mat=step(mat)
+mat=plotWorld(mat,stepUp=T)
+mat=plotWorld(mat,stepUp=T, steps=10)
