@@ -72,22 +72,36 @@ step <- function(mat, steps=1, expandable=F, storeAll=F, livingBorders=F){
 	if(storeAll) storage <- array(0, c(side, side, steps)) 
 	for (i in 1:steps){
 		if(expandable){
-			if(sum(mat[1,])>0){
+			if(sum(mat[1,])>0){     
 			if(sum(mat[,1])>0)	mat=cbind(rep(0,side+1),rbind(rep(0,side),mat)) else
 			if(sum(mat[,side])>0)   mat=cbind(rbind(rep(0,side),mat),rep(0,side+1)) else
 						mat=cbind(rep(0,side+1),rbind(rep(0,side),mat)); side=dim(mat)[1]}
-			if(sum(mat[side,])>0){
+			if(sum(mat[side,])>0){	
 			if(sum(mat[,1])>0)	mat=cbind(rep(0,side+1),rbind(mat,rep(0,side))) else
 			if(sum(mat[,side])>0)   mat=cbind(rbind(mat,rep(0,side)),rep(0,side+1)) else
 						mat=cbind(rep(0,side+1),rbind(mat,rep(0,side))); side=dim(mat)[1]}
-			if(sum(mat[,1])>0){
+			if(sum(mat[,1])>0){	
 			if(sum(mat[1,])>0)	mat=cbind(rep(0,side+1),rbind(rep(0,side),mat)) else
 			if(sum(mat[side,])>0)   mat=cbind(rep(0,side+1),rbind(mat,rep(0,side))) else
 						mat=cbind(rep(0,side+1),rbind(rep(0,side),mat)); side=dim(mat)[1]}
-			if(sum(mat[,side])>0){
+			if(sum(mat[,side])>0){	
 			if(sum(mat[1,])>0)	mat=cbind(rbind(rep(0,side),mat),rep(0,side+1)) else
 			if(sum(mat[side,])>0)   mat=cbind(rbind(mat,rep(0,side)),rep(0,side+1)) else
-						mat=cbind(rbind(rep(0,side),mat),rep(0,side+1)); side=dim(mat)[1]}		
+						mat=cbind(rbind(rep(0,side),mat),rep(0,side+1)); side=dim(mat)[1]}	
+			if(sum(mat)>0)
+			mat=mat[(min(which(mat==1,arr.ind=T)[,1])-1):(max(which(mat==1,arr.ind=T)[,1])+1),
+				(min(which(mat==1,arr.ind=T)[,2])-1):(max(which(mat==1,arr.ind=T)[,2])+1)]	
+			toggle=T
+			while(dim(mat)[1]<dim(mat)[2]){ 
+				if(toggle==T) mat=rbind(mat,rep(0,dim(mat)[2])) else mat=rbind(rep(0,dim(mat)[2]),mat)
+				toggle=!toggle 			
+			}
+			toggle=T
+			while(dim(mat)[1]>dim(mat)[2]) {
+				if(toggle==T) mat=cbind(mat,rep(0,dim(mat)[1])) else mat=cbind(rep(0,dim(mat)[1]),mat)
+				toggle=!toggle 
+			}
+			side=dim(mat)[1]
 		} 
 	 		allW =  cbind(rep(0,side) , mat[,-side] )
 			allNW = rbind(rep(0,side),cbind(rep(0,side-1),mat[-side,-side]))
@@ -97,14 +111,11 @@ step <- function(mat, steps=1, expandable=F, storeAll=F, livingBorders=F){
 			allSE = rbind(cbind(mat[-1,-1],rep(0,side-1)),rep(0,side))
 			allS =  rbind(mat[-1,],rep(0,side))
 			allSW = rbind(cbind(rep(0,side-1),mat[-1,-side]),rep(0,side))
-
 		if(F){
 			par(mfrow=c(3,3),mar=c(0,0,0,0))
 			image(t(allNE),axes=F);box();image(t(allN),axes=F);box();image(t(allNW),axes=F);box();
 			image(t(allE),axes=F);box();image(t(mat),axes=F);box(); image(t(allW),axes=F);box(); 
 			image(t(allSE),axes=F);box();image(t(allS),axes=F);box();image(t(allSW),axes=F);box();	
-
-
 		}
      		mat2 <- allW + allNW + allN + allNE + allE + allSE + allS + allSW
 	    	mat3 <- mat
@@ -120,7 +131,7 @@ step <- function(mat, steps=1, expandable=F, storeAll=F, livingBorders=F){
 	return(mat)
 }
 
-plotWorld=function(mat, steps=0, type=1, pch=15, cex=.5, col="darkgreen", border="black", plot=T, expandable=T, ...) {
+plotWorld=function(mat, steps=0, type=1, pch=15, cex=.5, col="darkgreen", border="black", plot=T, expandable=T, box=T, bringToTop=T, ...) {
 	if(length(dim(mat))==3) mat=mat[,,dim(mat)[3]]
 	if(steps>0) mat=step(mat,steps=steps,storeAll=F,expandable=expandable)  
 	if(plot!=F){
@@ -147,25 +158,32 @@ plotWorld=function(mat, steps=0, type=1, pch=15, cex=.5, col="darkgreen", border
 			invisible(lapply(which(x[,i]==1), function(j) polygon(x=c(i-.5,i+.5,i+.5,i-.5),y=c(j-.5,j-.5,j+.5,j+.5),col=col, border=border) ))
 		}))
 	}}
+	if(box==T)box();
+	if(bringToTop==T)bringToTop(-1) 
 	return(invisible(mat))
+}
+
+evolveStepwise=function(mat,...){
+	while(T) { 
+		inp=as.character(readline(prompt="Input steps: "));
+		inp[inp==""]=1;inp=as.numeric(inp);inp[is.na(inp)]=1;
+		if(inp<0)break;
+		mat=plotWorld(mat,steps=inp,...)
+	}
+	mat
 }
 
 #########################
 # Demo Simulations
 #########################
 
-m=world(5)
-m=addGlider(m,2,2)
-m=plotWorld(m,steps=1)
+world1=world(10)
+world1=addGlider(world1,5,5)
+world1=plotWorld(world1,steps=1, expandable=F)
 
-# mat=helloWorld()
-# mat=step(mat)
-# dev.new();mat=plotWorld(mat,steps=10, type="i")
-# dev.new();mat1=plotWorld(mat,steps=10, type="a")
-# dev.new();mat2=plotWorld(mat,steps=10, type="p")
 
 evos=list()
-eval=sapply(1:10, function(i){
+eval=sapply(1:5, function(i){
 	set.seed(i);print(i)
 	evo=addObject(NULL,"r5")#,x=20,y=20)
 	evos[[i]]=plotWorld(evo,steps=1000, plot=F,expandable=T) 
@@ -178,10 +196,8 @@ eval=sapply(1:10, function(i){
 })
 eval
 
-i=4
-set.seed(i);print(i)
-evo=world(100)
-evo=addObject(evo,"r5",x=50,y=50)
-evo=plotWorld(evo,steps=0)
-evo=plotWorld(evo,steps=1) 
+
+set.seed(4);
+world2=addObject(name="r5")
+world2=evolveStepwise(world2) # enter negative number to quit evolution
 
