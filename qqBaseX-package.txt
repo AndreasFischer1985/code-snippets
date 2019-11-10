@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.1.8",
+"Version"="0.1.9",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
@@ -410,9 +410,13 @@ d <- paste0(	"#' Function plotXY\n",
 
 f<- function (x = NULL, y = NULL, complexity = 0, rep.nnet = 10, 
     attrModel = T, na.rm = T, color1 = rgb(0, 0, 0, 0.7), color2 = rgb(0, 
-        0, 1), color3 = rgb(0, 0, 1, 0.2), xlab = "x", ylab = "y", 
-    axes = T, add = F, main = "Bivariate Relation", sub = NULL, 
+        0, 1), color3 = rgb(0, 0, 1, 0.2), xlab = "x", ylab = "y", axes = T, add = F, main = NA, sub = NA, 
     pch = 16, lwd = 2, cex = 0.7, cex.sub = 0.7, generalize = F, 
+    main1 = NULL, main2 = NULL, main3 = NULL, mar=NA,
+    adj.main1 = 0, adj.main2 = 0, adj.main3 = 0, col.main1 = "black", 
+    col.main2 = "black", col.main3 = "black", cex.main1 = 1.2, 
+    cex.main2 = 1.2, cex.main3 = 1.2, font.main1 = 1, font.main2 = 2, 
+    font.main3 = 4,
     ...) 
 {
     if (is.null(sub)) 
@@ -422,21 +426,23 @@ f<- function (x = NULL, y = NULL, complexity = 0, rep.nnet = 10,
         x = rnorm(100)
         y = rnorm(100)
     }
+    mar0 = NULL
+    if (is.numeric(mar)) {
+        mar0 = par("mar")
+        par(mar = mar)
+    }
     data = data.frame(x, y)
-    if (na.rm == T) 
-        data = data[complete.cases(data), ]
+    if (na.rm == T) data = data[complete.cases(data), ]
     data0 = data
     data = data.frame(scale(data))
     colnames(data) = colnames(data0)
     nnet = NULL
     lm = NULL
-
     if (complexity>0)
     if (length(grep("^quantqual$", (installed.packages()[, "Package"]))) == 0) {
 	complexity=0;
 	warning("complexity set to 0 because quantqual-package is not installed.\nYou may install it via devtools::install_github(\"AndreasFischer1985/quantqual\")")
     }
-
     if (complexity > 0) {
         if (!generalize) 
              nnet = quantqual::nnets(data, "y", size = complexity, linout = T, rep.nnet = rep.nnet)[[1]]
@@ -467,34 +473,143 @@ f<- function (x = NULL, y = NULL, complexity = 0, rep.nnet = 10,
         outer = apply(ou2, 1, max)
     }
     unscale = function(x, m, s) x * s + m
-    in1 = unscale(in1, mean(data0[, 1], na.rm = T), sd(data0[, 
-        1], na.rm = T))
-    ou1 = unscale(ou1, mean(data0[, 2], na.rm = T), sd(data0[, 
-        2], na.rm = T))
-    inner = unscale(inner, mean(data0[, 2], na.rm = T), sd(data0[, 
-        2], na.rm = T))
-    outer = unscale(outer, mean(data0[, 2], na.rm = T), sd(data0[, 
-        2], na.rm = T))
-    if (add == F) 
-        plot(data0[, 1], data0[, 2], xlab = xlab, ylab = ylab, 
-            main = main, type = "n", axes = axes, ...)
-    if (add == F) 
-        if (!is.null(sub)) 
-            title(sub = sub, cex.sub = cex.sub)
-    polygon(c(in1, in1[length(in1):1]), c(inner, outer[length(outer):1]), 
-        col = color3[1], border = NA)
+    in1 = unscale(in1, mean(data0[, 1], na.rm = T), sd(data0[, 1], na.rm = T))
+    ou1 = unscale(ou1, mean(data0[, 2], na.rm = T), sd(data0[, 2], na.rm = T))
+    inner = unscale(inner, mean(data0[, 2], na.rm = T), sd(data0[, 2], na.rm = T))
+    outer = unscale(outer, mean(data0[, 2], na.rm = T), sd(data0[, 2], na.rm = T))
+    if (add == F) plot(data0[, 1], data0[, 2], xlab = xlab, ylab = ylab, main = main, type = "n", axes = axes, ...)
+    if (add == F) if (!is.null(sub)) title(sub = sub, cex.sub = cex.sub)
+    polygon(c(in1, in1[length(in1):1]), c(inner, outer[length(outer):1]), col = color3[1], border = NA)
     points(data0[, 1], data0[, 2], pch = pch, col = color1[1])
     lines(in1, ou1, , col = color2[1], lwd = lwd)
-    dat = data.frame(predictor = in1, prediction = ou1, lower.bound = inner, 
-        upper.bound = outer)
+    dat = data.frame(predictor = in1, prediction = ou1, lower.bound = inner, upper.bound = outer)
     if (attrModel) 
-        if (!is.null(nnet)) 
-            attr(dat, "model") = nnet
+        if (!is.null(nnet)) attr(dat, "model") = nnet
         else attr(dat, "model") = lm
-    invisible(dat)
+    if (!is.null(main1)) 
+        title(main1, line = 1, adj = adj.main1, cex.main = cex.main1, col = col.main1, font.main = font.main1)
+    if (!is.null(main2)) 
+        title(main2, line = 2, adj = adj.main2, cex.main = cex.main2, col = col.main2, font.main = font.main2)
+    if (!is.null(main3)) 
+        title(main3, line = 3, adj = adj.main3, cex.main = cex.main3, col = col.main3, font.main = font.main3)
+    if (is.numeric(mar)) par(mar = mar0)
+    return(invisible(dat))
 }
 plotXY=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "distrib" 
+#------------
+d <- paste0(
+	"#' Function distrib\n",
+	"#' \n#' Returns and plots a vetor's unweighted/weighted distribution.\n",
+	"#' @param dat Numeric vector.\n",
+	"#' @param wei Numeric vector representing of the same length as dat. Represents the weight that is attributed to each element of dat.\n",
+	"#' @param kat Factor of the same length as dat. Specifies subgroups of dat to summarize.\n",
+	"#' @details Returns and plots a vetor's unweighted/weighted distribution. \n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' distrib(1:10)"
+);
+
+f=function(dat,wei=NULL,kat=NULL,plot=T,plot.o=F,simplify=T,mar=NULL,width=NULL,height=NULL,main2="Boxplot",main1="",round=T,...){
+	if(is.null(kat)) kat=rep(1,length(dat)) # wenn keine Differenzierung gewünscht, packe alle Daten in eine Kategorie
+	if(is.null(wei)) wei=rep(1,length(dat)) # wenn keine Gewichtung gewünscht, gewichte jedes Element mit 1
+	dat=as.numeric(dat)			# Stelle sicher, dass die Variable dat numerisch ist
+	wei=as.numeric(wei)			# Stelle sicher, dass die Variable wei numerisch ist
+	dat[is.na(kat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
+	wei[is.na(kat)|is.na(dat)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
+	kat[is.na(dat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
+	lev=levels(as.factor(kat))		# Bestimme die unterschiedlichen Ausprägungen von kat
+	erg=lapply(lev,function(x){		# Berechne das Folgende für jede Ausprägung von kat
+		w.tab=sapply(										# w.tab = Tabelle mit Umfang der Population bzgl. jeder Ausprägung von dat (in der Kategorie x) 
+			levels(as.factor(dat[kat==x])),	
+			function(y) { w.n=sum(wei[kat==x & dat==y],na.rm=T)}
+		);
+		if(round==T) w.dat=as.numeric(rep(names(w.tab), round(w.tab)))	else			# w.dat = Vektor auf Basis von w.tab, der die Daten dat der Population repräsentiert (in der Kategorie x) 
+			     w.dat=as.numeric(rep(names(w.tab), w.tab));
+		list(
+			w.statistics = c(
+				w.n=sum(wei[kat==x],na.rm=T),						# w.n =    wie groß ist die Population (bzgl. der Kategorie x)
+				w.sum=sum(dat[kat==x]*wei[kat==x],na.rm=T),				# w.sum =  wie groß ist die Summe in der Population (bzgl. der Kategorie x)
+				w.mean=sum(dat[kat==x]*wei[kat==x],na.rm=T) / sum(wei[kat==x],na.rm=T), # w.mean = wie groß ist der Mittelwert in der Population (bzgl. der Kategorie x)
+				w.median=median(w.dat, na.rm=T),					# w.median = Median der Population (bzgl. der Kategorie x)
+				w.sd=sd(w.dat, na.rm=T),						# w.sd = Standardabweichung der Population (bzgl. der Kategorie x)
+				w.min=min(w.dat, na.rm=T),						# w.min = Minimum der Population (bzgl. der Kategorie x)
+				w.max=max(w.dat, na.rm=T),						# w.max = Maximum der Population (bzgl. der Kategorie x)
+				w.sum2=sum(w.dat, na.rm=T),						# w.sum = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
+				w.mean2=mean(w.dat, na.rm=T)						# w.mean = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
+			), 
+			w.table=w.tab, 
+			w.data=w.dat,
+			o.statistics = c(
+				o.n=sum(kat==x,na.rm=T),				
+				o.sum=sum(dat[kat==x],na.rm=T),				
+				o.mean=sum(dat[kat==x],na.rm=T) / sum(kat==x,na.rm=T),
+				o.median=median(dat[kat==x], na.rm=T),			
+				o.sd=sd(dat[kat==x], na.rm=T),				
+				o.min=min(dat[kat==x], na.rm=T),				
+				o.max=max(dat[kat==x], na.rm=T),				
+				o.sum2=sum(dat[kat==x], na.rm=T),				
+				o.mean2=mean(dat[kat==x], na.rm=T)				
+			), 
+			o.table=table(dat[kat==x],useNA="always"),
+			o.data=as.numeric(na.omit(dat[kat==x]))
+		)
+	}); 
+	names(erg)=lev	
+	if(plot==T){
+		cols2=function (col, transparency = 0.3, opaque=T) {
+		    if(opaque==T) res=sapply(as.data.frame(col2rgb(col)),function(x) colorRampPalette(c(rgb(x[1]/255, x[2]/255, x[3]/255),"white"))(3)[2])
+		    else	  res=apply(col2rgb(col), 2, function(x) rgb(x[1]/255, x[2]/255, x[3]/255, transparency))    
+		    return(res)
+		}
+		x=lapply(erg,function(x) x[["w.data"]]);		 # x umfasst die gewichteten Daten, x2 die ungewichteten
+		m=sapply(erg,function(x) x[["w.statistics"]]["w.mean2"])
+		x2=lapply(erg,function(x) x[["o.data"]]);
+		m2=sapply(erg,function(x) x[["o.statistics"]]["o.mean"])
+		x2=x2[order(m)]
+		m2=m2[order(m)]
+		x=x[order(m)]
+		m=m[order(m)] #sapply(x,function(x)mean(x,na.rm=T))
+		if(!is.null(width)&!is.null(height)) dev.new(width=width,height=height);	
+		if(!is.null(mar))p0=par("mar")
+		if(!is.null(mar))par("mar" = mar)
+		if(plot.o==T){
+			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,boxwex=.5/length(x), ...)  # D9E7EF"
+			boxplot(x2, at=(1:length(x))+.25,horizontal=T,axes=F,col=cols2(rgb(127/255,169/255,188/255),opaque=T),range=0,whiskcol="grey",staplecol="grey",whisklty=1, add=T,boxwex=.5/length(x),...)  # D9E7EF"
+			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
+			points(m2[1:length(x2)],(1:length(x2))+.25,pch=16,col="black") # "#00547A"
+
+			print(m)
+			print(m2)
+		} else {
+			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,...)  # D9E7EF"
+			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
+		}
+		axis(1,col=NA,col.ticks="grey");
+		axis(2,at=1:length(x),labels=names(x),las=2,col=NA,col.ticks=NA)
+		if(!is.null(mar))par("mar" = p0)
+		title(main2,line=2,adj=0)
+		title(main1,line=1,adj=0,font.main=1)
+	}	
+	if(plot==F) {
+		if(sum(wei!=1, na.rm=T)>0) {
+		if(simplify)    return( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])) 	) else    return(erg) } else
+		if(simplify)    return( sapply(erg,function(x) x[["o.statistics"]]) 							) else    return(erg)  
+	} else 	if(sum(wei!=1, na.rm=T)>0) {
+		if(simplify) 	return(invisible( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])))) else return(invisible(erg)) } else
+		if(simplify) 	return(invisible( sapply(erg,function(x) x[["o.statistics"]]) 							)) else return(invisible(erg)) 
+
+}
+distrib=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+#m=as.data.frame(cbind(g=c("w","w","m"), x=c(1,2,3), y=c(1,2,2), w=c(.5/(2/3),.5/(2/3),.5/(1/3))))
+#dev.new();w=distrib(m$x,m$w,m$g, simplify=F);w
+#dev.new();w2=distrib(m$x[1:2],m$w[1:2], simplify=F);
 
 
 
@@ -602,8 +717,9 @@ f<-function(x,y,text,jitter=F,cex=1,font=1,frame=1.5,plot=F,lock.x=F,lock.y=F,ve
 	return(data.frame(x,y,text))
 }
 decollide=f; #set.seed(0);decollide(x=rnorm(10),y=rnorm(10),text=paste0(1:10,":",round(rnorm(10),3)),cex=1,font=1,plot=T)
-
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
 n <- "bp" 
 #------------
 d <- paste0(
@@ -2226,7 +2342,9 @@ d <- paste0(	"#' Function last\n",
 		"#' @export\n",
 		"#' @examples\n#' last(c(1,2,3))"
 		)		
-f=function(x,s=0)ifelse(length(x)>0,x[[length(x)-s]],NA)
+f=function(x,s=0)
+	if(is.data.frame(x)|is.matrix(x)) return(ifelse(dim(x)[1]>0,list(x[,dim(x)[2]-s]),list(NA))[[1]]) else
+	return(ifelse(length(x)>0,x[[length(x)-s]],NA))
 last=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
@@ -2240,7 +2358,9 @@ d <- paste0(	"#' Function first\n",
 		"#' @export\n",
 		"#' @examples\n#' first(c(1,2,3))"
 		)		
-f=function(x,s=0)ifelse(length(x)>0,x[[1+s]],NA)
+f=function(x,s=0)
+	if(is.data.frame(x)|is.matrix(x)) return(ifelse(dim(x)[1]>0,list(x[,1+s]),list(NA))[[1]]) else
+	return(ifelse(length(x)>0,x[[1+s]],NA))
 first=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
@@ -2253,9 +2373,10 @@ d <- paste0(	"#' Function trim\n",
 	"#' @keywords preprocessing\n",
 	"#' @export\n",
 	"#' @examples\n",
-	"#' trim(getHTML(\" Hi  \"")
+	"#' trim(\" Hi  \")")
 f=function(x)gsub("(^[ \n\r]+|[ \n\r]+$)","",x);
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
 
 setwd("..");
 devtools::document();
