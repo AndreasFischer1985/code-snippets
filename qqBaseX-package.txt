@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.1.9",
+"Version"="0.2.0",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
@@ -62,10 +62,13 @@ setwd("R")
 n <- "vgrepl"
 d <- paste0(	"#' Function vgrepl\n",
 	"#' \n#' Variant of grepl that takes a vector of patterns.\n")
-f <- function(...)
-{f=Vectorize(grepl,vectorize.arg="pattern");f(...);}
-vgrepl=f
+f <- function(pattern,x, sumFun=NULL, ...)
+{f=Vectorize(grepl,vectorize.arg="pattern");erg=f(pattern=pattern,x=x,...);
+if(!is.null(sumFun))erg=sumFun(erg);erg}
+vgrepl=f #c=c("d","dasd");f(c("as","d"),c)
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
 
 
 n <- "getHTML";
@@ -89,7 +92,7 @@ f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&o
 	html=paste(readLines(url,encoding=encoding), collapse="\n");       
 	if(save) write.csv2(data.frame(gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))),paste0(prefix,"_",round(10000*rnorm(1)),"_html.csv"))
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
-        return(html)
+        return(invisible(html))
 }
 getHTML=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -101,7 +104,7 @@ d <- paste0(	"#' Function scrapeHTML\n",
 	"#' \n#' Extracts Information from HTML.\n",
 	"#' @param html A character element containing HTML-code.\n",
 	"#' @param short Logical value specifying whether only lines with verbal information or link should be returned. Defaults to F.\n",
-	"#' @param show Logical value specifying whether the data.frame should be plotted/edited.\n",
+	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
 	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
 	"#' @details Extracts Information from HTML. Returns a data.frame with three columns: the first column contains html-code, the second column contains extracted verbal information, and the third column contains extracted links.\n",
@@ -109,17 +112,21 @@ d <- paste0(	"#' Function scrapeHTML\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' scrapeHTML(getHTML())")
-f <- function(html,short=F,show=T,save=T,prefix=Sys.Date()){
+f <- function(html,short=F,edit=T,save=F,plot=F,prefix=Sys.Date()){
 	strings=gsub("(\n|\t)+"," ",gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]])))
+	if(plot){
+		s1=sort(table(gsub("(<[/]?|(>| ).*)","",strings))) # inspect all tags without parameters
+		bp(s1[s1>2],main2="Common Tags")
+	}
 	info=gsub("^[ ]*$","",gsub("^<[^<]*>","",strings))
 	links=character(length(info))
 	links[grep("href=[\"\'].*?[\"\']",strings)]=
 		gsub("[\"\'].*$","",gsub("^.*?href=[\"\']","",grep("href=[\"\'].*?[\"\']",strings,value=T)))
 	result=data.frame(entry=as.character(strings),info=as.character(info),links=as.character(links))
 	if(short)result=result[nchar(as.character(result[,2]))>0|nchar(as.character(result[,3]))>0,]
-	if(show)result=edit(result)
-	if(save)write.csv2(data.frame(result),paste0(prefix,"_",round(10000*rnorm(1)),"_result.csv"))
-	return(result)
+	if(edit)result=edit(result)
+	if(save) write.csv2(data.frame(result),paste0(prefix,"_",round(10000*rnorm(1)),"_result.csv"))
+	return(invisible(result))
 }
 scrapeHTML=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -129,34 +136,63 @@ n<-"subsetHTML"
 d <- paste0(	"#' Function subsetHTML\n",
 	"#' \n#' Extracts a coherent subset of code from HTML-code.\n",
 	"#' @param html A character element containing HTML-code.\n",
-	"#' @param pattern Regular expression specifying the tag to be used for subsetting.\n",
-	"#' @param start Regular expression. Defaults to \"<div\".\n",
-	"#' @param end Regular expression. Defaults to \"</div>\".\n",
+	"#' @param tag Character element specifying the the subsets of interest. Defaults to \"div\".\n",
+	"#' @param pattern Regular expression further specifying subsets of interest. If NULL (default) equals tag.\n",
+	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
 	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
 	"#' @details Extracts a coherent subset of code from HTML-code.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
-	"#' subsetHTML(getHTML(\"https://jobs.meinestadt.de/nuernberg/suche?words=Wissenschaftlicher%20Mitarbeiter\"))")
-f <- function(html,pattern="class=\"m-resultListEntries__content\"",start="<div",end="</div>",save=T,prefix=Sys.Date()){
-	strings=gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))
-	loc.pat=grep(pattern,strings)
-	loc.div1=grep(start,strings)
-	loc.div2=grep(end,strings)
-	result=character(0)
-	for(i1 in loc.pat){
-		loc.div3=sort(c(loc.div1[which(loc.div1>i1)],loc.div2[which(loc.div2>i1)]))
-		i2=i1;for(i in loc.div3)if(length(loc.div1[which(loc.div1>i1 & loc.div1<=i)])<=length(loc.div2[which(loc.div2>i1 & loc.div2<=i)])){i2=i;break;}
-		string=paste(strings[i1:i2],collapse="\n");
-		text=gsub("^( )*(\n)*( )*(\n)*","",gsub("(\n)+( )*(\n)*","\n",gsub("<.*?>","",string)));
-		result=c(result,text);
+	"#' subsetHTML(getHTML(\"https://jobs.meinestadt.de/nuernberg/suche?words=Wissenschaftlicher%20Mitarbeiter\",tag=\"div\",pattern=\"class=\\\"m-resultListEntries__content\\\"\"))")
+
+f <- function (html, tag="div", pattern = NULL, edit=T, save = F, plot=F, prefix = Sys.Date(),trim=F) {
+    start = paste0("<",tag,"[\n\r> ]")
+    end =   paste0("</",tag,">")
+    if(is.null(pattern))pattern=start
+    strings = gsub("[ ]+", " ", paste0("<", strsplit(html, "<")[[1]]))
+    if(plot){
+	s1=sort(table(gsub("(<[/]?|(>| ).*)","",strings))) # inspect all tags without parameters
+	bp(s1[s1>2],main2="Common Tags")
+    }
+    infos = gsub("^[ ]*$", "", gsub("^<[^<]*>", "", strings))
+    links = character(length(infos))
+    links[grep("href=[\"'].*?[\"']", strings)] = gsub("[\"'].*$","", gsub("^.*?href=[\"']", "", grep("href=[\"'].*?[\"']", strings, value = T)))
+    loc.pat = grep(pattern, strings)
+    loc.div1 = grep(start, strings)
+    loc.div2 = grep(end, strings)
+    result0 = character(0);result1  = character(0);result2 = character(0);result3 = character(0)
+    for (i1 in loc.pat) {
+        loc.div3 = sort(c(loc.div1[which(loc.div1 > i1)], loc.div2[which(loc.div2 > i1)]))
+        i2 = i1
+        for (i in loc.div3) if (length(loc.div1[which(loc.div1 > i1 & loc.div1 <= i)]) <= length(loc.div2[which(loc.div2 > i1 & loc.div2 <= i)])) { i2 = i; break; }
+        string = paste(strings[i1:i2], collapse = "\n")
+        info =   paste(infos[i1:i2],    collapse = "\n")
+  	link =   paste(links[i1:i2],    collapse = "\n")
+        text = gsub("^( )*(\n)*( )*(\n)*", "", gsub("(\n)+( )*(\n)*", "\n", gsub("<.*?>", "", string)))
+	if(trim==T){
+        	result0 = c(result0, qqBaseX::trim(string))
+	        result1 = c(result1, qqBaseX::trim(text))
+        	result2 = c(result2, qqBaseX::trim(info))
+       		result3 = c(result3, qqBaseX::trim(link))
+	} else {
+		result0 = c(result0, (string))
+	        result1 = c(result1, (text))
+        	result2 = c(result2, (info))
+       		result3 = c(result3, (link))
 	}
-	if(save)write.csv2(data.frame(result),paste0(prefix,"_",round(10000*rnorm(1)),"_result.csv"))
-	return(result)
+    }
+    result=data.frame(entry=result0,info=result2,links=result3,text=result1)
+    if(edit) result=edit(result)
+    if (save){ 
+        write.csv2(data.frame(result), paste0(prefix, "_", round(10000 * rnorm(1)), "_result.csv"))
+    }
+    return(invisible(result))
 }
 subsetHTML=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
 
 n<-"extractTable"
 #-------------
@@ -499,120 +535,6 @@ plotXY=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
-n <- "distrib" 
-#------------
-d <- paste0(
-	"#' Function distrib\n",
-	"#' \n#' Returns and plots a vetor's unweighted/weighted distribution.\n",
-	"#' @param dat Numeric vector.\n",
-	"#' @param wei Numeric vector representing of the same length as dat. Represents the weight that is attributed to each element of dat.\n",
-	"#' @param kat Factor of the same length as dat. Specifies subgroups of dat to summarize.\n",
-	"#' @details Returns and plots a vetor's unweighted/weighted distribution. \n",
-	"#' @keywords plotting\n",
-	"#' @export\n",
-	"#' @examples\n",
-	"#' distrib(1:10)"
-);
-
-f=function(dat,wei=NULL,kat=NULL,plot=T,plot.o=F,simplify=T,mar=NULL,width=NULL,height=NULL,main2="Boxplot",main1="",round=T,...){
-	if(is.null(kat)) kat=rep(1,length(dat)) # wenn keine Differenzierung gewünscht, packe alle Daten in eine Kategorie
-	if(is.null(wei)) wei=rep(1,length(dat)) # wenn keine Gewichtung gewünscht, gewichte jedes Element mit 1
-	dat=as.numeric(dat)			# Stelle sicher, dass die Variable dat numerisch ist
-	wei=as.numeric(wei)			# Stelle sicher, dass die Variable wei numerisch ist
-	dat[is.na(kat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
-	wei[is.na(kat)|is.na(dat)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
-	kat[is.na(dat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
-	lev=levels(as.factor(kat))		# Bestimme die unterschiedlichen Ausprägungen von kat
-	erg=lapply(lev,function(x){		# Berechne das Folgende für jede Ausprägung von kat
-		w.tab=sapply(										# w.tab = Tabelle mit Umfang der Population bzgl. jeder Ausprägung von dat (in der Kategorie x) 
-			levels(as.factor(dat[kat==x])),	
-			function(y) { w.n=sum(wei[kat==x & dat==y],na.rm=T)}
-		);
-		if(round==T) w.dat=as.numeric(rep(names(w.tab), round(w.tab)))	else			# w.dat = Vektor auf Basis von w.tab, der die Daten dat der Population repräsentiert (in der Kategorie x) 
-			     w.dat=as.numeric(rep(names(w.tab), w.tab));
-		list(
-			w.statistics = c(
-				w.n=sum(wei[kat==x],na.rm=T),						# w.n =    wie groß ist die Population (bzgl. der Kategorie x)
-				w.sum=sum(dat[kat==x]*wei[kat==x],na.rm=T),				# w.sum =  wie groß ist die Summe in der Population (bzgl. der Kategorie x)
-				w.mean=sum(dat[kat==x]*wei[kat==x],na.rm=T) / sum(wei[kat==x],na.rm=T), # w.mean = wie groß ist der Mittelwert in der Population (bzgl. der Kategorie x)
-				w.median=median(w.dat, na.rm=T),					# w.median = Median der Population (bzgl. der Kategorie x)
-				w.sd=sd(w.dat, na.rm=T),						# w.sd = Standardabweichung der Population (bzgl. der Kategorie x)
-				w.min=min(w.dat, na.rm=T),						# w.min = Minimum der Population (bzgl. der Kategorie x)
-				w.max=max(w.dat, na.rm=T),						# w.max = Maximum der Population (bzgl. der Kategorie x)
-				w.sum2=sum(w.dat, na.rm=T),						# w.sum = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
-				w.mean2=mean(w.dat, na.rm=T)						# w.mean = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
-			), 
-			w.table=w.tab, 
-			w.data=w.dat,
-			o.statistics = c(
-				o.n=sum(kat==x,na.rm=T),				
-				o.sum=sum(dat[kat==x],na.rm=T),				
-				o.mean=sum(dat[kat==x],na.rm=T) / sum(kat==x,na.rm=T),
-				o.median=median(dat[kat==x], na.rm=T),			
-				o.sd=sd(dat[kat==x], na.rm=T),				
-				o.min=min(dat[kat==x], na.rm=T),				
-				o.max=max(dat[kat==x], na.rm=T),				
-				o.sum2=sum(dat[kat==x], na.rm=T),				
-				o.mean2=mean(dat[kat==x], na.rm=T)				
-			), 
-			o.table=table(dat[kat==x],useNA="always"),
-			o.data=as.numeric(na.omit(dat[kat==x]))
-		)
-	}); 
-	names(erg)=lev	
-	if(plot==T){
-		cols2=function (col, transparency = 0.3, opaque=T) {
-		    if(opaque==T) res=sapply(as.data.frame(col2rgb(col)),function(x) colorRampPalette(c(rgb(x[1]/255, x[2]/255, x[3]/255),"white"))(3)[2])
-		    else	  res=apply(col2rgb(col), 2, function(x) rgb(x[1]/255, x[2]/255, x[3]/255, transparency))    
-		    return(res)
-		}
-		x=lapply(erg,function(x) x[["w.data"]]);		 # x umfasst die gewichteten Daten, x2 die ungewichteten
-		m=sapply(erg,function(x) x[["w.statistics"]]["w.mean2"])
-		x2=lapply(erg,function(x) x[["o.data"]]);
-		m2=sapply(erg,function(x) x[["o.statistics"]]["o.mean"])
-		x2=x2[order(m)]
-		m2=m2[order(m)]
-		x=x[order(m)]
-		m=m[order(m)] #sapply(x,function(x)mean(x,na.rm=T))
-		if(!is.null(width)&!is.null(height)) dev.new(width=width,height=height);	
-		if(!is.null(mar))p0=par("mar")
-		if(!is.null(mar))par("mar" = mar)
-		if(plot.o==T){
-			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,boxwex=.5/length(x), ...)  # D9E7EF"
-			boxplot(x2, at=(1:length(x))+.25,horizontal=T,axes=F,col=cols2(rgb(127/255,169/255,188/255),opaque=T),range=0,whiskcol="grey",staplecol="grey",whisklty=1, add=T,boxwex=.5/length(x),...)  # D9E7EF"
-			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
-			points(m2[1:length(x2)],(1:length(x2))+.25,pch=16,col="black") # "#00547A"
-
-			print(m)
-			print(m2)
-		} else {
-			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,...)  # D9E7EF"
-			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
-		}
-		axis(1,col=NA,col.ticks="grey");
-		axis(2,at=1:length(x),labels=names(x),las=2,col=NA,col.ticks=NA)
-		if(!is.null(mar))par("mar" = p0)
-		title(main2,line=2,adj=0)
-		title(main1,line=1,adj=0,font.main=1)
-	}	
-	if(plot==F) {
-		if(sum(wei!=1, na.rm=T)>0) {
-		if(simplify)    return( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])) 	) else    return(erg) } else
-		if(simplify)    return( sapply(erg,function(x) x[["o.statistics"]]) 							) else    return(erg)  
-	} else 	if(sum(wei!=1, na.rm=T)>0) {
-		if(simplify) 	return(invisible( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])))) else return(invisible(erg)) } else
-		if(simplify) 	return(invisible( sapply(erg,function(x) x[["o.statistics"]]) 							)) else return(invisible(erg)) 
-
-}
-distrib=f
-write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
-
-#m=as.data.frame(cbind(g=c("w","w","m"), x=c(1,2,3), y=c(1,2,2), w=c(.5/(2/3),.5/(2/3),.5/(1/3))))
-#dev.new();w=distrib(m$x,m$w,m$g, simplify=F);w
-#dev.new();w2=distrib(m$x[1:2],m$w[1:2], simplify=F);
-
-
-
 n <- "cols" 
 #------------
 d <- paste0(
@@ -839,6 +761,7 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
         col = rainbow(dim(x)[1])
     if (is.null(legend.text) & dim(x)[2] > 1) 
         legend.text = rownames(x)
+    if(!is.null(legend.text))
     if (sum(is.na(legend.text)) > 0) 
         legend.text = NULL
     else if (length(legend.text) == 1) 
@@ -1796,6 +1719,171 @@ f<-function(data,dist.function=function(x)as.dist(1-cor(x)),method="complete",k=
 }
 af.hclust=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+n<-"af.cor"
+#----------
+d <- paste0(	"#' Function af.cor\n",
+		"#' \n#' Provides (unweighted or weighted) correlation matrix between variables.\n",
+		"#' @param data Numeric data.frame.\n",
+		"#' @details Provides (unweighted or weighted) correlation matrix between variables.\n",
+		"#' @keywords modeling\n",
+		"#' @export\n",
+		"#' @examples\n#' af.cor(dat=sapply(1:10,function(x)rnorm(100)));"
+		)
+f<-function(dat,wei=NULL, use="pairwise.complete.obs"){
+	if(is.null(dim(dat))) stop("Please provide a matrix or data.frame as dat")
+	if(is.null(wei)) wei=rep(1,dim(dat)[1]) 
+	if(use=="complete.obs") {
+		wei=wei[complete.cases(dat)]
+		dat=dat[complete.cases(dat),]
+	}
+	weightedCorrelation <- function( x, y, w = NULL, cor=T) {
+	  if(is.null(w)) w=rep(1,length(x))
+	  stopifnot(length(x) == length(y))
+	  w <- w / sum(w)  
+	  x <- x - sum(x * w)			# Center x, using the weighted mean
+	  y <- y - sum(y * w)			# Center y, using the weighted mean
+	  vx <- sum(w * x * x)			# Compute the variance of x
+	  vy <- sum(w * y * y)			# Compute the variance of x
+	  vxy <- sum(y * x * w)			# Compute the covariance between x and y
+	  if(cor) vxy = vxy / sqrt(vx * vy)	# Compute the correlation between x and y
+	  return(vxy)
+	}
+	erg=matrix(NA,ncol=dim(dat)[2],nrow=dim(dat)[2])
+	for(i in 1:dim(dat)[2]){
+		for(j in 1:dim(dat)[2]){
+			dat_i=as.numeric(dat[,i])				
+			dat_j=as.numeric(dat[,j])			
+			wei_i=as.numeric(wei)				
+			dat_i[is.na(wei_i)|is.na(dat_j)]=NA		
+			dat_j[is.na(wei_i)|is.na(dat_i)]=NA		
+			wei_i[is.na(dat_i)|is.na(dat_j)]=NA		
+			dat_i=dat_i[complete.cases(dat_i)]
+			dat_j=dat_j[complete.cases(dat_j)]
+			wei_i=wei_i[complete.cases(wei_i)]
+			erg[i,j]=weightedCorrelation(dat_i,rbind(dat_j),wei_i)
+		}
+	}
+	rownames(erg)=colnames(erg)=names(dat)
+	erg
+}
+af.cor=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n <- "distrib" 
+#------------
+d <- paste0(
+	"#' Function distrib\n",
+	"#' \n#' Returns and plots a vetor's unweighted/weighted distribution.\n",
+	"#' @param dat Numeric vector.\n",
+	"#' @param wei Numeric vector representing of the same length as dat. Represents the weight that is attributed to each element of dat.\n",
+	"#' @param kat Factor of the same length as dat. Specifies subgroups of dat to summarize.\n",
+	"#' @details Returns and plots a vetor's unweighted/weighted distribution. \n",
+	"#' @keywords modeling\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' distrib(1:10)"
+);
+f=function(dat,wei=NULL,kat=NULL,plot=T,plot.o=F,simplify=T,mar=NULL,width=NULL,height=NULL,main2="Boxplot",main1="",round=T,...){
+	if(is.null(kat)) kat=rep(1,length(dat)) # wenn keine Differenzierung gewünscht, packe alle Daten in eine Kategorie
+	if(is.null(wei)) wei=rep(1,length(dat)) # wenn keine Gewichtung gewünscht, gewichte jedes Element mit 1
+	dat=as.numeric(dat)			# Stelle sicher, dass die Variable dat numerisch ist
+	wei=as.numeric(wei)			# Stelle sicher, dass die Variable wei numerisch ist
+	dat[is.na(kat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
+	wei[is.na(kat)|is.na(dat)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
+	kat[is.na(dat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
+	lev=levels(as.factor(kat))		# Bestimme die unterschiedlichen Ausprägungen von kat
+	erg=lapply(lev,function(x){		# Berechne das Folgende für jede Ausprägung von kat
+		w.tab=sapply(										# w.tab = Tabelle mit Umfang der Population bzgl. jeder Ausprägung von dat (in der Kategorie x) 
+			levels(as.factor(dat[kat==x])),	
+			function(y) { w.n=sum(wei[kat==x & dat==y],na.rm=T)}
+		);
+		if(round==T) w.dat=as.numeric(rep(names(w.tab), round(w.tab)))	else			# w.dat = Vektor auf Basis von w.tab, der die Daten dat der Population repräsentiert (in der Kategorie x) 
+			     w.dat=as.numeric(rep(names(w.tab), w.tab));
+		list(
+			w.statistics = c(
+				w.n=sum(wei[kat==x],na.rm=T),						# w.n =    wie groß ist die Population (bzgl. der Kategorie x)
+				w.sum=sum(dat[kat==x]*wei[kat==x],na.rm=T),				# w.sum =  wie groß ist die Summe in der Population (bzgl. der Kategorie x)
+				w.mean=sum(dat[kat==x]*wei[kat==x],na.rm=T) / sum(wei[kat==x],na.rm=T), # w.mean = wie groß ist der Mittelwert in der Population (bzgl. der Kategorie x)
+				w.median=median(w.dat, na.rm=T),					# w.median = Median der Population (bzgl. der Kategorie x)
+				w.sd=sd(w.dat, na.rm=T),						# w.sd = Standardabweichung der Population (bzgl. der Kategorie x)
+				w.min=min(w.dat, na.rm=T),						# w.min = Minimum der Population (bzgl. der Kategorie x)
+				w.max=max(w.dat, na.rm=T),						# w.max = Maximum der Population (bzgl. der Kategorie x)
+				w.sum2=sum(w.dat, na.rm=T),						# w.sum = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
+				w.mean2=mean(w.dat, na.rm=T)						# w.mean = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
+			), 
+			w.table=w.tab, 
+			w.data=w.dat,
+			o.statistics = c(
+				o.n=sum(kat==x,na.rm=T),				
+				o.sum=sum(dat[kat==x],na.rm=T),				
+				o.mean=sum(dat[kat==x],na.rm=T) / sum(kat==x,na.rm=T),
+				o.median=median(dat[kat==x], na.rm=T),			
+				o.sd=sd(dat[kat==x], na.rm=T),				
+				o.min=min(dat[kat==x], na.rm=T),				
+				o.max=max(dat[kat==x], na.rm=T),				
+				o.sum2=sum(dat[kat==x], na.rm=T),				
+				o.mean2=mean(dat[kat==x], na.rm=T)				
+			), 
+			o.table=table(dat[kat==x],useNA="always"),
+			o.data=as.numeric(na.omit(dat[kat==x]))
+		)
+	}); 
+	names(erg)=lev	
+	if(plot==T){
+		cols2=function (col, transparency = 0.3, opaque=T) {
+		    if(opaque==T) res=sapply(as.data.frame(col2rgb(col)),function(x) colorRampPalette(c(rgb(x[1]/255, x[2]/255, x[3]/255),"white"))(3)[2])
+		    else	  res=apply(col2rgb(col), 2, function(x) rgb(x[1]/255, x[2]/255, x[3]/255, transparency))    
+		    return(res)
+		}
+		x=lapply(erg,function(x) x[["w.data"]]);		 # x umfasst die gewichteten Daten, x2 die ungewichteten
+		m=sapply(erg,function(x) x[["w.statistics"]]["w.mean2"])
+		x2=lapply(erg,function(x) x[["o.data"]]);
+		m2=sapply(erg,function(x) x[["o.statistics"]]["o.mean"])
+		x2=x2[order(m)]
+		m2=m2[order(m)]
+		x=x[order(m)]
+		m=m[order(m)] #sapply(x,function(x)mean(x,na.rm=T))
+		if(!is.null(width)&!is.null(height)) dev.new(width=width,height=height);	
+		if(!is.null(mar))p0=par("mar")
+		if(!is.null(mar))par("mar" = mar)
+		if(plot.o==T){
+			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,boxwex=.5/length(x), ...)  # D9E7EF"
+			boxplot(x2, at=(1:length(x))+.25,horizontal=T,axes=F,col=cols2(rgb(127/255,169/255,188/255),opaque=T),range=0,whiskcol="grey",staplecol="grey",whisklty=1, add=T,boxwex=.5/length(x),...)  # D9E7EF"
+			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
+			points(m2[1:length(x2)],(1:length(x2))+.25,pch=16,col="black") # "#00547A"
+
+			print(m)
+			print(m2)
+		} else {
+			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,...)  # D9E7EF"
+			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
+		}
+		axis(1,col=NA,col.ticks="grey");
+		axis(2,at=1:length(x),labels=names(x),las=2,col=NA,col.ticks=NA)
+		if(!is.null(mar))par("mar" = p0)
+		title(main2,line=2,adj=0)
+		title(main1,line=1,adj=0,font.main=1)
+	}	
+	if(plot==F) {
+		if(sum(wei!=1, na.rm=T)>0) {
+		if(simplify)    return( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])) 	) else    return(erg) } else
+		if(simplify)    return( sapply(erg,function(x) x[["o.statistics"]]) 							) else    return(erg)  
+	} else 	if(sum(wei!=1, na.rm=T)>0) {
+		if(simplify) 	return(invisible( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])))) else return(invisible(erg)) } else
+		if(simplify) 	return(invisible( sapply(erg,function(x) x[["o.statistics"]]) 							)) else return(invisible(erg)) 
+
+}
+distrib=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+#m=as.data.frame(cbind(g=c("w","w","m"), x=c(1,2,3), y=c(1,2,2), w=c(.5/(2/3),.5/(2/3),.5/(1/3))))
+#dev.new();w=distrib(m$x,m$w,m$g, simplify=F);w
+#dev.new();w2=distrib(m$x[1:2],m$w[1:2], simplify=F);
+
 
 ###########################################
 # Analyzing
