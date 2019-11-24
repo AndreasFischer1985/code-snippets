@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.2.0",
+"Version"="0.2.1",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
@@ -147,7 +147,7 @@ d <- paste0(	"#' Function subsetHTML\n",
 	"#' @examples\n",
 	"#' subsetHTML(getHTML(\"https://jobs.meinestadt.de/nuernberg/suche?words=Wissenschaftlicher%20Mitarbeiter\",tag=\"div\",pattern=\"class=\\\"m-resultListEntries__content\\\"\"))")
 
-f <- function (html, tag="div", pattern = NULL, edit=T, save = F, plot=F, prefix = Sys.Date(),trim=F) {
+f <- function (html, tag="div", pattern = NULL, edit=F, save = F, plot=F, prefix = Sys.Date(),trim=T) {
     start = paste0("<",tag,"[\n\r> ]")
     end =   paste0("</",tag,">")
     if(is.null(pattern))pattern=start
@@ -166,16 +166,16 @@ f <- function (html, tag="div", pattern = NULL, edit=T, save = F, plot=F, prefix
     for (i1 in loc.pat) {
         loc.div3 = sort(c(loc.div1[which(loc.div1 > i1)], loc.div2[which(loc.div2 > i1)]))
         i2 = i1
-        for (i in loc.div3) if (length(loc.div1[which(loc.div1 > i1 & loc.div1 <= i)]) <= length(loc.div2[which(loc.div2 > i1 & loc.div2 <= i)])) { i2 = i; break; }
+        for (i in loc.div3) { i2 = i; if (length(loc.div1[which(loc.div1 > i1 & loc.div1 <= i)]) < length(loc.div2[which(loc.div2 > i1 & loc.div2 <= i)])) break; }
         string = paste(strings[i1:i2], collapse = "\n")
         info =   paste(infos[i1:i2],    collapse = "\n")
   	link =   paste(links[i1:i2],    collapse = "\n")
         text = gsub("^( )*(\n)*( )*(\n)*", "", gsub("(\n)+( )*(\n)*", "\n", gsub("<.*?>", "", string)))
 	if(trim==T){
-        	result0 = c(result0, qqBaseX::trim(string))
-	        result1 = c(result1, qqBaseX::trim(text))
-        	result2 = c(result2, qqBaseX::trim(info))
-       		result3 = c(result3, qqBaseX::trim(link))
+        	result0 = c(result0, gsub("[\n]+","\n",qqBaseX::trim(string)))
+	        result1 = c(result1, gsub("[\n]+","\n",qqBaseX::trim(text)))
+        	result2 = c(result2, gsub("[\n]+","\n",qqBaseX::trim(info)))
+       		result3 = c(result3, gsub("[\n]+","\n",qqBaseX::trim(link)))
 	} else {
 		result0 = c(result0, (string))
 	        result1 = c(result1, (text))
@@ -812,8 +812,8 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     if (grid.mode == 0) {
         b = as.matrix(barplot(x2, beside = beside, horiz = horiz, 
             density = density, angle = angle, xlim = xlim, ylim = ylim, plot = plot, 
-            las = las, add = add, adj = adj, main = NA, sub = NA, 
-            col = NA, xlab = NA, ylab = NA, border = NA, axes = F, 
+            las = las, add = add, adj = adj, main = main, sub = sub, 
+            col = NA, xlab = xlab, ylab = ylab, border = NA, axes = F, 
             names.arg = rep("", dim(x)[2]), ...))
     }
     else {
@@ -826,19 +826,20 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
             adj = adj, ...))
     }
     abline2 = function(xl, xlf, ...) {
-        xaxp <- ifelse((length(dev.list())>0|plot==T), list(par("xaxp")), list(c(0,1,5)))[[1]]
-        yaxp <- ifelse((length(dev.list())>0|plot==T), list(par("yaxp")), list(c(0,1,5)))[[1]]
-        segments(x0 = min(xl), y0 = seq(yaxp[1], yaxp[2], (yaxp[2] - 
-            yaxp[1])/yaxp[3]), x1 = max(xl)/xlf, y1 = seq(yaxp[1], 
-            yaxp[2], (yaxp[2] - yaxp[1])/yaxp[3]), ...)
+        	xaxp <- ifelse((length(dev.list())>0|plot==T), list(par("xaxp")), list(c(0,1,5)))[[1]]
+	        yaxp <- ifelse((length(dev.list())>0|plot==T), list(par("yaxp")), list(c(0,1,5)))[[1]]
+        	segments(x0 = min(xl), y0 = seq(yaxp[1], yaxp[2], (yaxp[2] - 
+	            yaxp[1])/yaxp[3]), x1 = max(xl)/xlf, y1 = seq(yaxp[1], 
+        	    yaxp[2], (yaxp[2] - yaxp[1])/yaxp[3]), ...)
     }
     abline3 = function(xl, xlf, ...) {
-        xaxp <- ifelse((length(dev.list())>0|plot==T), list(par("xaxp")), list(c(0,1,5)))[[1]]
-        yaxp <- ifelse((length(dev.list())>0|plot==T), list(par("yaxp")), list(c(0,1,5)))[[1]]
-        segments(y0 = min(xl), x0 = seq(xaxp[1], xaxp[2], (xaxp[2] - 
-            xaxp[1])/xaxp[3]), y1 = max(xl)/xlf, x1 = seq(xaxp[1], 
-            xaxp[2], (xaxp[2] - xaxp[1])/xaxp[3]), ...)
+   		xaxp <- ifelse((length(dev.list())>0|plot==T), list(par("xaxp")), list(c(0,1,5)))[[1]]
+	        yaxp <- ifelse((length(dev.list())>0|plot==T), list(par("yaxp")), list(c(0,1,5)))[[1]]
+        	segments(y0 = min(xl), x0 = seq(xaxp[1], xaxp[2], (xaxp[2] - 
+	            xaxp[1])/xaxp[3]), y1 = max(xl)/xlf, x1 = seq(xaxp[1], 
+        	    xaxp[2], (xaxp[2] - xaxp[1])/xaxp[3]), ...)
     }
+    if (plot!=F)
     if (!horiz) {
         if (grid != F) 
             abline2(xlim, ifelse(!is.null(legend.text), xlim.factor, 1), col = grid.col)
@@ -848,13 +849,14 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
             abline3(ifelse((length(dev.list())>0|plot==T), list(par("usr")), list(c(0,1,0,1)))[[1]][3:4], 1, col = grid.col)
     }
     if (grid.mode == 0 & plot != F) 
-        b = as.matrix(barplot(x2, border = border, xlab = xlab, 
-            ylab = ylab, names.arg = ifelse(default.labels == 
+        b = as.matrix(barplot(x2, border = border, xlab = NA, 
+            ylab = NA, names.arg = ifelse(default.labels == 
                 T, list(names.arg), list(rep("", dim(x)[2])))[[1]], 
             beside = beside, horiz = horiz, density = density, 
-            angle = angle, col = col, xlim = xlim, ylim = ylim, main = main, 
-            sub = sub, plot = plot, las = las, axes = axes, add = T, 
+            angle = angle, col = col, xlim = xlim, ylim = ylim, main = NA, 
+            sub = NA, plot = plot, las = las, axes = axes, add = T, 
             adj = adj, ...))
+    if (plot!=F)
     if (!is.null(sd) & beside) 
         if (!horiz) {
             arrows(b, x2 + sd, b, x2 - sd, angle = 90, code = 3, length = 0.1, xpd = T)
@@ -933,9 +935,9 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
                 }
         }
     }
-    if (is.numeric(mar)) par(mar = mar0)
+    if(plot!=F) if (is.numeric(mar)) par(mar = mar0)
     xy <- c(min(xlim),max(xlim),min(ylim),max(ylim)) #ifelse((length(dev.list())>0|plot==T), list(par("usr")), list(c(0,1,0,1)))[[1]]
-
+    if(plot!=F)
     if (!is.null(legend.text)) {	
         if (is.null(args.legend)) {
 		if(optimize.legend!=F & !is.null(optimize.legend) & !is.na(optimize.legend)){
@@ -997,18 +999,18 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
             do.call("legend", args.legend1)
         }
     }
-    if (!is.null(main1)) 
-        title(main1, line = 1, adj = adj.main1, cex.main = cex.main1, 
-            col = col.main1, font.main = font.main1)
-    if (!is.null(main2)) 
-        title(main2, line = 2, adj = adj.main2, cex.main = cex.main2, 
-            col = col.main2, font.main = font.main2)
-    if (!is.null(main3)) 
-        title(main3, line = 3, adj = adj.main3, cex.main = cex.main3, 
-            col = col.main3, font.main = font.main3)
+    if (plot!=F){
+    	if (!is.null(main1)) 
+        	title(main1, line = 1, adj = adj.main1, cex.main = cex.main1, col = col.main1, font.main = font.main1)
+    	if (!is.null(main2)) 
+        	title(main2, line = 2, adj = adj.main2, cex.main = cex.main2, col = col.main2, font.main = font.main2)
+    	if (!is.null(main3)) 
+        	title(main3, line = 3, adj = adj.main3, cex.main = cex.main3, col = col.main3, font.main = font.main3)
+    }
     return(invisible(b))
 }
 bp=f;
+
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
@@ -1801,7 +1803,7 @@ f=function(dat,wei=NULL,kat=NULL,plot=T,plot.o=F,simplify=T,mar=NULL,width=NULL,
 			levels(as.factor(dat[kat==x])),	
 			function(y) { w.n=sum(wei[kat==x & dat==y],na.rm=T)}
 		);
-		if(round==T) w.dat=as.numeric(rep(names(w.tab), round(w.tab)))	else			# w.dat = Vektor auf Basis von w.tab, der die Daten dat der Population repräsentiert (in der Kategorie x) 
+		if(round==T & length(w.tab)>0) w.dat=as.numeric(rep(names(w.tab), round(w.tab)))	else			# w.dat = Vektor auf Basis von w.tab, der die Daten dat der Population repräsentiert (in der Kategorie x) 
 			     w.dat=as.numeric(rep(names(w.tab), w.tab));
 		list(
 			w.statistics = c(
@@ -1840,7 +1842,7 @@ f=function(dat,wei=NULL,kat=NULL,plot=T,plot.o=F,simplify=T,mar=NULL,width=NULL,
 		    return(res)
 		}
 		x=lapply(erg,function(x) x[["w.data"]]);		 # x umfasst die gewichteten Daten, x2 die ungewichteten
-		m=sapply(erg,function(x) x[["w.statistics"]]["w.mean2"])
+		m=sapply(erg,function(x) x[["w.statistics"]]["w.mean"])
 		x2=lapply(erg,function(x) x[["o.data"]]);
 		m2=sapply(erg,function(x) x[["o.statistics"]]["o.mean"])
 		x2=x2[order(m)]
