@@ -256,6 +256,32 @@ for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=0,thetaY=0,theta
 for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=i,thetaY=i,thetaZ=i);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
 
 
-
-
+dev.new();
+p=function(a=F,tx=0,ty=0,tz=0){
+print(paste(tx,";",ty,";",tz))
+	tver=transform(ver,rver,thetaX=tx,thetaY=ty,thetaZ=tz);
+	plotPolygons(tver,rver,pol,border="blue", add=a);
+}
+p(F)
+prevx=0;prevy=0;ax=0;ay=0;thetax=0;thetay=0;drag=F;
+toDegree <- function(rad) rad * 57.29577951308232286465 
+toRadians <- function(deg) deg / 57.29577951308232286465 
+f=function(prompt="Move the cube with cursor keys") getGraphicsEvent(
+	prompt=prompt,
+	onKeybd=function(x){
+		if(x=="ctrl-["){ print(paste("thetax=",thetax,"; thetay=",thetay)); return("ctrl-[")}
+		if(x=="Down")  thetax<<-thetax+5
+		if(x=="Left")  thetay<<-thetay+5
+		if(x=="Right") thetay<<-thetay-5
+		if(x=="Up")    thetax<<-thetax-5
+		if(thetax>360)thetax<<-thetax-360
+		if(thetay>360)thetay<<-thetay-360
+		if(thetax<0)thetax<<-360+thetax
+		if(thetay<0)thetay<<-360+thetay
+		p(F,thetax,thetay);
+		f(paste(x,"; ",thetax,";",thetay));
+		return(-1)
+		NULL}
+)
+f()
 
