@@ -1,4 +1,4 @@
-
+﻿
 #  8 ------ 7
 # /|       /|
 # 5 ------ 6|
@@ -119,26 +119,18 @@ colourPolygons=function(tver,pol,col1="lightgrey",returnDegree=F){
 	d=numeric(0)
 	toDegree <- function(rad) rad * 57.29577951308232286465 # double for 180/pi
 	for(i in seq(1,length(pol),by=3)){
-		x1=tver[pol[i]*3-2]
-		y1=tver[pol[i]*3-1]
-		z1=tver[pol[i]*3-0]
-		x2=tver[pol[i+1]*3-2]
-		y2=tver[pol[i+1]*3-1]
-		z2=tver[pol[i+1]*3-0]
-		x3=tver[pol[i+2]*3-2]
-		y3=tver[pol[i+2]*3-1]
-		z3=tver[pol[i+2]*3-0]
+		x1=tver[pol[i]*3-2];y1=tver[pol[i]*3-1];z1=tver[pol[i]*3-0]
+		x2=tver[pol[i+1]*3-2];y2=tver[pol[i+1]*3-1];z2=tver[pol[i+1]*3-0]
+		x3=tver[pol[i+2]*3-2];y3=tver[pol[i+2]*3-1];z3=tver[pol[i+2]*3-0]
 		v1=(y1-y2)*(z3-z2)-(z1-z2)*(y3-y2)
 		v2=(z1-z2)*(x3-x2)-(x1-x2)*(z3-z2)
 		v3=(x1-x2)*(y3-y2)-(y1-y2)*(x3-x2)
-		d=c(d,asin(sqrt((v1*v1)/(v1*v1+v2*v2+v3*v3))))
+		d=c(d,asin(sqrt((v1*v1+v2*v2)/(v1*v1+v2*v2+v3*v3))))
 	}
 	d=toDegree(d)
 	if(returnDegree) return(d)
 	d=round(d)
 	cols=unlist(lapply(1:length(d),function(i){
-		print(col2rgb(col1))
-		print(d)
 		apply(col2rgb(col1), 2, function(x)
 			rgb( max(0,min(1,(x[1]-d[i])/255)),max(0,min(1,(x[2]-d[i])/255)),max(0,min(1,(x[3]-d[i])/255)) )
 		)
@@ -146,6 +138,7 @@ colourPolygons=function(tver,pol,col1="lightgrey",returnDegree=F){
 	cols
  	}
 sortCon=function(con,tver,fun=mean){
+	if(is.null(fun)) fun=mean
 	for(i in seq(1,length(con),by=2))
 	for(j in seq(1,length(con),by=2))
 	if(fun(c(tver[con[i]*3],ver[con[i+1]*3])) > fun(c(tver[con[j]*3],tver[con[j+1]*3]))){
@@ -156,6 +149,7 @@ sortCon=function(con,tver,fun=mean){
 	con
 }
 sortPol=function(pol,tver,fun=mean){
+	if(is.null(fun)) fun=mean
 	for(i in seq(1,length(pol),by=3))
 	for(j in seq(1,length(pol),by=3))
 	if(fun(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3])) > fun(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3]))){
@@ -163,7 +157,7 @@ sortPol=function(pol,tver,fun=mean){
 		pol[i]=pol[j];pol[i+1]=pol[j+1];pol[i+2]=pol[j+2];
 		pol[j]=h1;pol[j+1]=h2;pol[j+2]=h3;
 	}
-	pol
+	return(pol)
 }
 plotPoints=function(tver,rver,con,add=F,col1="lightgrey",col2="black",subset=NULL,lim=NULL){
 	if(is.null(lim)) {
@@ -260,7 +254,7 @@ dev.new();
 p=function(a=F,tx=0,ty=0,tz=0){
 print(paste(tx,";",ty,";",tz))
 	tver=transform(ver,rver,thetaX=tx,thetaY=ty,thetaZ=tz);
-	plotPolygons(tver,rver,pol,border="blue", add=a);
+	plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=a);
 }
 p(F)
 prevx=0;prevy=0;ax=0;ay=0;thetax=0;thetay=0;drag=F;
