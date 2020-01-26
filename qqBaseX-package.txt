@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.2.1",
+"Version"="0.2.2",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
@@ -67,8 +67,6 @@ f <- function(pattern,x, sumFun=NULL, ...)
 if(!is.null(sumFun))erg=sumFun(erg);erg}
 vgrepl=f #c=c("d","dasd");f(c("as","d"),c)
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
-
-
 
 
 n <- "getHTML";
@@ -638,7 +636,40 @@ f<-function(x,y,text,jitter=F,cex=1,font=1,frame=1.5,plot=F,lock.x=F,lock.y=F,ve
 	}
 	return(data.frame(x,y,text))
 }
-decollide=f; #set.seed(0);decollide(x=rnorm(10),y=rnorm(10),text=paste0(1:10,":",round(rnorm(10),3)),cex=1,font=1,plot=T)
+decollide=f; 
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+n="mar"
+d <- paste0(
+	"#' Function mar\n",
+	"#' \n#' Returns margins of plots given numeric vectors to add and/or multiply, and/or a set of labels for each axis.\n",
+	"#' @param mar Numeric vector containing default margins. Defaults to c(5.1, 4.1, 4.1, 2.1).\n",
+	"#' @param mar1 Numeric vector to be multiplied with mar. Defaults to c(1,1,1,1).\n",
+	"#' @param mar0 Numeric vector to be added to the product of mar and mar1. Defaults to c(0,0,0,0).\n",
+	"#' @param labels1 Character vector containing labels for axis 1 (bottom).\n",
+	"#' @param labels2 Character vector containing labels for axis 2 (left).\n",
+	"#' @param labels3 Character vector containing labels for axis 3 (up).\n",
+	"#' @param labels4 Character vector containing labels for axis 4 (right).\n",
+	"#' @param set Logical value specifying whether to set the margins after determining them. Defaults to T\n",
+	"#' @details Returns margins of plots given numeric vectors to add and/or multiply, and/or a set of labels for each axis.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' mar();"
+);
+f=function(mar=c( 5.1,4.1,4.1,2.1), mar1=c(1,1,1,1), mar0=c(0,0,0,0), labels1=NULL, labels2=NULL, labels3=NULL, labels4=NULL, labelFactor=3,set=T){
+	if(is.null(mar))if(length(dev.list())>0) {mar=par("mar")} else mar=c( 5.1,4.1,4.1,2.1)
+	if(!is.null(labels1)) mar[1]=mar[1]+max(strwidth(labels1,units="inches")*labelFactor,na.rm=T)
+	if(!is.null(labels2)) mar[2]=mar[2]+max(strwidth(labels2,units="inches")*labelFactor,na.rm=T)
+	if(!is.null(labels3)) mar[3]=mar[3]+max(strwidth(labels3,units="inches")*labelFactor,na.rm=T)
+	if(!is.null(labels4)) mar[4]=mar[4]+max(strwidth(labels4,units="inches")*labelFactor,na.rm=T)
+	mar=mar*mar1
+	mar=mar+mar0
+	if(set!=F) par("mar"=mar)
+	return(invisible(mar))
+}
+mar=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
@@ -683,7 +714,7 @@ d <- paste0(
 	"#' @param border Color of the bars' border. Defaults to NA.\n",
 	"#' @param grid.mode Numeric value specifying when to plot the grid. 0 for grid in the background, 1 for grid in the foreground. Defaults to 0.\n",
 	"#' @param ... Additional graphical parameters for barplot.\n",
-	"#' @details Plots a bar and adds labels and numbers to bars. Optionally allows for plotting standard deviations around each bar.\n",
+	"#' @details Plots a barplot and adds labels and numbers to bars. Optionally allows for plotting standard deviations around each bar.\n",
 	"#' @keywords plotting\n",
 	"#' @export\n",
 	"#' @examples\n",
@@ -700,28 +731,19 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     adj.main1 = 0, adj.main2 = 0, adj.main3 = 0, col.main1 = "black", 
     col.main2 = "black", col.main3 = "black", cex.main1 = 1.2, 
     cex.main2 = 1.2, cex.main3 = 1.2, font.main1 = 1, font.main2 = 2, 
-    font.main3 = 4, omitZeros = T, mar = NA,  ...) 
+    font.main3 = 4, omitZeros = T, mar = NA,  automar=F, ...) 
 {
-    addChars = ifelse(is.character(add.numbers), add.numbers, 
-        "")
+    addChars = ifelse(is.character(add.numbers), add.numbers, "")
     mar0 = NULL
-    if (is.numeric(mar)) {
-        mar0 = par("mar")
-        par(mar = mar)
-    }
-    if (is.character(add.numbers)) 
-        add.numbers = T
-    if (is.null(ncex)) 
-        ncex = cex
-    else if (is.na(ncex)) 
-        ncex = cex
+    if (is.character(add.numbers)) add.numbers = T
+    if (is.null(ncex))  ncex = cex
+    else if (is.na(ncex)) ncex = cex
     if (!is.null(npos)) 
         if (is.na(npos)) 
             if (beside == T) 
                 npos = ifelse(horiz == T, 4, 3)
             else npos = NULL
-    if (is.null(x)) 
-        x = data.frame(test1 = c(1, 2, 3), test2 = c(2, 3, 4))
+    if (is.null(x)) x = data.frame(test1 = c(1, 2, 3), test2 = c(2, 3, 4))
     else if (is.table(x)) {
         y = matrix(sapply(x, as.numeric), nrow = dim(x)[1])
         if (length(dim(x)) == 1) {
@@ -739,8 +761,7 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
         stop("Please provide numeric data!")
     x2 = ifelse(dim(x)[2] == 1, list(x[, 1]), list(x))[[1]]
     if (!is.null(sd)) {
-        sd = ifelse(dim(x)[2] == 1, list(as.matrix(sd)[, 1]), 
-            list(as.matrix(sd)))[[1]]
+        sd = ifelse(dim(x)[2] == 1, list(as.matrix(sd)[, 1]), list(as.matrix(sd)))[[1]]
     }
     if (is.null(rownames(x))) 
         rownames(x) = 1:dim(x)[1]
@@ -751,78 +772,65 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
         colnames(x2) = colnames(x)
     }
     else names(x2) = rownames(x)
-    width = unlist(ifelse(length(el[["width"]]) > 0, el["width"], 
-        list(1))[[1]])
-    space = unlist(ifelse(length(el[["space"]]) > 0, el["space"], 
-        ifelse(beside & dim(x)[2] > 1, list(c(0, 1)), list(0.2)))[[1]])
-    if (dim(x)[2] == 1) 
-        beside = T
-    if (is.null(col)) 
-        col = rainbow(dim(x)[1])
-    if (is.null(legend.text) & dim(x)[2] > 1) 
-        legend.text = rownames(x)
+    width = unlist(ifelse(length(el[["width"]]) > 0, el["width"], list(1))[[1]])
+    space = unlist(ifelse(length(el[["space"]]) > 0, el["space"], ifelse(beside & dim(x)[2] > 1, list(c(0, 1)), list(0.2)))[[1]])
+    if (dim(x)[2] == 1) beside = T
+    if (is.null(col)) col = rainbow(dim(x)[1])
+    if (is.null(legend.text) & dim(x)[2] > 1) legend.text = rownames(x)
     if(!is.null(legend.text))
-    if (sum(is.na(legend.text)) > 0) 
-        legend.text = NULL
+    if (sum(is.na(legend.text)) > 0) legend.text = NULL
     else if (length(legend.text) == 1) 
-        if (legend.text[[1]] == F) 
-            legend.text = NULL
-
+        if (legend.text[[1]] == F) legend.text = NULL
     if (is.null(xlim))
         if (!horiz) {
-            b = barplot(x2, beside = beside, horiz = horiz, plot = F, 
-                add = add, ...)
+            b = barplot(x2, beside = beside, horiz = horiz, plot = F, add = add, ...)
             xlim = c(min(b) - (width[1]/2), max(b) + (width[1]/2))
-            if (!is.null(legend.text)) 
-                xlim[2] = xlim[2] * xlim.factor
+            if (!is.null(legend.text)) xlim[2] = xlim[2] * xlim.factor
         }
         else {
-            if (beside) {
-                xlim = c(min(c(min(x), 0)), max(c(max(x), 0)))
-            } else {
-                xlim = c(min(c(min(colSums(x)), 0)), max(c(max(colSums(x)), 0)))
+            if (beside) { xlim = c(min(c(min(x), 0)), max(c(max(x), 0)))
+            } else { xlim = c(min(c(min(colSums(x)), 0)), max(c(max(colSums(x)), 0)))
             }
-            if (!is.null(legend.text)) 
-                xlim[2] = xlim[2] * xlim.factor      
+            if (!is.null(legend.text)) xlim[2] = xlim[2] * xlim.factor      
         }
-
       if (is.null(ylim))
         if (!horiz) {           
-            if (beside) {
-                ylim = c(min(c(min(x), 0)), max(c(max(x), 0)))
-            } else {
-                ylim = c(min(c(min(colSums(x)), 0)), max(c(max(colSums(x)), 0)))
+            if (beside) { ylim = c(min(c(min(x), 0)), max(c(max(x), 0)))
+            } else { ylim = c(min(c(min(colSums(x)), 0)), max(c(max(colSums(x)), 0)))
             }
         }
         else {
             b = barplot(x2, beside = beside, horiz = horiz, plot = F, add = add, ...)
-            ylim = c(min(b) - (width[1]/2), max(b) + (width[1]/2))
+	    ylim = c(min(b) - (width[1]/2), max(b) + (width[1]/2))
         }
-
     if (!is.null(names.arg)) {
         if (length(names.arg) == 1) 
             if (is.na(names.arg)) 
                 names.arg = rep(NA, dim(x)[2])
         if (dim(x)[2] == 1) 
             rownames(x) = names.arg
-        else colnames(x) = names.arg
+            else colnames(x) = names.arg
     }
     else names.arg = ifelse(dim(x)[2] == 1, list(rownames(x)), list(colnames(x)))[[1]]
+    if (automar) mar=ifelse(horiz,list(qqBaseX::mar(labels2=names.arg)),list(qqBaseX::mar(labels1=names.arg)))[[1]]
+    if (is.numeric(mar)) {
+        mar0 = par("mar")
+        par(mar = mar)
+    }
     b = NULL
     if (grid.mode == 0) {
         b = as.matrix(barplot(x2, beside = beside, horiz = horiz, 
             density = density, angle = angle, xlim = xlim, ylim = ylim, plot = plot, 
             las = las, add = add, adj = adj, main = main, sub = sub, 
             col = NA, xlab = xlab, ylab = ylab, border = NA, axes = F, 
-            names.arg = rep("", dim(x)[2]), ...))
+            names.arg=ifelse(default.labels == T, list(names.arg), list(rep(NA, dim(x)[2])))[[1]], ...))
     }
     else {
         b = as.matrix(barplot(x2, border = border, xlab = xlab, 
-            ylab = ylab, names.arg = ifelse(default.labels == 
-                T, list(names.arg), list(rep("", dim(x)[2])))[[1]], 
+            ylab = ylab, names.arg = ifelse(default.labels == T, list(names.arg), list(rep(NA, dim(x)[2])))[[1]], 
             beside = beside, horiz = horiz, density = density, 
             angle = angle, col = col, xlim = xlim, ylim = ylim, main = main, 
-            sub = sub, plot = plot, las = las, axes = axes, add = add, 
+            sub = sub, plot = plot, las = las, axes = F, add = add, 
             adj = adj, ...))
     }
     abline2 = function(xl, xlf, ...) {
@@ -849,12 +857,10 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
             abline3(ifelse((length(dev.list())>0|plot==T), list(par("usr")), list(c(0,1,0,1)))[[1]][3:4], 1, col = grid.col)
     }
     if (grid.mode == 0 & plot != F) 
-        b = as.matrix(barplot(x2, border = border, xlab = NA, 
-            ylab = NA, names.arg = ifelse(default.labels == 
-                T, list(names.arg), list(rep("", dim(x)[2])))[[1]], 
+        b = as.matrix(barplot(x2, border = border, xlab = NA,  ylab = NA, names.arg = rep(NA, dim(x)[2]), 
             beside = beside, horiz = horiz, density = density, 
             angle = angle, col = col, xlim = xlim, ylim = ylim, main = NA, 
-            sub = NA, plot = plot, las = las, axes = axes, add = T, 
+            sub = NA, plot = plot, las = las, axes = F, add = T, 
             adj = adj, ...))
     if (plot!=F)
     if (!is.null(sd) & beside) 
@@ -874,7 +880,6 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     b2 = ifelse(dim(b)[2] == 1, list(t(b)), list(as.matrix(b)))[[1]]
     x0 = min(xlim) - 0.05 * (max(xlim)-min(xlim))
     y0 = min(ylim) - 0.05 * (max(ylim)-min(ylim))
-
     if (plot != F) {
         round2 = function(x, ...) {
             x2 = as.character(round(x, ...))
@@ -884,15 +889,17 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
             return(x2)
         }
         if (!horiz) {
-            if (axes != F & default.labels != T) 
-                text(colMeans(b2), y0, colnames(b2), srt = srt, 
-                  pos = ifelse((srt == 0 | srt == 180 | srt == 
-                    360), 1, 2), xpd = T, cex = cex)
+	    if (axes != F){
+        	xaxp <- ifelse((length(dev.list())>0|plot==T), list(par("xaxp")), list(c(0,1,5)))[[1]]
+	        yaxp <- ifelse((length(dev.list())>0|plot==T), list(par("yaxp")), list(c(0,1,5)))[[1]]
+        	s <- seq(yaxp[1], yaxp[2], (yaxp[2] - yaxp[1])/yaxp[3])
+         	axis(2,s,paste0(s,addChars));
+	    }
+            if (default.labels != T) 
+                text(colMeans(b2), y0, colnames(b2), srt = srt, pos = ifelse((srt == 0 | srt == 180 | srt == 360), 1, 2), xpd = T, cex = cex);
             if (add.numbers) 
                 if (beside) {
-                  text(b, x, paste0(round2(x, ndigits), addChars), 
-                    pos = npos, col = ncol, cex = ncex, srt = nsrt, 
-                    xpd = T)
+                  text(b, x, paste0(round2(x, ndigits), addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
                 }
                 else {
                   text(b, x[1, ]/2, paste0(round2(x[1, ], ndigits), 
@@ -910,14 +917,17 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
                 }
         }
         else {
-            if (axes != F & default.labels != T) 
-                text(x0, colMeans(b2), colnames(b2), srt = srt - 
-                  45, pos = 2, xpd = T, cex = cex)
+	    if (axes != F){
+	  	xaxp <- ifelse((length(dev.list())>0|plot==T), list(par("xaxp")), list(c(0,1,5)))[[1]]
+	        yaxp <- ifelse((length(dev.list())>0|plot==T), list(par("yaxp")), list(c(0,1,5)))[[1]]
+        	s <- seq(xaxp[1], xaxp[2], (xaxp[2] - xaxp[1])/xaxp[3])
+         	axis(1,s,paste0(s,addChars));
+	    }
+            if (default.labels != T) 
+                text(x0, colMeans(b2), colnames(b2), srt = srt - 45, pos = 2, xpd = T, cex = cex);
             if (add.numbers) 
                 if (beside) {
-                  text(x, b, paste0(round2(x, ndigits), addChars), 
-                    pos = npos, col = ncol, cex = ncex, srt = nsrt, 
-                    xpd = T)
+                  text(x, b, paste0(round2(x, ndigits), addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
                 }
                 else {
                   text(x[1, ]/2, b, paste0(round2(x[1, ], ndigits), 
@@ -1010,7 +1020,6 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     return(invisible(b))
 }
 bp=f;
-
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
