@@ -24,7 +24,6 @@ chatBot=function(brain=NULL,data=data.frame(x=c(1,2,3),y=c(2,2,3))){
 	star=function(x,inp){exchangeTerms(sub(paste0(".*\\b",x,"\\b"),"",inp))}
 	exchangeTerms=function(x){
 		l=cbind(c("ich","meiner","meine","meines","meins","mir","mich","bin","war","kann","will","darf","muss","soll"),c("du","deiner","deine","deines","deins","dir","dich","bist","warst","kannst","willst","darfst","musst","sollst"));l=rbind(l,cbind(l[,2],l[,1]));
-		#p1=unlist(sapply(l[,1],function(y)grepl(y,x)));p2=l[p1==T,]
 		sub2=function(p,y,x){x0=x;for(i in 1:length(p)){x=gsub(p[i],y[i],x0);if(x!=x0)return(x);};return(x);}
 		br=F;i=1;while(br==F){
 			x2=substr(x,i,nchar(x))
@@ -35,9 +34,9 @@ chatBot=function(brain=NULL,data=data.frame(x=c(1,2,3),y=c(2,2,3))){
 		return(x)
 	}
 	consider=function(inp,out2,inp2){
-		if(!is.na(inp2))message(inp2)
-		if(!is.na(out2))message(out2)		
-		if(!is.na(inp))message(inp)
+		if(!is.na(inp2))if(nchar(inp2)>0)message(paste0("User:\n",inp2,"\n"))
+		if(!is.na(out2))if(nchar(out2)>0)message(paste0("Bot:\n",out2,"\n"))		
+		if(!is.na(inp))if(nchar(inp)>0)message(paste0("User:\n",inp,"\n"))
 
 		# Internal preprocessing:
 		inp0=inp;
@@ -49,18 +48,21 @@ chatBot=function(brain=NULL,data=data.frame(x=c(1,2,3),y=c(2,2,3))){
 			if(file.exists(inp)) return("[Brain-Datei laden]")
 			if(matches("^[Nn]ein",inp))  return("Okay, dann arbeite ich weiter im Default-Modus.") 
 		}
-		x="[Pp]fad [^ ]+";if(matches(x,inp)) {
+		x="([Pp]fad|[Aa]arbeitsverzeichnis|setwd) [^ ]+";if(matches(x,inp)) {
 			try({
-				setwd(sub(".*[Pp]fad ","",inp0));
+				setwd(sub(".*([Pp]fad|[Aa]arbeitsverzeichnis|setwd) ","",inp0));
 				return(paste0("[Pfad angepasst: ",sub(".*[Pp]fad ","",inp0),"]"))
 			   })
-			return(paste0("Ich konnte den Pfad ",sub(".*[Pp]fad ","",inp0),"nicht aufrufen"))
+			return(paste0("Ich konnte den Pfad ",sub(".*([Pp]fad|[Aa]arbeitsverzeichnis|setwd) ","",inp0),"nicht aufrufen"))
 		}
 
 		# Reaktionen auf Aufforderungen:
 		x="(^[Uu]hrzeit$|[Ww]ie spät ist es|wie spät es ist)";if(matches(x,inp)) return(paste0("Wir haben jetzt ",Sys.time()))
-		x="(^[Ww]etter|^[Ww]etterbericht)";if(matches(x,inp)) return(paste0("[Wetter berichte]"))
-		x="(^[Hh]umor|Erzähl einen Witz)";if(matches(x,inp)) return(paste0("[Witz erzählen]"))
+		x="(^[Ww]etter|^[Ww]etterbericht)";if(matches(x,inp)) return(paste0("[Wetter berichten]"))
+		x="(^[Hh]umor|Erzähl einen Witz)";if(matches(x,inp)){
+			html=paste(readLines("https://www.aberwitzig.com/"), collapse = "\n")
+			return(gsub("(<.*?>|&nbsp;|&quot;|\n|\t)","",gsub("(.*\t2[.]|\t3[.].*)","",html)))
+		}
 		x="(^[Ss]tatus|^[Ss]atusreport)";if(matches(x,inp)) return(paste0("[Statusreport]"))
 		x="(^[Mm]usik|^[Ss]piel[e]? [Mm]usik|^[Ss]piel[e]? mp3)";if(matches(x,inp)) {
 			list=list.files(pattern=".mp3")
@@ -71,20 +73,17 @@ chatBot=function(brain=NULL,data=data.frame(x=c(1,2,3),y=c(2,2,3))){
 		x="(^[Vv]ideo[s]?|^[Ss]spiel [Mm]Video[s]?) ";if(matches(x,inp)){
 			return(paste0("[Video abspielen]"))
 		}
-		x="^([Öö]ffne|[Bb]rowse) [^ ]+[.](de|com)";if(matches(x,inp)){
-			try(
- 			{browseURL(sub("^([Öö]ffne|[Bb]rowse) ","",inp0));return(paste0("[Web-Browser gestartet]"));}
+		x="^([Öö]ffne|[Bb]rowse) ";if(matches(x,inp)){
+			tryCatch(
+			{path=sub("^([Öö]ffne|[Bb]rowse) ","",inp0); if(grepl("(http|www[.])",path)[1]==F) path=paste0("www.",path); browseURL(path);return(paste0("[Web-Browser gestartet]"));},
+ 			error=function(cond) {
+				try({shell(sub("^([Öö]ffne|[Bb]rowse) ","",inp0), wait=FALSE);return(paste0("[File-Browser gestartet]"));})
+				return(paste0("Ich konnte ",sub("^([Öö]ffne|[Bb]rowse) ","",inp0)," nicht öffnen"))
+			}
 			)
 			return(paste0("Ich konnte die Website ",sub("^([Öö]ffne|[Bb]rowse) ","",inp0)," nicht öffnen"))
-
 		}
-		x="^([Öö]ffne|[Bb]rowse) ";if(matches(x,inp)){
-			try(
-			{shell(sub("^([Öö]ffne|[Bb]rowse) ","",inp0), wait=FALSE);return(paste0("[File-Browser gestartet]"));}
-			)
-			return(paste0("Ich konnte die Datei ",sub("^([Öö]ffne|[Bb]rowse) ","",inp0)," nicht öffnen"))
-		}
-		x="^[Zz]eige ";if(matches(x,inp)){ 
+		x="^([Zz]eige|[Pp]lotte) ";if(matches(x,inp)){ 
 			if(matches("[0-9]+",inp)) {
 				plotted=F;
 				indices=as.numeric(unlist(matchAll(inp,"[0-9]+",value=T)));print(indices)
@@ -123,14 +122,18 @@ chatBot=function(brain=NULL,data=data.frame(x=c(1,2,3),y=c(2,2,3))){
 		x="([Aa]ber )?[Dd]as ist( aber)?";if(matches(x,inp)) return(paste0("Ja, ich denke auch das ist",star(x,inp)))
 
 		x="([Hh]i|[Hh]allo|[Hh]ello)";if(matches(x,inp)) return(paste0("Hallo."))
+		x="([Nn]icht gut)";if(matches(x,inp)) return(paste0("Das ist nicht gut."))
+		x="([Nn]icht schlecht)";if(matches(x,inp)) return(paste0("Das ist gut."))
+		x="([Ss]chlecht)";if(matches(x,inp)) return(paste0("Das ist nicht gut."))
+		x="([Gg]ut)";if(matches(x,inp)) return(paste0("Das ist gut."))
 
 		# Default-Antwort:			
-		return("Wenn du das Gespräch beenden magst, tippe \"Exit\".")
+		return("Das kann man wohl sagen.")
 	}
 	while(!exit){
 		out=c(consider(inp[1],out[1],inp[2]),out)[1:10]
-		print(out[1])
-		inp=c(as.character(readline(prompt="Input:")),inp)[1:10];		
+		if(nchar(out[1])>0)message(paste0("Bot:\n",out[1],"\n"))
+		inp=c(as.character(readline(prompt="User:")),inp)[1:10];		
 		if(length(grep("^[Ee]xit$",inp[1]))==1) exit=T
 	}	
 }
