@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.2.2",
+"Version"="0.2.3",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
@@ -1096,8 +1096,19 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
     par(cex = cex, yaxs = "i")
     if (!is.numeric(x))
         stop("'x' must be a numeric vector or matrix")
+    if (is.null(x)) {
+        x = rnorm(100)
+        names(x) = paste0("Var", 1:100)
+    }
+    if (length(x) > max) {
+	if(!is.na(deviations[1]))
+		deviations = deviations[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
+	if(!is.na(x2[1]))
+		x2 = x2[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
+        x = x[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
+        warning(paste("Only", max, "values are displayed"))
+    }
     n <- length(x)
-
     if(sort==T) {
 	if(!is.na(deviations[1]))
 		if (is.matrix(x)) deviations = deviations[order(x[,1]),] else deviations = deviations[order(x)] 
@@ -1105,7 +1116,6 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
 		if (is.matrix(x)) x2 = x2[order(x[,1]),] else x2 = x2[order(x)] 
 	if (is.matrix(x)) x = x[order(x[,1]),] else x = x[order(x)] 
     }
-
     if (is.matrix(x)) {
         if (is.null(labels))
             labels <- rownames(x)
@@ -1126,21 +1136,6 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
             x <- as.numeric(x)
         }	
     }	
-
-    if (is.null(x)) {
-        x = rnorm(100)
-        names(x) = paste0("Var", 1:100)
-    }
-
-    if (length(x) > max) {
-	if(!is.na(deviations[1]))
-		deviations = deviations[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
-	if(!is.na(x2[1]))
-		x2 = x2[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
-        x = x[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
-        warning(paste("Only", max, "values are displayed"))
-    }
-
     plot.new()
     linch <- if (!is.null(labels))
         max(strwidth(labels, "inch"), na.rm = TRUE)
@@ -1520,6 +1515,10 @@ f<-function(matrix=NULL,main=NULL,xlab="",ylab=NULL,lwd=2,lty=1,pch=NULL,type="l
 		"ID 41543/37287"=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,55,27,20,24,32,8,13,13,8,11,11,20,	5),
 		"ID 33346/29578"=c(NA,NA,NA,12,44,23,12,6,11,2,10,15,17,4,6,4,4,6,5,7,6,3,5,1,3,		4),
 		row.names=c("2015","2016","Jan 2017","Feb 2017","Mar 2017","Apr 2017","May 2017","Jun 2017","Jul 2017","Aug 2017","Sep 2017","Oct 2017","Nov 2017","Dec 2017","Jan 2018","Feb 2018","Mar 2018","Apr 2018","May 2018","Jun 2018","Jul 2018","Aug 2018","Sep 2018","Oct 2018","Nov 2018","Dec 2018")));}
+
+	if(is.matrix(matrix)) if(!is.numeric(matrix)) { warning("Non-numeric matrix detected. Type-casting is applied."); matrix=apply(matrix,2,as.numeric); }
+	if(is.data.frame(dat))if(sum(sapply(dat,is.numeric),na.rm=T)<dim(dat)[2]){ warning("Non-numeric matrix detected. Type-casting applied."); nam=names(dat[,sapply(dat,is.numeric)]);dat=as.data.frame(dat[,sapply(dat,is.numeric)]);names(dat)=nam;dat=as.matrix(dat);colnames(dat)=nam}
+
 	if(is.null(xlab))xlab="time";
 	if(is.null(ylab))ylab=ifelse(cumsum,"cumulated sum","value");
 	if(is.null(main))main=ifelse(cumsum,"Cumulation over Time","Development over Time");
@@ -1745,6 +1744,8 @@ d <- paste0(	"#' Function af.cor\n",
 		)
 f<-function(dat,wei=NULL, use="pairwise.complete.obs"){
 	if(is.null(dim(dat))) stop("Please provide a matrix or data.frame as dat")
+	if(is.matrix(dat)) if(!is.numeric(dat)) { warning("Non-numeric matrix detected. Type-casting applied."); dat=apply(dat,2,as.numeric); }
+	if(is.data.frame(dat))if(sum(sapply(dat,is.numeric),na.rm=T)<dim(dat)[2]){ warning("Non-numeric matrix detected. Type-casting applied."); nam=names(dat[,sapply(dat,is.numeric)]);dat=as.data.frame(dat[,sapply(dat,is.numeric)]);names(dat)=nam;}
 	if(is.null(wei)) wei=rep(1,dim(dat)[1]) 
 	if(use=="complete.obs") {
 		wei=wei[complete.cases(dat)]
