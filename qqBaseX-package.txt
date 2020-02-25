@@ -33,10 +33,17 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.2.3",
+"Version"="0.2.5",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
-"Description"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
+"Description"=
+paste(
+	"The qqBaseX package provides basic functions for assisting all steps of analyzing qualitative and quantitative data. It was written to extend R's default packages without introducing dependencies on other packages.",
+	"Besides enhanced variants of standard plots and methods (e.g., bp() or dotplot()), the qqBaseX package offers a number of convenience functions - like saveDevs(), to save open graphics devices in high resolution in various formats, or cols(), to easily create color series.",
+	"In addition, the package includes many functions for exploring datasets (e.g., plotDF() for data.frames or plotMAT() for matrices), functions for visualizing variables (e.g., spiderplot() or flowerplot()), functions for annotating plots (e.g., boxedText()) and functions for visualizing statistical analyses (e.g., plotLM() for linear models).",
+	"The package also includes model-agnostic functions for quantifying the influence of individual variables on predictions (for example, af.sensitivity() and delta()).",
+	"In addition, the package provides functions for sourcing data via web-scraping (e.g., scrapeHTML() or extractTable()) and for preprocessing data (e.g., prepareDF() for quantitative data analysis or vecToTDM() for qualitative data analysis)."
+),
 "Depends"="R (>= 3.0.0)",
 "License"="GPL-2",
 "Encoding"="UTF-8",
@@ -76,19 +83,19 @@ d <- paste0(	"#' Function getHTML\n",
 	"#' @param url A valid URL.\n",
 	"#' @param encoding Character value specifying the encoding. Defaults to \"UTF-8\".\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
-	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
+	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
 	"#' @details Extracts HTML from an URL. Assumes UTF-8 encoding by default. Returns a character element containing HTML-code.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' getHTML()")
 
-f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=Sys.Date(),closeCon=T,method="libcurl",silent=T){
+f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=NULL,closeCon=F,method="libcurl",silent=T){
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
 	if(!silent)message(paste0("Trying to get html from ",url))
 	if(is.character(url))url=url(url,method=method)
 	html=paste(readLines(url,encoding=encoding), collapse="\n");       
-	if(save) write.csv2(data.frame(gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))),paste0(prefix,"_",round(10000*rnorm(1)),"_html.csv"))
+	if(save) write.csv2(data.frame(gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
         return(invisible(html))
 }
@@ -104,13 +111,13 @@ d <- paste0(	"#' Function scrapeHTML\n",
 	"#' @param short Logical value specifying whether only lines with verbal information or link should be returned. Defaults to F.\n",
 	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
-	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
+	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
 	"#' @details Extracts Information from HTML. Returns a data.frame with three columns: the first column contains html-code, the second column contains extracted verbal information, and the third column contains extracted links.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' scrapeHTML(getHTML())")
-f <- function(html,short=F,edit=T,save=F,plot=F,prefix=Sys.Date()){
+f <- function(html,short=F,edit=T,save=F,plot=F,prefix=NULL){
 	strings=gsub("(\n|\t)+"," ",gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]])))
 	if(plot){
 		s1=sort(table(gsub("(<[/]?|(>| ).*)","",strings))) # inspect all tags without parameters
@@ -123,7 +130,7 @@ f <- function(html,short=F,edit=T,save=F,plot=F,prefix=Sys.Date()){
 	result=data.frame(entry=as.character(strings),info=as.character(info),links=as.character(links))
 	if(short)result=result[nchar(as.character(result[,2]))>0|nchar(as.character(result[,3]))>0,]
 	if(edit)result=edit(result)
-	if(save) write.csv2(data.frame(result),paste0(prefix,"_",round(10000*rnorm(1)),"_result.csv"))
+	if(save) write.csv2(data.frame(result),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
 	return(invisible(result))
 }
 scrapeHTML=f
@@ -138,14 +145,14 @@ d <- paste0(	"#' Function subsetHTML\n",
 	"#' @param pattern Regular expression further specifying subsets of interest. If NULL (default) equals tag.\n",
 	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
-	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). Defaults to Sys.Date().\n",
+	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
 	"#' @details Extracts a coherent subset of code from HTML-code.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' subsetHTML(getHTML(\"https://jobs.meinestadt.de/nuernberg/suche?words=Wissenschaftlicher%20Mitarbeiter\",tag=\"div\",pattern=\"class=\\\"m-resultListEntries__content\\\"\"))")
 
-f <- function (html, tag="div", pattern = NULL, edit=F, save = F, plot=F, prefix = Sys.Date(),trim=T) {
+f <- function (html, tag="div", pattern = NULL, edit=F, save = F, plot=F, prefix = NULL,trim=T) {
     start = paste0("<",tag,"[\n\r> ]")
     end =   paste0("</",tag,">")
     if(is.null(pattern))pattern=start
@@ -184,7 +191,7 @@ f <- function (html, tag="div", pattern = NULL, edit=F, save = F, plot=F, prefix
     result=data.frame(entry=result0,info=result2,links=result3,text=result1)
     if(edit) result=edit(result)
     if (save){ 
-        write.csv2(data.frame(result), paste0(prefix, "_", round(10000 * rnorm(1)), "_result.csv"))
+        write.csv2(data.frame(result),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
     }
     return(invisible(result))
 }
@@ -196,7 +203,7 @@ n<-"extractTable"
 #-------------
 d <- paste0(	"#' Function extractTable\n",
 	"#' \n#' Extracts table as data.frames from multiple lines of text.\n",
-	"#' @param x A character vector containing one text-line per element.\n",
+	"#' @param x A character element containing all the text textract the table from (or a character vector containing one text-line per element).\n",
 	"#' @param header Logical value that specifies, whether to treat first row and column as row- and column-names. Defaults to F.\n",
 	"#' @param trim Logical value that specifies, whether to trim entries. Defaults to T.\n",
 	"#' @param convert Logical value that specifies, whether to convert table to numeric (after correcting for notation in case correctNotation is set to T). Please use with care, if table contains non-numeric information. Defaults to T.\n",
@@ -205,6 +212,7 @@ d <- paste0(	"#' Function extractTable\n",
 	"#' @keywords scraping\n",
 	"#' @export\n")
 f=function(x,reg.up=NULL,reg.down=NULL,reg.left="^",reg.right="$",reg.fix=NULL,header=F,trim=T,convert=F,correctNotation=F){
+	if(length(x)==1) x=strsplit(x,"(\r\n|\r|\n)")[[1]]
 	trimIt=function(x)gsub("(^[ ]+|[ ]+$)","",x);
 	if(!is.null(reg.up)){
 		lines=(grep(reg.up,x)[1]):(grep(reg.down,x)[1]-1)
@@ -548,7 +556,12 @@ d <- paste0(
 	"#' bp(1:10,col=cols(10,\"jddm\"))"
 );
 f<-function(num=1,col2=NULL,col1=NULL){
-	if(is.null(col1)&is.null(col2))if(length(num)>1){num[num<1]=1;return(rainbow(max(num))[num]);} else return(rainbow(num))
+	if(is.null(num))num=1
+	if(length(num)>1){num=num[1];warning("Please provide a single number for num (or set col1 and col2 to NULL). Only first element is used.");}
+	if(length(col1)>1){col1=col1[1];warning("Please provide a single color name for col1. Only first element is used.");}
+	if(length(col2)>1){col2=col2[1];warning("Please provide a single color name for col2. Only first element is used.");}
+        if(!is.numeric(num)&is.null(col1)&is.null(col2)){col1=num;col2=num;num=1} 
+	if(is.numeric(num)&is.null(col1)&is.null(col2))if(length(num)>1){num[num<1]=1;return(rainbow(max(num))[num]);} else return(rainbow(num))
 	if(is.null(col1))col1="white";
 	if(is.null(col2))col2="black"
 	x="jddm";y=rgb(135/255,44/255,40/255);	 if(col1==x)col1=y;if(col2==x)col2=y;
@@ -1737,16 +1750,17 @@ n<-"af.cor"
 d <- paste0(	"#' Function af.cor\n",
 		"#' \n#' Provides (unweighted or weighted) correlation matrix between variables.\n",
 		"#' @param data Numeric data.frame.\n",
-		"#' @details Provides (unweighted or weighted) correlation matrix between variables.\n",
+		"#' @details Provides (unweighted or weighted) correlation matrix between variables. Additionally, p-values and confidence intervals are provided for each pairwise correlation, based on the (potentially weighted) coefficients of correlation and the unweighted sample size.\n",
 		"#' @keywords modeling\n",
 		"#' @export\n",
 		"#' @examples\n#' af.cor(dat=sapply(1:10,function(x)rnorm(100)));"
 		)
-f<-function(dat,wei=NULL, use="pairwise.complete.obs"){
+f<-function(dat,wei=NULL, use="pairwise.complete.obs", simplify=F){
 	if(is.null(dim(dat))) stop("Please provide a matrix or data.frame as dat")
 	if(is.matrix(dat)) if(!is.numeric(dat)) { warning("Non-numeric matrix detected. Type-casting applied."); dat=apply(dat,2,as.numeric); }
 	if(is.data.frame(dat))if(sum(sapply(dat,is.numeric),na.rm=T)<dim(dat)[2]){ warning("Non-numeric matrix detected. Type-casting applied."); nam=names(dat[,sapply(dat,is.numeric)]);dat=as.data.frame(dat[,sapply(dat,is.numeric)]);names(dat)=nam;}
 	if(is.null(wei)) wei=rep(1,dim(dat)[1]) 
+	dat=as.matrix(dat);
 	if(use=="complete.obs") {
 		wei=wei[complete.cases(dat)]
 		dat=dat[complete.cases(dat),]
@@ -1763,7 +1777,18 @@ f<-function(dat,wei=NULL, use="pairwise.complete.obs"){
 	  if(cor) vxy = vxy / sqrt(vx * vy)	# Compute the correlation between x and y
 	  return(vxy)
 	}
-	erg=matrix(NA,ncol=dim(dat)[2],nrow=dim(dat)[2])
+	erg1=matrix(NA,ncol=dim(dat)[2],nrow=dim(dat)[2])
+	erg2=erg1;erg3=erg1;erg4=erg1;erg5=erg1
+	ps<-function(x,y,w,r,co=.95){
+		n=length(x)
+		df=n-2
+		t=sqrt(df)*r/sqrt(1-r*r)
+		z=atanh(r)
+		sig=1/sqrt(n-3)
+		cint=tanh(z+c(-1,1)*sig*qnorm((1+co)/2))
+		pval=2*min(pt(t,df),pt(t,df,lower.tail=F))
+		return(list("pval"=pval,"lower"=min(cint,na.rm=T),"upper"=max(cint,na.rm=T),"n"=n))
+	}
 	for(i in 1:dim(dat)[2]){
 		for(j in 1:dim(dat)[2]){
 			dat_i=as.numeric(dat[,i])				
@@ -1775,13 +1800,48 @@ f<-function(dat,wei=NULL, use="pairwise.complete.obs"){
 			dat_i=dat_i[complete.cases(dat_i)]
 			dat_j=dat_j[complete.cases(dat_j)]
 			wei_i=wei_i[complete.cases(wei_i)]
-			erg[i,j]=weightedCorrelation(dat_i,rbind(dat_j),wei_i)
+			erg1[i,j]=weightedCorrelation(dat_i,rbind(dat_j),wei_i)
+			x=ps(dat_i,dat_j,wei_i,erg1[i,j],.95)
+			erg2[i,j]=x[["pval"]]
+			erg3[i,j]=x[["lower"]]
+			erg4[i,j]=x[["upper"]]
+			erg5[i,j]=x[["n"]]		
 		}
 	}
-	rownames(erg)=colnames(erg)=names(dat)
-	erg
+	rownames(erg1)=colnames(erg1)=colnames(dat)
+	rownames(erg2)=colnames(erg2)=colnames(dat)
+	rownames(erg3)=colnames(erg3)=colnames(dat)
+	rownames(erg4)=colnames(erg4)=colnames(dat)
+	rownames(erg5)=colnames(erg5)=colnames(dat)
+	erg0=round(erg1,2)
+	erg0[nchar(erg0)==3]=paste0(erg0[nchar(erg0)==3],"0")
+	erg0[nchar(erg0)==1]=paste0(erg0[nchar(erg0)==1],".00")
+	erg0[erg2>=.05 & erg2<.1]=paste0(erg0[erg2>=.05 & erg2<.1],"'")
+	erg0[erg2<.05]=paste0(erg0[erg2<.05],"*")
+	erg0[erg2<.01]=paste0(erg0[erg2<.01],"*")
+	erg0[erg2<.001]=paste0(erg0[erg2<.001],"*")
+ 	diag(erg0)="1.00"
+	if(simplify==T)return(erg=erg1) 
+	if(simplify=="cor")return(erg=erg0)
+	if(simplify=="r")return(erg=erg1)
+	if(simplify=="pval")return(erg=erg2) 
+	if(simplify=="ci.lower")return(erg=erg3) 
+	if(simplify=="ci.upper")return(erg=erg4) 
+	if(simplify=="n")return(erg=erg5) 
+	erg=list(
+		"cor"=erg0,
+		"r"=erg1,
+		"pval"=erg2,
+		"ci.lower"=erg3,
+		"ci.upper"=erg4,
+		"n"=erg5
+	)
+	return(erg)
 }
 af.cor=f
+
+af.cor(cbind(x=c(1,2,3,4,5),y=c(1,2,4,3,5),z=c(0,0,0,1,1)))
+
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
@@ -1986,7 +2046,7 @@ f <- function (model, x=NULL, y=NULL, steps=100, splitseq=seq(0,1,by=0.25), plot
 	ri=array(dim=c(vars));for (i in 1:vars)ri[i]=max(re[,i])-min(re[,i]);
 	return(data.frame(Fischer.Delta=con[-length(con)],Lek.Range=ri,row.names=colnames(x)));
 }
-af.sensitivity=f; #data=data.frame(y=rnorm(100),x=rnorm(100),z=rnorm(100));n1=nnet(y~.,data,size=3,linout=T);af.sensitivity(n1,data[,2:3],data[,1])
+af.sensitivity=f; 
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 ###########################################
@@ -2231,9 +2291,9 @@ f <- function(dat,cat=character(0), cod=character(0),pos=numeric(0),resort=T){
 	dat=apply(dat,c(1,2),as.character);  
 	f1=function(d, category=cat, codes=cod,positions=pos){ 
 		d=apply(d,c(1,2),as.character);  				  
-		d[suppressWarnings(d[,1]==codes),2]=category;   		  			#klassifiziert Elemente, die cod ensprechen mit cat
-		if(length(codes)>0)for(i in 1:length(codes))d[grepl(codes[i],d[,1]),2]=category;  	#klassifiziert Elemente, die cod enthalten mit cat
-		d[positions,2]=category;return(d);				  			#klassifiziert Elemente, an Position pos mit cat
+		d[suppressWarnings(d[,1]==codes),2]=category;   		  			
+		if(length(codes)>0)for(i in 1:length(codes))d[grepl(codes[i],d[,1]),2]=category;  	
+		d[positions,2]=category;return(d);				  			
 	}; 
 	f2=function(d){return(d[order(d[,2],d[,1]), ]);}; 
 	f3=function(d){return(levels(as.factor(d[,2])));}; 
