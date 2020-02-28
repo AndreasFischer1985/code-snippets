@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.2.5",
+"Version"="0.2.6",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -1722,27 +1722,58 @@ write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".
 # Fitting
 ###########################################
 
-n<-"af.hclust"
+n<-"af.model"
 #----------
-d <- paste0(	"#' Function af.hclust\n",
-		"#' \n#' Cluster analysis of data.frame.\n",
+d <- paste0(	"#' Function af.model\n",
+		"#' \n#' Statistical model based on the most relevant predictors as chosen using a stepwise procedure.\n",
+		"#' @param formula A formula specifying the criterion and its relation to all predictors possibly relevant.\n",
 		"#' @param data Numeric data.frame.\n",
-		"#' @details Cluster analysis of data.frame.\n",
+		"#' @param direction Character element specifying the stepwise procedure to be applied (besides \"forward\", \"backward\" or \"both\", possible values are \"none\", \"adaptive\", \"complete\" or \"top\". It's also possible to add a number after \"top\" (e.g. \"top 3\") in order to specify the maximum number of predictors to be examined). Defaults to \"top\".\n",
+		"#' @param model Function of an approproate class. Defaults to lm.\n",
+		"#' @details This function fits a statistical model based on the most relevant predictors as chosen using a stepwise procedure.\n",
 		"#' @keywords modeling\n",
 		"#' @export\n",
 		"#' @examples\n#' af.hclust(data.frame(x=rnorm(100),y=rnorm(100)+scale(1:100),z=rnorm(100)+scale(1:100)));"
 		)
-f<-function(data,dist.function=function(x)as.dist(1-cor(x)),method="complete",k=NULL,plot=T){
-	hclustering=hclust(dist.function(data),method=method);
-	if(plot)plot(hclustering,main="hierarchical cluster analysis",cex=.6) 
-	clusters=cutree(hclustering,k=1)
-	if(!is.null(k))if(k>0)clusters=cutree(hclustering,k=k)
-	hclustering[["clusters"]]=clusters
-	return(hclustering)
+f=function(formula,data,direction="top",model=lm,scope=NULL,...){
+	if(is.null(model) | !is.function(model))model=lm
+	if(is.null(scope)) scope=formula
+	c=as.character(formula)
+	t=attr(terms(formula),"term.labels")
+	if(is.null(direction)|direction=="none") l=model(formula,data,...)
+	if(direction=="adaptive") 	direction=ifelse(length(t)<=5,"complete","forward")
+	if(direction=="forward")	l=stats::step(object=model(y~1,data,...),direction=direction,scope=scope)
+	if(direction=="backward")	l=stats::step(object=model(formula,data,...),direction=direction,scope=scope)
+	if(direction=="both")		l=stats::step(object=model(formula,data,...),direction=direction,scope=scope)
+	if(direction=="complete"){	
+		com=cbind(rep(1:length(t),length(t)))
+		for(i in 1:(length(t)-1)) com=data.frame(com, rep(1:length(t),each=length(t)^i))
+		t0=sapply(1:(length(t)^(dim(com)[2])),function(x){
+			f2=as.formula(paste(c[2],c[1],paste(t[unlist(com[x,])],collapse="+")))
+			AIC(model(f2,dat,...))
+		})		
+		formula=as.formula(paste(c[2],c[1],paste(t[unlist(com[which.min(t0),])],collapse="+")))
+		l=model(formula,dat,...)
+	}
+	if(sum(grepl("top",direction))>0){
+		top=5
+		if(sum(grepl("[0-9]",direction))>0) top=as.numeric(gsub("[^0-9]","",direction))
+		top=min(length(t),top)	
+		com=cbind(1:length(t))
+		if(top>1)
+		for(i in 1:(top-1)) com=data.frame(com, rep(1:length(t),each=length(t)^i))
+		t0=sapply(1:(length(t)^(dim(com)[2])),function(x){
+			f2=as.formula(paste(c[2],c[1],paste(t[unlist(com[x,])],collapse="+")))
+			AIC(model(f2,dat,...))
+		})		
+		formula=as.formula(paste(c[2],c[1],paste(t[unlist(com[which.min(t0),])],collapse="+")))
+		l=model(formula,dat,...)
+	}
+	l$call=(parse(text=gsub("= formula",paste("=",deparse(formula)),deparse(l$call))))
+	return(l)
 }
-af.hclust=f
+af.model=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
-
 
 
 n<-"af.cor"
@@ -1755,7 +1786,7 @@ d <- paste0(	"#' Function af.cor\n",
 		"#' @export\n",
 		"#' @examples\n#' af.cor(dat=sapply(1:10,function(x)rnorm(100)));"
 		)
-f<-function(dat,wei=NULL, use="pairwise.complete.obs", simplify=F){
+f<-function(dat, wei=NULL, use="pairwise.complete.obs", simplify=F){
 	if(is.null(dim(dat))) stop("Please provide a matrix or data.frame as dat")
 	if(is.matrix(dat)) if(!is.numeric(dat)) { warning("Non-numeric matrix detected. Type-casting applied."); dat=apply(dat,2,as.numeric); }
 	if(is.data.frame(dat))if(sum(sapply(dat,is.numeric),na.rm=T)<dim(dat)[2]){ warning("Non-numeric matrix detected. Type-casting applied."); nam=names(dat[,sapply(dat,is.numeric)]);dat=as.data.frame(dat[,sapply(dat,is.numeric)]);names(dat)=nam;}
@@ -1839,10 +1870,31 @@ f<-function(dat,wei=NULL, use="pairwise.complete.obs", simplify=F){
 	return(erg)
 }
 af.cor=f
-
-af.cor(cbind(x=c(1,2,3,4,5),y=c(1,2,4,3,5),z=c(0,0,0,1,1)))
-
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+n<-"af.hclust"
+#----------
+d <- paste0(	"#' Function af.hclust\n",
+		"#' \n#' Cluster analysis of data.frame.\n",
+		"#' @param data Numeric data.frame.\n",
+		"#' @details Cluster analysis of data.frame.\n",
+		"#' @keywords modeling\n",
+		"#' @export\n",
+		"#' @examples\n#' af.hclust(data.frame(x=rnorm(100),y=rnorm(100)+scale(1:100),z=rnorm(100)+scale(1:100)));"
+		)
+f<-function(data,dist.function=function(x)as.dist(1-cor(x)),method="complete",k=NULL,plot=T){
+	hclustering=hclust(dist.function(data),method=method);
+	if(plot)plot(hclustering,main="hierarchical cluster analysis",cex=.6) 
+	clusters=cutree(hclustering,k=1)
+	if(!is.null(k))if(k>0)clusters=cutree(hclustering,k=k)
+	hclustering[["clusters"]]=clusters
+	return(hclustering)
+}
+af.hclust=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
 
 
 n <- "distrib" 
