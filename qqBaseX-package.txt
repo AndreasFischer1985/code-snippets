@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.2.6",
+"Version"="0.2.8",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -80,7 +80,7 @@ n <- "getHTML";
 #-------------
 d <- paste0(	"#' Function getHTML\n",
 	"#' \n#' Extracts HTML from an URL.\n",
-	"#' @param url A valid URL.\n",
+	"#' @param url Character string speficying a valid URL.\n",
 	"#' @param encoding Character value specifying the encoding. Defaults to \"UTF-8\".\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
 	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
@@ -89,11 +89,15 @@ d <- paste0(	"#' Function getHTML\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' getHTML()")
-
-f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=NULL,closeCon=F,method="libcurl",silent=T){
+f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=NULL,closeCon=F,method="libcurl",headers=NULL,silent=T,curlGetHeaders=F,browseURL=F,...){
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
 	if(!silent)message(paste0("Trying to get html from ",url))
-	if(is.character(url))url=url(url,method=method)
+	if(is.character(url)){
+		if(length(grep("(^http://|^https://|^ftp://|^file://)",url))==0) url=paste0("http://",url)
+		if(curlGetHeaders) message(paste(curlGetHeaders(url, verify=F),collapse=""))
+		if(browseURL) browseURL(url)
+		url=url(url,method=method,...)
+	}
 	html=paste(readLines(url,encoding=encoding), collapse="\n");       
 	if(save) write.csv2(data.frame(gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
@@ -101,7 +105,6 @@ f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&o
 }
 getHTML=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
-
 
 n<-"scrapeHTML"
 #-------------
@@ -359,13 +362,13 @@ f<-function(plot=T,
  		rownames(downloads2)=article.labels;
 		downloads2=downloads2[order(rowSums(downloads2,na.rm=T),decreasing=T)[1:min(dim(downloads2)[1],25)],]
 		dev.new(width=10,height=7)
-		plotMAT(downloads2,main="Cumulation of Downloads")
+		plotMAT(downloads2,main="Cumulation of Downloads",cumsum=T)
 
 		frontdoor2=frontdoor[,colnames(frontdoor)!=as.character(current.year-1)&colnames(frontdoor)!=as.character(current.year)]
  		rownames(frontdoor2)=article.labels;
 		frontdoor2=frontdoor2[order(rowSums(frontdoor2,na.rm=T),decreasing=T)[1:min(dim(frontdoor2)[1],25)],]
 		dev.new(width=10,height=7)
-		plotMAT(frontdoor2,main="Cumulation of Reads")
+		plotMAT(frontdoor2,main="Cumulation of Reads",cumsum=T)
 	}
 
 	return(df)
@@ -1489,7 +1492,7 @@ d <- paste0(
 	"#' @param xlim.factor Numeric value for adding extra space to the right of the plot. Defaults to 1.\n",
 	"#' @param las Numeric value specifying the rotation of the y-axis (0 for 90 percent rotation, 1 for 0 percent rotation). Defaults to 1.\n",
 	"#' @param srt Numeric value specifying the rotation of the x-axis (between 0 and 360 degrees). Defaults to 45.\n",
-	"#' @param cumsum Logical value indicating whether the cumsum of each row in the matrix of each row should be plotted. Defaults to T.\n",
+	"#' @param cumsum Logical value indicating whether the cumsum of each row in the matrix of each row should be plotted. Defaults to F.\n",
 	"#' @param show.legend Logical value indicating whether a legend should be drawn instead of texts. Defaults to T.\n",
 	"#' @param add Logical value indicating whether to draw lines to an existing plot. Defaults to F.\n",
 	"#' @param add.shadow Logical value indicating whether lines should be surrounded ba a black line. Defaults to F.\n",
@@ -1507,8 +1510,8 @@ d <- paste0(
 	"#' plotMAT()"
 );
 
-f<-function(matrix=NULL,main=NULL,xlab="",ylab=NULL,lwd=2,lty=1,pch=NULL,type="l",xlim=NULL,ylim=NULL,xlim.factor=1.5,las=1,srt=45,cumsum=T,show.legend=F,add=F,add.shadow=F,grid=T,col=NULL,cex=.7,cex.axis1=.5,cex.axis2=.7,frame=1,manual.addon=NULL){
-	if(is.null(matrix)){ matrix=t(data.frame(
+f<-function(matrix=NULL,main=NULL,xlab="",ylab=NULL,lwd=2,lty=1,pch=NULL,type="l",xlim=NULL,ylim=NULL,xlim.factor=1.5,las=1,srt=45,cumsum=F,show.legend=F,add=F,add.shadow=F,grid=T,col=NULL,cex=.7,cex.axis1=.5,cex.axis2=.7,frame=1,manual.addon=NULL){
+	if(is.null(matrix)){ cumsum=T;matrix=t(data.frame(
 		"ID 15455/20157"=c(32,254,22,54,35,30,46,245,10,6,17,24,16,14,16,22,36,192,89,133,14,5,11,13,18,5),
 		"ID 34608/32684"=c(NA,NA,NA,NA,NA,NA,83,76,37,26,17,29,29,30,14,24,9,20,9,19,23,11,15,17,13,	4),
 		"ID 17663/17669"=c(153,175,12,38,5,24,33,6,44,108,33,31,6,25,15,12,13,11,15,12,8,10,7,9,6,	5),
@@ -1530,7 +1533,7 @@ f<-function(matrix=NULL,main=NULL,xlab="",ylab=NULL,lwd=2,lty=1,pch=NULL,type="l
 		row.names=c("2015","2016","Jan 2017","Feb 2017","Mar 2017","Apr 2017","May 2017","Jun 2017","Jul 2017","Aug 2017","Sep 2017","Oct 2017","Nov 2017","Dec 2017","Jan 2018","Feb 2018","Mar 2018","Apr 2018","May 2018","Jun 2018","Jul 2018","Aug 2018","Sep 2018","Oct 2018","Nov 2018","Dec 2018")));}
 
 	if(is.matrix(matrix)) if(!is.numeric(matrix)) { warning("Non-numeric matrix detected. Type-casting is applied."); matrix=apply(matrix,2,as.numeric); }
-	if(is.data.frame(dat))if(sum(sapply(dat,is.numeric),na.rm=T)<dim(dat)[2]){ warning("Non-numeric matrix detected. Type-casting applied."); nam=names(dat[,sapply(dat,is.numeric)]);dat=as.data.frame(dat[,sapply(dat,is.numeric)]);names(dat)=nam;dat=as.matrix(dat);colnames(dat)=nam}
+	if(is.data.frame(matrix))if(sum(sapply(matrix,is.numeric),na.rm=T)<dim(matrix)[2]){ warning("Non-numeric matrix detected. Type-casting applied."); nam=names(matrix[,sapply(matrix,is.numeric)]);matrix=as.data.frame(matrix[,sapply(matrix,is.numeric)]);names(matrix)=nam;matrix=as.matrix(matrix);colnames(matrix)=nam}
 
 	if(is.null(xlab))xlab="time";
 	if(is.null(ylab))ylab=ifelse(cumsum,"cumulated sum","value");
@@ -1750,10 +1753,10 @@ f=function(formula,data,direction="top",model=lm,scope=NULL,...){
 		for(i in 1:(length(t)-1)) com=data.frame(com, rep(1:length(t),each=length(t)^i))
 		t0=sapply(1:(length(t)^(dim(com)[2])),function(x){
 			f2=as.formula(paste(c[2],c[1],paste(t[unlist(com[x,])],collapse="+")))
-			AIC(model(f2,dat,...))
+			AIC(model(f2,data,...))
 		})		
 		formula=as.formula(paste(c[2],c[1],paste(t[unlist(com[which.min(t0),])],collapse="+")))
-		l=model(formula,dat,...)
+		l=model(formula,data,...)
 	}
 	if(sum(grepl("top",direction))>0){
 		top=5
@@ -1764,10 +1767,10 @@ f=function(formula,data,direction="top",model=lm,scope=NULL,...){
 		for(i in 1:(top-1)) com=data.frame(com, rep(1:length(t),each=length(t)^i))
 		t0=sapply(1:(length(t)^(dim(com)[2])),function(x){
 			f2=as.formula(paste(c[2],c[1],paste(t[unlist(com[x,])],collapse="+")))
-			AIC(model(f2,dat,...))
+			AIC(model(f2,data,...))
 		})		
 		formula=as.formula(paste(c[2],c[1],paste(t[unlist(com[which.min(t0),])],collapse="+")))
-		l=model(formula,dat,...)
+		l=model(formula,data,...)
 	}
 	l$call=(parse(text=gsub("= formula",paste("=",deparse(formula)),deparse(l$call))))
 	return(l)
