@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.2.8",
+"Version"="0.3.0",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -156,6 +156,9 @@ d <- paste0(	"#' Function subsetHTML\n",
 	"#' subsetHTML(getHTML(\"https://jobs.meinestadt.de/nuernberg/suche?words=Wissenschaftlicher%20Mitarbeiter\",tag=\"div\",pattern=\"class=\\\"m-resultListEntries__content\\\"\"))")
 
 f <- function (html, tag="div", pattern = NULL, edit=F, save = F, plot=F, prefix = NULL,trim=T) {
+    if(length(html)>1) 
+	if(length(dim(html))>2) stop("please provide HTML as a character vector!") else
+	if(length(dim(html))>1) { warning("two-dimensional input detected. Only first column is used."); html=paste(as.character(html[,1]),collapse="   ")} else html=paste(as.character(html),collapse="   ")
     start = paste0("<",tag,"[\n\r> ]")
     end =   paste0("</",tag,">")
     if(is.null(pattern))pattern=start
@@ -264,115 +267,122 @@ f<-function(plot=T,
 	urls=paste0("https://journals.ub.uni-heidelberg.de/index.php/jddm/issue/view/",c(3269,2836,2269,3694,4432)),	
 	url2="https://journals.ub.uni-heidelberg.de/cgi-bin/oastats.cgi?repo=ojs;from_date=2015-09-29%2021:39:27;id=jddm:"
 ){
-
-	#Extract information
-	#-------------------
-	article.ids=character(0)
-	all.authors=character(0)
-	authors=character(0)
-	years=character(0)
-	article.labels=character(0)
-
-	for(url in urls){
-		html0= gsub("(\t|\n)","",paste(readLines(url, encoding="UTF-8"), collapse="\n"));
-		links=matchAll(html0,"https://journals.ub.uni-heidelberg.de/index.php/jddm/article/view/[0-9/]*\\\">PDF")[[1]][,1]
-		article.ids=c(article.ids,gsub("(.*view/|\\\">PDF)","",links))
-		all.authors=c(all.authors,gsub("</div>.*","",strsplit(html0,"(\"authors\\\">)")[[1]])[-1]);
-		authors=paste0(gsub(",.*","",all.authors)," et al.")
-		authors[grep("Fischer(.*)Holt(.*)Funke",all.authors)]="Editoral"
-		years=c(years,rep(gsub("(.*[(]|[)])","",matchOne(html0,"<title>Vol [0-9]* \\([0-9]*\\)"))[,1],length(links)))
-	}
-	article.labels=paste0(authors," (",years,")");
-	names(article.labels)=article.ids;
-
-	# Extract statistics on articles
-	#-------------------------------
-	#tryCatch({load("html.RData")},error=function(c){});
-	#if(!exists("html")) {
-		html=list()
-		for(i in 1:length(article.ids)){
-			html[as.character(article.ids[i])]=paste(
-				readLines(paste0(url2,
-				gsub("/.*","",article.ids[i]),";lang=ende;overlay=1"), encoding="UTF-8"), collapse="\n");
-			message(article.ids[i])
-		};
-	#}
-
-	# format
-	#--------------------------
-	html=unlist(html)
-	current.year=as.numeric(gsub("-.*","",(Sys.Date())));span=current.year-2015+1
-	results=list()
-	for(i in 1:length(html)){ 
-		months=paste(paste0(">",c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"),"<"),collapse="|")
-		df=data.frame( #df enthält sämtliche Nennung von Monaten sowie Monats-weise splits des html
-			c("Intro",matchAll(html[i],months)[[1]]),
-			strsplit(as.character(html[i]),months))
-		df[,2]=gsub("<table class=\\\"stats\\\"><tr><th>201[0-9]</th>","",df[,2]); # Entferne Jahres-Angaben
-		numbers=sapply(matchAll(df[,2],">[0-9]+<"),function(x)as.numeric(gsub("[<>]","",c(x[1:2]))))[,-1]; #Extrahiere die 2 Zahlenangaben je Monat
-		if(is.null(dim(numbers)))numbers=as.matrix(numbers);#{warning(paste0("Zu Paper ",i," sind nicht genügend Daten vorhanden. Bitte exkludieren"));return(formatData(html[-i],article.ids[-i]));}#stop(paste0("Zu Paper ",i," sind nicht genügend Daten vorhanden. Bitte exkludieren"));
-		colnames(numbers)=gsub("[<>]","",df[-1,1]);rownames(numbers)=c("Downloads","Frontdoor"); # Generiere col- und rownames
-		mo=dim(numbers)[2];numbers=cbind(numbers,matrix(NA,nrow=2,ncol=24-mo)); # Wenn nicht zu allen 24 Monaten Infos vorliegen, füge NA ein
-		colnames(numbers)=paste(colnames(numbers),c(rep(current.year,12),rep(current.year-1,12)))
-		st=matchAll(df[,2],">[0-9]+<");prior=as.numeric(gsub("[<>]","",st[[length(st)]][-c(1:2),1])); # Extrahiere aus letztem Element Infos zu Vorjahren
-		prior=c(prior,rep(NA,2*(as.numeric(gsub("-.*","",(Sys.Date())))-2014)-length(prior))); # Wenn nicht zu allen Jahren seit 2015 Infos vorliegen, füge NA ein
-		numbers=cbind(numbers,t(data.frame(prior[seq(1,length(prior),2)],prior[seq(1,length(prior),2)+1]))); # Füge die Infos in Matrix numbers ein
-		colnames(numbers)[25:(24+span)]=as.numeric(gsub("-.*","",(Sys.Date()))):2015; # Generiere colnames für die Vorjahre
-		results[[as.character(article.ids[i])]]=numbers; # Schreibe matrix numbers in die Liste results
-	}
-
-	m=matrix(ncol=(24+span));for(i in 1:length(results))m=rbind(m,results[[i]]);m=m[-1,]; #put list in a matrix
-	rownames(m)=paste(rownames(m),rep(article.ids,each=2))
-
-	if(as.numeric(gsub("(^[0-9]*-|-[0-9]*$)","",Sys.Date()))<12){
-		shift=which(!is.na(m[,1]));m[shift,13:24]=m[shift,1:12];m[shift,1:12]=NA;
-		m=m[,first(which(dim(m)[1]!=colSums(is.na(m)))):dim(m)[2]]
-	}
-
-	# prepare plotting
-	#-----------------------
-	names(article.labels)=article.ids;
-
-	current.year=as.numeric(gsub("-.*","",(Sys.Date())))
-	years.JDDM=(as.numeric(gsub("-.*","",(Sys.Date())))-2014)
-	entryNo=2*12+years.JDDM-2
-
-	downloads=m[seq(1,dim(m)[1],2),dim(m)[2]:1]
-	frontdoor=m[seq(1,dim(m)[1],2)+1,dim(m)[2]:1]
-
-	downloads.per.year=m[seq(1,dim(m)[1],2),dim(m)[2]:1][,1:years.JDDM]
-	frontdoor.per.year=m[seq(1,dim(m)[1],2)+1,dim(m)[2]:1][,1:years.JDDM]
-	frontdoor.per.year[is.na(frontdoor.per.year)]=0
-	downloads.per.year[is.na(downloads.per.year)]=0
-	
-	df=data.frame(
-		article.ids,article.labels,all.authors,authors,years,download.link=paste0("https://journals.ub.uni-heidelberg.de/index.php/jddm/article/download/",article.ids),
-		downloads,frontdoor);
-
-	if(F){
-		if(any(rowSums(is.na(downloads[,(current.year-2013):dim(downloads)[2]]))>11)|
-		   any(rowSums(is.na(frontdoor[,(current.year-2013):dim(frontdoor)[2]]))>11))warning("only a subset of papers is returned. please try again next month")
-
-		df=df[(rowSums(is.na(downloads[,(current.year-2013):dim(downloads)[2]]))<12 &
-		       rowSums(is.na(frontdoor[,(current.year-2013):dim(frontdoor)[2]]))<12),]
-	}
-
-	if(plot){
-		downloads2=downloads[,colnames(downloads)!=as.character(current.year-1)&colnames(downloads)!=as.character(current.year)]
- 		rownames(downloads2)=article.labels;
-		downloads2=downloads2[order(rowSums(downloads2,na.rm=T),decreasing=T)[1:min(dim(downloads2)[1],25)],]
-		dev.new(width=10,height=7)
-		plotMAT(downloads2,main="Cumulation of Downloads",cumsum=T)
-
-		frontdoor2=frontdoor[,colnames(frontdoor)!=as.character(current.year-1)&colnames(frontdoor)!=as.character(current.year)]
- 		rownames(frontdoor2)=article.labels;
-		frontdoor2=frontdoor2[order(rowSums(frontdoor2,na.rm=T),decreasing=T)[1:min(dim(frontdoor2)[1],25)],]
-		dev.new(width=10,height=7)
-		plotMAT(frontdoor2,main="Cumulation of Reads",cumsum=T)
-	}
-
-	return(df)
-
+   article.ids = character(0)
+    all.authors = character(0)
+    authors = character(0)
+    years = character(0)
+    article.labels = character(0)
+    for (url in urls) {
+        html0 = gsub("(\t|\n)", "", paste(readLines(url, encoding = "UTF-8"), 
+            collapse = "\n"))
+        links = matchAll(html0, "https://journals.ub.uni-heidelberg.de/index.php/jddm/article/view/[0-9/]*\\\">PDF")[[1]][, 
+            1]
+        article.ids = c(article.ids, gsub("(.*view/|\\\">PDF)", 
+            "", links))
+        all.authors = c(all.authors, gsub("</div>.*", "", strsplit(html0, 
+            "(\"authors\\\">)")[[1]])[-1])
+        authors = paste0(gsub(",.*", "", all.authors), " et al.")
+        authors[grep("Fischer(.*)Holt(.*)Funke", all.authors)] = "Editoral"
+        years = c(years, rep(gsub("(.*[(]|[)])", "", matchOne(html0, 
+            "<title>Vol [0-9]* \\([0-9]*\\)"))[, 1], length(links)))
+    }
+    article.labels = paste0(authors, " (", years, ")")
+    names(article.labels) = article.ids
+    html = list()
+    for (i in 1:length(article.ids)) {
+        html[as.character(article.ids[i])] = paste(readLines(paste0(url2, 
+            gsub("/.*", "", article.ids[i]), ";lang=ende;overlay=1"), 
+            encoding = "UTF-8"), collapse = "\n")
+        message(article.ids[i])
+    }
+    html = unlist(html)
+    current.year = as.numeric(gsub("-.*", "", (Sys.Date())))
+    span = current.year - 2015 + 1
+    results = list()
+    for (i in 1:length(html)) {
+        months = paste(paste0(">", c("Jan", "Feb", "Mar", "Apr", 
+            "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", 
+            "Dec"), "<"), collapse = "|")
+        df = data.frame(c("Intro", matchAll(html[i], months)[[1]]), 
+            strsplit(as.character(html[i]), months))
+        df[, 2] = gsub("<table class=\\\"stats\\\"><tr><th>201[0-9]</th>", 
+            "", df[, 2])
+        numbers = sapply(matchAll(df[, 2], ">[0-9]+<"), function(x) as.numeric(gsub("[<>]", 
+            "", c(x[1:2]))))[, -1]
+        if (is.null(dim(numbers))) 
+            numbers = as.matrix(numbers)
+        colnames(numbers) = gsub("[<>]", "", df[-1, 1])
+        rownames(numbers) = c("Downloads", "Frontdoor")
+        mo = dim(numbers)[2]
+        numbers = cbind(numbers, matrix(NA, nrow = 2, ncol = 24 - 
+            mo))
+        colnames(numbers) = paste(colnames(numbers), c(rep(current.year, 
+            12), rep(current.year - 1, 12)))
+        st = matchAll(df[, 2], ">[0-9]+<")
+        prior = as.numeric(gsub("[<>]", "", st[[length(st)]][-c(1:2), 
+            1]))
+        prior = c(prior, rep(NA, 2 * (as.numeric(gsub("-.*", 
+            "", (Sys.Date()))) - 2014) - length(prior)))
+        numbers = cbind(numbers, t(data.frame(prior[seq(1, length(prior), 
+            2)], prior[seq(1, length(prior), 2) + 1])))
+        colnames(numbers)[25:(24 + span)] = as.numeric(gsub("-.*", 
+            "", (Sys.Date()))):2015
+        results[[as.character(article.ids[i])]] = numbers
+    }
+    m = matrix(ncol = (24 + span))
+    for (i in 1:length(results)) m = rbind(m, results[[i]])
+    m = m[-1, ]
+    rownames(m) = paste(rownames(m), rep(article.ids, each = 2))
+    if (as.numeric(gsub("(^[0-9]*-|-[0-9]*$)", "", Sys.Date())) < 
+        12) {
+        shift = which(!is.na(m[, 1]))
+        m[shift, 13:24] = m[shift, 1:12]
+        m[shift, 1:12] = NA
+        m = m[, first(which(dim(m)[1] != colSums(is.na(m)))):dim(m)[2]]
+    }
+    names(article.labels) = article.ids
+    current.year = as.numeric(gsub("-.*", "", (Sys.Date())))
+    years.JDDM = (as.numeric(gsub("-.*", "", (Sys.Date()))) - 
+        2014)
+    entryNo = 2 * 12 + years.JDDM - 2
+    downloads = m[seq(1, dim(m)[1], 2), dim(m)[2]:1]
+    frontdoor = m[seq(1, dim(m)[1], 2) + 1, dim(m)[2]:1]
+    downloads.per.year = m[seq(1, dim(m)[1], 2), dim(m)[2]:1][, 
+        1:years.JDDM]
+    frontdoor.per.year = m[seq(1, dim(m)[1], 2) + 1, dim(m)[2]:1][, 
+        1:years.JDDM]
+    frontdoor.per.year[is.na(frontdoor.per.year)] = 0
+    downloads.per.year[is.na(downloads.per.year)] = 0
+    df = data.frame(article.ids, article.labels, all.authors, 
+        authors, years, download.link = paste0("https://journals.ub.uni-heidelberg.de/index.php/jddm/article/download/", 
+            article.ids), downloads, frontdoor)
+    if (F) {
+        if (any(rowSums(is.na(downloads[, (current.year - 2013):dim(downloads)[2]])) > 
+            11) | any(rowSums(is.na(frontdoor[, (current.year - 
+            2013):dim(frontdoor)[2]])) > 11)) 
+            warning("only a subset of papers is returned. please try again next month")
+        df = df[(rowSums(is.na(downloads[, (current.year - 2013):dim(downloads)[2]])) < 
+            12 & rowSums(is.na(frontdoor[, (current.year - 2013):dim(frontdoor)[2]])) < 
+            12), ]
+    }
+    if (plot) {
+        downloads2 = downloads[, colnames(downloads) != as.character(current.year - 
+            1) & colnames(downloads) != as.character(current.year)]
+        rownames(downloads2) = article.labels
+        downloads2 = downloads2[order(rowSums(downloads2, na.rm = T), 
+            decreasing = T)[1:min(dim(downloads2)[1], 25)], ]
+        dev.new(width = 10, height = 7)
+        plotMAT(downloads2, main = "Cumulation of Downloads", 
+            cumsum = T)
+        frontdoor2 = frontdoor[, colnames(frontdoor) != as.character(current.year - 
+            1) & colnames(frontdoor) != as.character(current.year)]
+        rownames(frontdoor2) = article.labels
+        frontdoor2 = frontdoor2[order(rowSums(frontdoor2, na.rm = T), 
+            decreasing = T)[1:min(dim(frontdoor2)[1], 25)], ]
+        dev.new(width = 10, height = 7)
+        plotMAT(frontdoor2, main = "Cumulation of Reads", cumsum = T)
+    }
+    return(df)
 }
 scrapeJDDM=f;
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -1742,7 +1752,7 @@ f=function(formula,data,direction="top",model=lm,scope=NULL,...){
 	if(is.null(model) | !is.function(model))model=lm
 	if(is.null(scope)) scope=formula
 	c=as.character(formula)
-	t=attr(terms(formula),"term.labels")
+	t=attr(terms(formula,data=data),"term.labels")
 	if(is.null(direction)|direction=="none") l=model(formula,data,...)
 	if(direction=="adaptive") 	direction=ifelse(length(t)<=5,"complete","forward")
 	if(direction=="forward")	l=stats::step(object=model(y~1,data,...),direction=direction,scope=scope)
@@ -1848,6 +1858,7 @@ f<-function(dat, wei=NULL, use="pairwise.complete.obs", simplify=F){
 	rownames(erg4)=colnames(erg4)=colnames(dat)
 	rownames(erg5)=colnames(erg5)=colnames(dat)
 	erg0=round(erg1,2)
+	erg2[is.na(erg2)]=2;
 	erg0[nchar(erg0)==3]=paste0(erg0[nchar(erg0)==3],"0")
 	erg0[nchar(erg0)==1]=paste0(erg0[nchar(erg0)==1],".00")
 	erg0[erg2>=.05 & erg2<.1]=paste0(erg0[erg2>=.05 & erg2<.1],"'")
@@ -1855,6 +1866,7 @@ f<-function(dat, wei=NULL, use="pairwise.complete.obs", simplify=F){
 	erg0[erg2<.01]=paste0(erg0[erg2<.01],"*")
 	erg0[erg2<.001]=paste0(erg0[erg2<.001],"*")
  	diag(erg0)="1.00"
+	erg2[erg2==2]=NA;
 	if(simplify==T)return(erg=erg1) 
 	if(simplify=="cor")return(erg=erg0)
 	if(simplify=="r")return(erg=erg1)
@@ -1915,94 +1927,116 @@ d <- paste0(
 	"#' distrib(1:10)"
 );
 f=function(dat,wei=NULL,kat=NULL,plot=T,plot.o=F,simplify=T,mar=NULL,width=NULL,height=NULL,main2="Boxplot",main1="",round=T,...){
-	if(is.null(kat)) kat=rep(1,length(dat)) # wenn keine Differenzierung gewünscht, packe alle Daten in eine Kategorie
-	if(is.null(wei)) wei=rep(1,length(dat)) # wenn keine Gewichtung gewünscht, gewichte jedes Element mit 1
-	dat=as.numeric(dat)			# Stelle sicher, dass die Variable dat numerisch ist
-	wei=as.numeric(wei)			# Stelle sicher, dass die Variable wei numerisch ist
-	dat[is.na(kat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
-	wei[is.na(kat)|is.na(dat)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
-	kat[is.na(dat)|is.na(wei)]=NA		# Wenn irgendwo Daten fehlen (dat, wei oder kat) ist der Fall durchgängig zu ignorieren
-	lev=levels(as.factor(kat))		# Bestimme die unterschiedlichen Ausprägungen von kat
-	erg=lapply(lev,function(x){		# Berechne das Folgende für jede Ausprägung von kat
-		w.tab=sapply(										# w.tab = Tabelle mit Umfang der Population bzgl. jeder Ausprägung von dat (in der Kategorie x) 
-			levels(as.factor(dat[kat==x])),	
-			function(y) { w.n=sum(wei[kat==x & dat==y],na.rm=T)}
-		);
-		if(round==T & length(w.tab)>0) w.dat=as.numeric(rep(names(w.tab), round(w.tab)))	else			# w.dat = Vektor auf Basis von w.tab, der die Daten dat der Population repräsentiert (in der Kategorie x) 
-			     w.dat=as.numeric(rep(names(w.tab), w.tab));
-		list(
-			w.statistics = c(
-				w.n=sum(wei[kat==x],na.rm=T),						# w.n =    wie groß ist die Population (bzgl. der Kategorie x)
-				w.sum=sum(dat[kat==x]*wei[kat==x],na.rm=T),				# w.sum =  wie groß ist die Summe in der Population (bzgl. der Kategorie x)
-				w.mean=sum(dat[kat==x]*wei[kat==x],na.rm=T) / sum(wei[kat==x],na.rm=T), # w.mean = wie groß ist der Mittelwert in der Population (bzgl. der Kategorie x)
-				w.median=median(w.dat, na.rm=T),					# w.median = Median der Population (bzgl. der Kategorie x)
-				w.sd=sd(w.dat, na.rm=T),						# w.sd = Standardabweichung der Population (bzgl. der Kategorie x)
-				w.min=min(w.dat, na.rm=T),						# w.min = Minimum der Population (bzgl. der Kategorie x)
-				w.max=max(w.dat, na.rm=T),						# w.max = Maximum der Population (bzgl. der Kategorie x)
-				w.sum2=sum(w.dat, na.rm=T),						# w.sum = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
-				w.mean2=mean(w.dat, na.rm=T)						# w.mean = Summe der Population (bzgl. der Kategorie x)	- näherungsweise geschätzt anhand von w.dat
-			), 
-			w.table=w.tab, 
-			w.data=w.dat,
-			o.statistics = c(
-				o.n=sum(kat==x,na.rm=T),				
-				o.sum=sum(dat[kat==x],na.rm=T),				
-				o.mean=sum(dat[kat==x],na.rm=T) / sum(kat==x,na.rm=T),
-				o.median=median(dat[kat==x], na.rm=T),			
-				o.sd=sd(dat[kat==x], na.rm=T),				
-				o.min=min(dat[kat==x], na.rm=T),				
-				o.max=max(dat[kat==x], na.rm=T),				
-				o.sum2=sum(dat[kat==x], na.rm=T),				
-				o.mean2=mean(dat[kat==x], na.rm=T)				
-			), 
-			o.table=table(dat[kat==x],useNA="always"),
-			o.data=as.numeric(na.omit(dat[kat==x]))
-		)
-	}); 
-	names(erg)=lev	
-	if(plot==T){
-		cols2=function (col, transparency = 0.3, opaque=T) {
-		    if(opaque==T) res=sapply(as.data.frame(col2rgb(col)),function(x) colorRampPalette(c(rgb(x[1]/255, x[2]/255, x[3]/255),"white"))(3)[2])
-		    else	  res=apply(col2rgb(col), 2, function(x) rgb(x[1]/255, x[2]/255, x[3]/255, transparency))    
-		    return(res)
-		}
-		x=lapply(erg,function(x) x[["w.data"]]);		 # x umfasst die gewichteten Daten, x2 die ungewichteten
-		m=sapply(erg,function(x) x[["w.statistics"]]["w.mean"])
-		x2=lapply(erg,function(x) x[["o.data"]]);
-		m2=sapply(erg,function(x) x[["o.statistics"]]["o.mean"])
-		x2=x2[order(m)]
-		m2=m2[order(m)]
-		x=x[order(m)]
-		m=m[order(m)] #sapply(x,function(x)mean(x,na.rm=T))
-		if(!is.null(width)&!is.null(height)) dev.new(width=width,height=height);	
-		if(!is.null(mar))p0=par("mar")
-		if(!is.null(mar))par("mar" = mar)
-		if(plot.o==T){
-			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,boxwex=.5/length(x), ...)  # D9E7EF"
-			boxplot(x2, at=(1:length(x))+.25,horizontal=T,axes=F,col=cols2(rgb(127/255,169/255,188/255),opaque=T),range=0,whiskcol="grey",staplecol="grey",whisklty=1, add=T,boxwex=.5/length(x),...)  # D9E7EF"
-			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
-			points(m2[1:length(x2)],(1:length(x2))+.25,pch=16,col="black") # "#00547A"
-
-			print(m)
-			print(m2)
-		} else {
-			boxplot(x, at=1:length(x),horizontal=T,axes=F,col=rgb(127/255,169/255,188/255),range=0,whiskcol="grey",staplecol="grey",whisklty=1,...)  # D9E7EF"
-			points(m[1:length(x)],1:length(x),pch=16,col="black") # "#00547A"
-		}
-		axis(1,col=NA,col.ticks="grey");
-		axis(2,at=1:length(x),labels=names(x),las=2,col=NA,col.ticks=NA)
-		if(!is.null(mar))par("mar" = p0)
-		title(main2,line=2,adj=0)
-		title(main1,line=1,adj=0,font.main=1)
-	}	
-	if(plot==F) {
-		if(sum(wei!=1, na.rm=T)>0) {
-		if(simplify)    return( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])) 	) else    return(erg) } else
-		if(simplify)    return( sapply(erg,function(x) x[["o.statistics"]]) 							) else    return(erg)  
-	} else 	if(sum(wei!=1, na.rm=T)>0) {
-		if(simplify) 	return(invisible( rbind(sapply(erg,function(x) x[["w.statistics"]]),sapply(erg,function(x) x[["o.statistics"]])))) else return(invisible(erg)) } else
-		if(simplify) 	return(invisible( sapply(erg,function(x) x[["o.statistics"]]) 							)) else return(invisible(erg)) 
-
+    if (is.null(kat)) 
+        kat = rep(1, length(dat))
+    if (is.null(wei)) 
+        wei = rep(1, length(dat))
+    dat = as.numeric(dat)
+    wei = as.numeric(wei)
+    dat[is.na(kat) | is.na(wei)] = NA
+    wei[is.na(kat) | is.na(dat)] = NA
+    kat[is.na(dat) | is.na(wei)] = NA
+    lev = levels(as.factor(kat))
+    erg = lapply(lev, function(x) {
+        w.tab = sapply(levels(as.factor(dat[kat == x])), function(y) {
+            w.n = sum(wei[kat == x & dat == y], na.rm = T)
+        })
+        if (round == T & length(w.tab) > 0) 
+            w.dat = as.numeric(rep(names(w.tab), round(w.tab)))
+        else w.dat = as.numeric(rep(names(w.tab), w.tab))
+        list(w.statistics = c(w.n = sum(wei[kat == x], na.rm = T), 
+            w.sum = sum(dat[kat == x] * wei[kat == x], na.rm = T), 
+            w.mean = sum(dat[kat == x] * wei[kat == x], na.rm = T)/sum(wei[kat == 
+                x], na.rm = T), w.median = median(w.dat, na.rm = T), 
+            w.sd = sd(w.dat, na.rm = T), w.min = min(w.dat, na.rm = T), 
+            w.max = max(w.dat, na.rm = T), w.sum2 = sum(w.dat, 
+                na.rm = T), w.mean2 = mean(w.dat, na.rm = T)), 
+            w.table = w.tab, w.data = w.dat, o.statistics = c(o.n = sum(kat == 
+                x, na.rm = T), o.sum = sum(dat[kat == x], na.rm = T), 
+                o.mean = sum(dat[kat == x], na.rm = T)/sum(kat == 
+                  x, na.rm = T), o.median = median(dat[kat == 
+                  x], na.rm = T), o.sd = sd(dat[kat == x], na.rm = T), 
+                o.min = min(dat[kat == x], na.rm = T), o.max = max(dat[kat == 
+                  x], na.rm = T), o.sum2 = sum(dat[kat == x], 
+                  na.rm = T), o.mean2 = mean(dat[kat == x], na.rm = T)), 
+            o.table = table(dat[kat == x], useNA = "always"), 
+            o.data = as.numeric(na.omit(dat[kat == x])))
+    })
+    names(erg) = lev
+    if (plot == T) {
+        cols2 = function(col, transparency = 0.3, opaque = T) {
+            if (opaque == T) 
+                res = sapply(as.data.frame(col2rgb(col)), function(x) colorRampPalette(c(rgb(x[1]/255, 
+                  x[2]/255, x[3]/255), "white"))(3)[2])
+            else res = apply(col2rgb(col), 2, function(x) rgb(x[1]/255, 
+                x[2]/255, x[3]/255, transparency))
+            return(res)
+        }
+        x = lapply(erg, function(x) x[["w.data"]])
+        m = sapply(erg, function(x) x[["w.statistics"]]["w.mean"])
+        x2 = lapply(erg, function(x) x[["o.data"]])
+        m2 = sapply(erg, function(x) x[["o.statistics"]]["o.mean"])
+        x2 = x2[order(m)]
+        m2 = m2[order(m)]
+        x = x[order(m)]
+        m = m[order(m)]
+        if (!is.null(width) & !is.null(height)) 
+            dev.new(width = width, height = height)
+        if (!is.null(mar)) 
+            p0 = par("mar")
+        if (!is.null(mar)) 
+            par(mar = mar)
+        if (plot.o == T) {
+            boxplot(x, at = 1:length(x), horizontal = T, axes = F, 
+                col = rgb(127/255, 169/255, 188/255), range = 0, 
+                whiskcol = "grey", staplecol = "grey", whisklty = 1, 
+                boxwex = 0.5/length(x), ...)
+            boxplot(x2, at = (1:length(x)) + 0.25, horizontal = T, 
+                axes = F, col = cols2(rgb(127/255, 169/255, 188/255), 
+                  opaque = T), range = 0, whiskcol = "grey", 
+                staplecol = "grey", whisklty = 1, add = T, boxwex = 0.5/length(x), 
+                ...)
+            points(m[1:length(x)], 1:length(x), pch = 16, col = "black")
+            points(m2[1:length(x2)], (1:length(x2)) + 0.25, pch = 16, 
+                col = "black")
+            print(m)
+            print(m2)
+        }
+        else {
+            boxplot(x, at = 1:length(x), horizontal = T, axes = F, 
+                col = rgb(127/255, 169/255, 188/255), range = 0, 
+                whiskcol = "grey", staplecol = "grey", whisklty = 1, 
+                ...)
+            points(m[1:length(x)], 1:length(x), pch = 16, col = "black")
+        }
+        axis(1, col = NA, col.ticks = "grey")
+        axis(2, at = 1:length(x), labels = names(x), las = 2, 
+            col = NA, col.ticks = NA)
+        if (!is.null(mar)) 
+            par(mar = p0)
+        title(main2, line = 2, adj = 0)
+        title(main1, line = 1, adj = 0, font.main = 1)
+    }
+    if (plot == F) {
+        if (sum(wei != 1, na.rm = T) > 0) {
+            if (simplify) 
+                return(rbind(sapply(erg, function(x) x[["w.statistics"]]), 
+                  sapply(erg, function(x) x[["o.statistics"]])))
+            else return(erg)
+        }
+        else if (simplify) 
+            return(sapply(erg, function(x) x[["o.statistics"]]))
+        else return(erg)
+    }
+    else if (sum(wei != 1, na.rm = T) > 0) {
+        if (simplify) 
+            return(invisible(rbind(sapply(erg, function(x) x[["w.statistics"]]), 
+                sapply(erg, function(x) x[["o.statistics"]]))))
+        else return(invisible(erg))
+    }
+    else if (simplify) 
+        return(invisible(sapply(erg, function(x) x[["o.statistics"]])))
+    else return(invisible(erg))
 }
 distrib=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
@@ -2589,7 +2623,7 @@ d <- paste0(	"#' Function trim\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' trim(\" Hi  \")")
-f=function(x)gsub("(^[ \n\r]+|[ \n\r]+$)","",x);
+f=function(x)gsub("(^[ \n\r\t]+|[ \n\r\t]+$)","",x);
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
