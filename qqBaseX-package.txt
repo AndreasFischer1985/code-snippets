@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.0",
+"Version"="0.3.1",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -121,6 +121,9 @@ d <- paste0(	"#' Function scrapeHTML\n",
 	"#' @examples\n",
 	"#' scrapeHTML(getHTML())")
 f <- function(html,short=F,edit=T,save=F,plot=F,prefix=NULL){
+    if(length(html)>1) 
+	if(length(dim(html))>2) stop("please provide HTML as a character vector!") else
+	if(length(dim(html))>1) { warning("two-dimensional input detected. Only first column is used."); html=paste(as.character(html[,1]),collapse="   ")} else html=paste(as.character(html),collapse="   ")
 	strings=gsub("(\n|\t)+"," ",gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]])))
 	if(plot){
 		s1=sort(table(gsub("(<[/]?|(>| ).*)","",strings))) # inspect all tags without parameters
@@ -2114,12 +2117,12 @@ f <- function (model, x=NULL, y=NULL, steps=100, splitseq=seq(0,1,by=0.25), plot
 
 	con=deltas(model,x,y,plot=F)
 	vars=dim(x)[2];splits=length(splitseq);ar=array(dim=c(steps,dim(x)[2]));
-        for(i in 1:vars)ar[,i]=seq(from=min(x[,i]), to=max(x[,i]), length.out=steps); #fülle für jede Inputvariable i in "vars" das Array "ar" mit "steps" Schritten die den Wertebereich von i abdecken
+        for(i in 1:vars)ar[,i]=seq(from=min(x[,i]), to=max(x[,i]), length.out=steps); #fÃ¼lle fÃ¼r jede Inputvariable i in "vars" das Array "ar" mit "steps" Schritten die den Wertebereich von i abdecken
         ar1=array(dim=c(steps,vars,splits));ar2=array(dim=c(steps,splits,vars));
         for(j in 1:splits)for(i in 1:vars){for(k in 1:steps){
-                    for(z in 1:vars) ar1[k,z,j]=quantile(x[,z], probs=splitseq)[j]; #schreibe für jede Variable z das j-te Quantil in ar1
-                    ar1[k,i,j]=ar[k,i];                                             #überschreibe für die aktuelle Variable den Eintrag in ar1 mit dem aktuellen Wert
-            };dat=data.frame(ar1[,,j]);colnames(dat)=colnames(x);ar2[,j,i]=predict(model, newdata=dat);}; #berechne Vorhersage für jeden split j                   
+                    for(z in 1:vars) ar1[k,z,j]=quantile(x[,z], probs=splitseq)[j]; #schreibe fÃ¼r jede Variable z das j-te Quantil in ar1
+                    ar1[k,i,j]=ar[k,i];                                             #Ã¼berschreibe fÃ¼r die aktuelle Variable den Eintrag in ar1 mit dem aktuellen Wert
+            };dat=data.frame(ar1[,,j]);colnames(dat)=colnames(x);ar2[,j,i]=predict(model, newdata=dat);}; #berechne Vorhersage fÃ¼r jeden split j                   
         ar=ar2;tryCatch({ar=(ar2-mean(y[[1]],na.rm=T))/sd(y[[1]],na.rm=T);},error=function(cond){;}); #scale all predictions based on y-values
 	re=array(dim=c(steps,vars));for(j in 1:vars)for(k in 1:steps)re[k,j]=median(ar[k,,j]);
         if(plot==T){
