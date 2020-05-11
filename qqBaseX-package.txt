@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.1",
+"Version"="0.3.2",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -133,7 +133,7 @@ f <- function(html,short=F,edit=T,save=F,plot=F,prefix=NULL){
 	links=character(length(info))
 	links[grep("href=[\"\'].*?[\"\']",strings)]=
 		gsub("[\"\'].*$","",gsub("^.*?href=[\"\']","",grep("href=[\"\'].*?[\"\']",strings,value=T)))
-	result=data.frame(entry=as.character(strings),info=as.character(info),links=as.character(links))
+	result=data.frame(entry=as.character(strings),info=as.character(info),links=as.character(links), stringsAsFactors=F)
 	if(short)result=result[nchar(as.character(result[,2]))>0|nchar(as.character(result[,3]))>0,]
 	if(edit)result=edit(result)
 	if(save) write.csv2(data.frame(result),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
@@ -197,7 +197,8 @@ f <- function (html, tag="div", pattern = NULL, edit=F, save = F, plot=F, prefix
        		result3 = c(result3, (link))
 	}
     }
-    result=data.frame(entry=result0,info=result2,links=result3,text=result1)
+    result=data.frame(entry=result0,info=result2,links=result3,text=result1, stringsAsFactors=F)
+    result=result[grep(paste0("^",start),result[,1]),]
     if(edit) result=edit(result)
     if (save){ 
         write.csv2(data.frame(result),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
@@ -2594,9 +2595,14 @@ d <- paste0(	"#' Function last\n",
 		"#' @export\n",
 		"#' @examples\n#' last(c(1,2,3))"
 		)		
-f=function(x,s=0)
-	if(is.data.frame(x)|is.matrix(x)) return(ifelse(dim(x)[1]>0,list(x[,dim(x)[2]-s]),list(NA))[[1]]) else
-	return(ifelse(length(x)>0,x[[length(x)-s]],NA))
+f=function(x,s=0, factorsAsStrings=T){
+	if(factorsAsStrings==T)if(is.factor(x))x=as.character(x)
+	if(is.data.frame(x)|is.matrix(x)) 
+	r=ifelse(dim(x)[1]>0,list(x[,dim(x)[2]-s]),list(NA))[[1]] else
+	r=ifelse(length(x)>0,x[[length(x)-s]],NA)
+	if(factorsAsStrings==T)if(is.factor(r))r=as.character(r)
+	return(r)
+}
 last=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
@@ -2610,9 +2616,14 @@ d <- paste0(	"#' Function first\n",
 		"#' @export\n",
 		"#' @examples\n#' first(c(1,2,3))"
 		)		
-f=function(x,s=0)
-	if(is.data.frame(x)|is.matrix(x)) return(ifelse(dim(x)[1]>0,list(x[,1+s]),list(NA))[[1]]) else
-	return(ifelse(length(x)>0,x[[1+s]],NA))
+f=function(x,s=0, factorsAsStrings=T){
+	if(factorsAsStrings==T)if(is.factor(x))x=as.character(x)
+	if(is.data.frame(x)|is.matrix(x)) 
+	r=ifelse(dim(x)[1]>0,list(x[,1+s]),list(NA))[[1]] else
+	r=ifelse(length(x)>0,x[[1+s]],NA)
+	if(factorsAsStrings==T)if(is.factor(r))r=as.character(r)
+	return(r)
+}
 first=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
