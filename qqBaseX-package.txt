@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.2",
+"Version"="0.3.3",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -84,12 +84,18 @@ d <- paste0(	"#' Function getHTML\n",
 	"#' @param encoding Character value specifying the encoding. Defaults to \"UTF-8\".\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
 	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
+	"#' @param closeCon Logical value specifying whether to close open connections before and after scraping. defaults to F.\n",
+	"#' @param method Character value specifying the method. Defaults to \"libcurl\".\n",
+	"#' @param silent Logical value specifying whether to skip informative messages. Defaults to T.\n",
+	"#' @param curlHeaders Logical value specifying whether to apply curlHeaders. Defaults to F.\n",
+	"#' @param headers Logical value.\n",
+	"#' @param browseURL Locgical value specifying wether to open the URL in a web-browser. Defaults to F.\n",
 	"#' @details Extracts HTML from an URL. Assumes UTF-8 encoding by default. Returns a character element containing HTML-code.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' getHTML()")
-f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=NULL,closeCon=F,method="libcurl",headers=NULL,silent=T,curlGetHeaders=F,browseURL=F,...){
+f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=NULL,closeCon=F,method="libcurl",silent=T,curlGetHeaders=F,browseURL=F,...){
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
 	if(!silent)message(paste0("Trying to get html from ",url))
 	if(is.character(url)){
@@ -152,6 +158,7 @@ d <- paste0(	"#' Function subsetHTML\n",
 	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
 	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
+	"#' @param trim Logical value specifying whether to trim text. Defaults to T.\n",
 	"#' @details Extracts a coherent subset of code from HTML-code.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
@@ -256,6 +263,7 @@ f=function(x,reg.up=NULL,reg.down=NULL,reg.left="^",reg.right="$",reg.fix=NULL,h
 extractTable=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
+
 n <- "scrapeJDDM"
 d <- paste0(
 	"#' Function scrapeJDDM\n",
@@ -309,7 +317,7 @@ f<-function(plot=T,
             "Dec"), "<"), collapse = "|")
         df = data.frame(c("Intro", matchAll(html[i], months)[[1]]), 
             strsplit(as.character(html[i]), months))
-        df[, 2] = gsub("<table class=\\\"stats\\\"><tr><th>201[0-9]</th>", 
+        df[, 2] = gsub("<table class=\\\"stats\\\"><tr><th>20[0-9][0-9]</th>", 
             "", df[, 2])
         numbers = sapply(matchAll(df[, 2], ">[0-9]+<"), function(x) as.numeric(gsub("[<>]", 
             "", c(x[1:2]))))[, -1]
@@ -391,6 +399,10 @@ f<-function(plot=T,
 scrapeJDDM=f;
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
+#g1=getHTML("https://statistik.ub.uni-heidelberg.de/oa_statistik/doc_id/period/showmonth/?doc_id=ojs:jddm:69298")
+#g2=getHTML("https://statistik.ub.uni-heidelberg.de/oa_statistik/doc_id/country/?doc_id=ojs:jddm:69298")
+#g3=getHTML("https://journals.ub.uni-heidelberg.de/cgi-bin/oastats.cgi?repo=ojs;from_date=2015-09-29%2021:39:27;id=jddm:69298;lang=ende;overlay=1")
+#strsplit(g1,"\\{")
 
 
 ###########################################
@@ -468,8 +480,7 @@ d <- paste0(	"#' Function plotXY\n",
 		"#' plotXY()")
 
 f<- function (x = NULL, y = NULL, complexity = 0, rep.nnet = 10, 
-    attrModel = T, na.rm = T, color1 = rgb(0, 0, 0, 0.7), color2 = rgb(0, 
-        0, 1), color3 = rgb(0, 0, 1, 0.2), xlab = "x", ylab = "y", axes = T, add = F, main = NA, sub = NA, 
+    attrModel = T, na.rm = T, color1 = rgb(0, 0, 0, 0.7), color2 = rgb(0, 0, 1), color3 = rgb(0, 0, 1, 0.2), xlab = "x", ylab = "y", axes = T, add = F, main = NA, sub = NA, 
     pch = 16, lwd = 2, cex = 0.7, cex.sub = 0.7, generalize = F, 
     main1 = NULL, main2 = NULL, main3 = NULL, mar=NA,
     adj.main1 = 0, adj.main2 = 0, adj.main3 = 0, col.main1 = "black", 
@@ -719,6 +730,7 @@ d <- paste0(
 	"#' @param nsrt Numeric value specifying the rotation of the numbers (between 0 and 360 degrees). Defaults to 0.\n",
 	"#' @param npos Numeric value specifying the position of numbers. If NA (default) it is determined automatically.\n",
 	"#' @param ncol Vector containing the color of bars. Defaults to \"black\".\n",
+	"#' @param sdcol Vector containing the color of arrows. Defaults to \"grey\".\n",
 	"#' @param grid Logical value indicating whether to plot a grid. Defaults to T.\n",
 	"#' @param plot Logical value indicating whether to plot the barplot. Defaults to T.\n",
 	"#' @param main Character vector with one element containing the barplot's title. Defaults to NULL\n",
@@ -752,7 +764,7 @@ d <- paste0(
 );
 f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F, 
     add.numbers = F, ndigits = 2, ncex = NA, nsrt = 0, npos = NA, 
-    ncol = "black", grid = T, plot = T, main = NULL, sub = NULL, 
+    ncol = "black", sdcol="grey", grid = T, plot = T, main = NULL, sub = NULL, 
     xlim.factor = 1.5, las = 1, srt = 45, xlim = NULL, ylim = NULL, names.arg = NULL, 
     legend.text = NULL, optimize.legend=T, args.legend = NULL, density = NULL, 
     angle = 45, col = NULL, grid.col = "grey", axes = T, add = F, 
@@ -895,10 +907,10 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     if (plot!=F)
     if (!is.null(sd) & beside) 
         if (!horiz) {
-            arrows(b, x2 + sd, b, x2 - sd, angle = 90, code = 3, length = 0.1, xpd = T)
+            arrows(b, x2 + sd, b, x2 - sd, angle = 90, code = 3, length = 0.1, xpd = T, col=sdcol)
         }
         else {
-            arrows(x2 + sd, b, x2 - sd, b, angle = 90, code = 3, length = 0.1, xpd = T)
+            arrows(x2 + sd, b, x2 - sd, b, angle = 90, code = 3, length = 0.1, xpd = T, col=sdcol)
         }
     if (beside == T) {
         rownames(b) = rownames(x)
@@ -1119,7 +1131,12 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
     pt.cex = cex, pch = 16, gpch = 21, bg = par("bg"),
     color = par("fg"), gcolor = par("fg"), lcolor = "gray",
     xlim = range(x[is.finite(x)]), main = NULL, xlab = NULL,
-    ylab = NULL, deviations=NA, x2=NA, vertLine = 0, horizLines = T, max = 40, sort=F,...)
+    ylab = NULL, deviations=NA, x2=NA, vertLine = 0, horizLines = T, max = 40, sort=F,
+    add.numbers=F, ndigits=2, ncex=NA, nsrt = 0, npos = NA, ncol = "black", main1 = NULL, 
+    main2 = NULL, main3 = NULL, adj.main1 = 0, adj.main2 = 0, 
+    adj.main3 = 0, col.main1 = "black", col.main2 = "black", 
+    col.main3 = "black", cex.main1 = 1.2, cex.main2 = 1.2, cex.main3 = 1.2, 
+    font.main1 = 1, font.main2 = 2, font.main3 = 4, omitZeros = F, ...)
 {
     opar <- par("mai", "mar", "cex", "yaxs")
     on.exit(par(opar))
@@ -1166,6 +1183,21 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
             x <- as.numeric(x)
         }	
     }	
+    addChars = ifelse(is.character(add.numbers), add.numbers, "")
+    if (is.character(add.numbers)) add.numbers = T
+    if (is.null(ncex)) ncex = cex
+      else if (is.na(ncex)) 
+        ncex = cex
+    if (!is.null(npos)) 
+        if (is.na(npos)) 
+             npos = 3
+    round2 = function(x, ...) {
+            x2 = as.character(round(x, ...))
+            x2[is.na(x)] = ""
+            if (omitZeros == T) 
+                x2[x2 == 0] = ""
+            return(x2)
+    }
     plot.new()
     linch <- if (!is.null(labels))
         max(strwidth(labels, "inch"), na.rm = TRUE)
@@ -1211,7 +1243,6 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
             col = color, las = 2, cex = cex, ...)
     }
     abline(h = y, lty = "dotted", col = lcolor)
-
     if (horizLines&is.na(x2[1])&is.na(deviations[1])) {
       xlim[1]=min(0,xlim[1])
       xlim[2]=max(0,xlim[2])
@@ -1226,9 +1257,9 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
       points(x2, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
     }
     points(x, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
+    if(add.numbers)text(x, y, paste0(round2(x, ndigits), addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
     if (!is.null(groups)) {
-        gpos <- rev(cumsum(rev(tapply(groups, groups, length)) +
-            2) - 1)
+        gpos <- rev(cumsum(rev(tapply(groups, groups, length)) + 2) - 1)
         ginch <- max(strwidth(glabels, "inch"), na.rm = TRUE)
         goffset <- (max(linch + 0.2, ginch, na.rm = TRUE) + 0.1)/lheight
         mtext(glabels, side = 2, line = goffset, at = gpos, adj = 0,
@@ -1237,11 +1268,22 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
             abline(h = gpos, lty = "dotted")
             points(gdata, gpos, pch = gpch, col = gcolor, bg = bg,
                 cex = pt.cex/cex, ...)
+	    text(gdata, gpos, "test")
         }
     }
     axis(1)
-    box()
-    title(main = main, xlab = xlab, ylab = ylab, ...)
+    box()    
+        if(!is.null(main))
+		title(main = main, xlab = xlab, ylab = ylab, ...)
+        if (!is.null(main1)) 
+            title(main1, line = 1, adj = adj.main1, cex.main = cex.main1, 
+                col = col.main1, font.main = font.main1)
+        if (!is.null(main2)) 
+            title(main2, line = 2, adj = adj.main2, cex.main = cex.main2, 
+                col = col.main2, font.main = font.main2)
+        if (!is.null(main3)) 
+            title(main3, line = 3, adj = adj.main3, cex.main = cex.main3, 
+                col = col.main3, font.main = font.main3)
     if(!is.na(vertLine))abline(v=vertLine, col=color)
     invisible()
 }
@@ -1924,6 +1966,12 @@ d <- paste0(
 	"#' @param dat Numeric vector.\n",
 	"#' @param wei Numeric vector representing of the same length as dat. Represents the weight that is attributed to each element of dat.\n",
 	"#' @param kat Factor of the same length as dat. Specifies subgroups of dat to summarize.\n",
+	"#' @param plot Logical value specifying whether to plot the weighted data. Defaults to T.\n",
+	"#' @param plot.o Logical value specifying whether to plot the original data. Defaults to F.\n",
+	"#' @param simplify Logical value specifying whether to return simplified data. Defaults to T.\n",
+	"#' @param mar Numeric vector specifying margins. Defaults to NULL.\n",
+	"#' @param width Numeric value specifying the width of the plot. Defaults to NULL.\n",
+	"#' @param height Numeric value specifying the width of the plot. Defaults to NULL.\n",
 	"#' @details Returns and plots a vetor's unweighted/weighted distribution. \n",
 	"#' @keywords modeling\n",
 	"#' @export\n",
