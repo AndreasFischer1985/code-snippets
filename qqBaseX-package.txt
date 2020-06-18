@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.3",
+"Version"="0.3.4",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -220,6 +220,11 @@ n<-"extractTable"
 #-------------
 d <- paste0(	"#' Function extractTable\n",
 	"#' \n#' Extracts table as data.frames from multiple lines of text.\n",
+	"#' @param reg.up Regular expression spefifying the top of the table. Defaults to NULL.\n",
+	"#' @param reg.down Regular expression spefifying the bottom of the table. Defaults to NULL.\n",
+	"#' @param reg.left Regular expression spefifying the bottom of the table. Defaults to \"^\".\n",
+	"#' @param reg.right Regular expression spefifying the bottom of the table. Defaults to \"$\"\n",
+	"#' @param reg.fix Regular expression spefifying the bottom of the table. Defaults to NULL.\n",
 	"#' @param x A character element containing all the text textract the table from (or a character vector containing one text-line per element).\n",
 	"#' @param header Logical value that specifies, whether to treat first row and column as row- and column-names. Defaults to F.\n",
 	"#' @param trim Logical value that specifies, whether to trim entries. Defaults to T.\n",
@@ -268,7 +273,7 @@ n <- "scrapeJDDM"
 d <- paste0(
 	"#' Function scrapeJDDM\n",
 	"#' \n#' Downloads and returns data and metadata from the database of the Journal of Dynamic Decision Making.\n",
-	"#' @param plot Logical vakue specifying wether to plot data on reads and downloads.\n",
+	"#' @param plot Logical value specifying wether to plot data on reads and downloads.\n",
 	"#' @details Downloads and returns data and metadata from the database of the Journal of Dynamic Decision Making.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
@@ -414,8 +419,8 @@ d <- paste0(
 	"#' Function saveDevs\n",
 	"#' \n#' Saves each element of dev.list() to a graphical device such as pdf, png or similar.\n",
 	"#' @param filename Character vector containing file names.\n",
-	"#' @param width width of the devices. If NA (default), width of the devices is left unchanged.\n",
-	"#' @param width height of the devices. If NA (default), height of the devices is left unchanged.\n",
+	"#' @param width Width of the devices. If NA (default), width of the devices is left unchanged.\n",
+	"#' @param height Height of the devices. If NA (default), height of the devices is left unchanged.\n",
 	"#' @param dev Graphical device (currently, pdf, win.metafile, png, bmp, jpg and tiff are supported).\n",
 	"#' @param units Parameter passed to dev.copy. Defaults to \"in\". Is ignored if dev==pdf.\n",
 	"#' @param res Resolution (dots per inch) of the devices. Defaults to 300. Is ignored if dev==pdf.\n",
@@ -735,7 +740,7 @@ d <- paste0(
 	"#' @param plot Logical value indicating whether to plot the barplot. Defaults to T.\n",
 	"#' @param main Character vector with one element containing the barplot's title. Defaults to NULL\n",
 	"#' @param sub Character vector with one element containing the barplot's subtitle. Defaults to NULL\n",
-	"#' @param xlim.factor Numeric value for adding extra space to the right of the barplot. Defaults to 1.\n",
+	"#' @param xlim.factor Numeric value for adding extra space to the right of the barplot (if a legend is provided). Defaults to 1.5\n",
 	"#' @param xlim Numeric vector containing xlim.\n",
 	"#' @param las Numeric value specifying the rotation of the y-axis (0 for 90 percent rotation, 1 for 0 percent rotation). Defaults to 1.\n",
 	"#' @param srt Numeric value specifying the rotation of the x-axis (between 0 and 360 degrees). Defaults to 45.\n",
@@ -822,7 +827,9 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     if(!is.null(legend.text))
     if (sum(is.na(legend.text)) > 0) legend.text = NULL
     else if (length(legend.text) == 1) 
-        if (legend.text[[1]] == F) legend.text = NULL
+         if (legend.text[[1]] == F) legend.text = NULL
+    if(length(args.legend)==1)
+	if(sum(is.na(args.legend))>0 | sum(args.legend==F)>0) legend.text = NULL
     if (is.null(xlim))
         if (!horiz) {
             b = barplot(x2, beside = beside, horiz = horiz, plot = F, add = add, ...)
@@ -923,11 +930,13 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     x0 = min(xlim) - 0.05 * (max(xlim)-min(xlim))
     y0 = min(ylim) - 0.05 * (max(ylim)-min(ylim))
     if (plot != F) {
-        round2 = function(x, ...) {
-            x2 = as.character(round(x, ...))
+        round2 = function(x, ndigits, addChars="") {
+            x2 = as.character(round(x, digits=ndigits))
             x2[is.na(x)] = ""
             if (omitZeros == T) 
                 x2[x2 == 0] = ""
+	    x2=paste0(x2,addChars)
+	    x2[x2==addChars]=""
             return(x2)
         }
         if (!horiz) {
@@ -941,10 +950,10 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
                 text(colMeans(b2), y0, colnames(b2), srt = srt, pos = ifelse((srt == 0 | srt == 180 | srt == 360), 1, 2), xpd = T, cex = cex);
             if (add.numbers) 
                 if (beside) {
-                  text(b, x, paste0(round2(x, ndigits), addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
+                  text(b, x, round2(x, ndigits, addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
                 }
                 else {
-                  text(b, x[1, ]/2, paste0(round2(x[1, ], ndigits), 
+                  text(b, x[1, ]/2, round2(x[1, ], ndigits, 
                     addChars), col = ncol, xpd = T, cex = ncex, 
                     srt = nsrt, pos = npos)
                   if (dim(x)[1] > 1) 
@@ -952,8 +961,8 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
                       m = as.matrix(x[c(1:i), ])
                       dim(m) = c(length(c(1:i)), dim(x)[2])
                       text(b, (colSums(rbind(m[1:i, ])) + colSums(rbind(m[1:(i - 
-                        1), ])))/2, labels = paste0(round2(x[i, 
-                        ], ndigits), addChars), col = ncol, xpd = T, 
+                        1), ])))/2, labels = round2(x[i, 
+                        ], ndigits, addChars), col = ncol, xpd = T, 
                         cex = ncex, srt = nsrt, pos = npos)
                     }
                 }
@@ -969,10 +978,10 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
                 text(x0, colMeans(b2), colnames(b2), srt = srt - 45, pos = 2, xpd = T, cex = cex);
             if (add.numbers) 
                 if (beside) {
-                  text(x, b, paste0(round2(x, ndigits), addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
+                  text(x, b, round2(x, ndigits, addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
                 }
                 else {
-                  text(x[1, ]/2, b, paste0(round2(x[1, ], ndigits), 
+                  text(x[1, ]/2, b, round2(x[1, ], ndigits, 
                     addChars), col = ncol, xpd = T, cex = ncex, 
                     srt = nsrt, pos = npos)
                   if (dim(x)[1] > 1) 
@@ -980,8 +989,8 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
                       m = as.matrix(x[c(1:i), ])
                       dim(m) = c(length(c(1:i)), dim(x)[2])
                       text((colSums(rbind(m[1:i, ])) + colSums(rbind(m[1:(i - 
-                        1), ])))/2, b, labels = paste0(round2(x[i, 
-                        ], ndigits), addChars), col = ncol, xpd = T, 
+                        1), ])))/2, b, labels = round2(x[i, 
+                        ], ndigits, addChars), col = ncol, xpd = T, 
                         cex = ncex, srt = nsrt, pos = npos)
                     }
                 }
@@ -1062,6 +1071,7 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
     return(invisible(b))
 }
 bp=f;
+
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
@@ -1136,7 +1146,7 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
     main2 = NULL, main3 = NULL, adj.main1 = 0, adj.main2 = 0, 
     adj.main3 = 0, col.main1 = "black", col.main2 = "black", 
     col.main3 = "black", cex.main1 = 1.2, cex.main2 = 1.2, cex.main3 = 1.2, 
-    font.main1 = 1, font.main2 = 2, font.main3 = 4, omitZeros = F, ...)
+    font.main1 = 1, font.main2 = 2, font.main3 = 4, omitZeros = F, xaxs="i", yaxs="i", ...)
 {
     opar <- par("mai", "mar", "cex", "yaxs")
     on.exit(par(opar))
@@ -1191,14 +1201,20 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
     if (!is.null(npos)) 
         if (is.na(npos)) 
              npos = 3
-    round2 = function(x, ...) {
-            x2 = as.character(round(x, ...))
+        round2 = function(x, ndigits, addChars="") {
+            x2 = as.character(round(x, digits=ndigits))
             x2[is.na(x)] = ""
             if (omitZeros == T) 
                 x2[x2 == 0] = ""
+	    x2=paste0(x2,addChars)
+	    x2[x2==addChars]=""
             return(x2)
-    }
-    plot.new()
+        }
+   plot.new()
+   if(!is.null(xaxs)) 
+        par("xaxs"=xaxs)
+   if(!is.null(yaxs)) 
+        par("yaxs"=yaxs)
     linch <- if (!is.null(labels))
         max(strwidth(labels, "inch"), na.rm = TRUE)
     else 0
@@ -1257,7 +1273,7 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
       points(x2, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
     }
     points(x, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
-    if(add.numbers)text(x, y, paste0(round2(x, ndigits), addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
+    if(add.numbers)text(x, y, round2(x, ndigits, addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
     if (!is.null(groups)) {
         gpos <- rev(cumsum(rev(tapply(groups, groups, length)) + 2) - 1)
         ginch <- max(strwidth(glabels, "inch"), na.rm = TRUE)
