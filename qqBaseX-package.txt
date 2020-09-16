@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.5",
+"Version"="0.3.6",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -1495,12 +1495,13 @@ d <- paste0(
 	"#' @param main Character value, containing the title to be displayed. Defaults to NULL.\n",
 	"#' @param color Character vector, containing the colors of petals. If NULL (default) rainbow palette is applied.\n",
 	"#' @param color2 Character value, containing the color of the background petals. If NULL, no background petals are plotted. Defaults to \"lightgrey\".\n",
+	"#' @param add.numbers Logical value specifying whether to draw numbers next to each petal. Defaults to F.\n",
 	"#' @details Plots data.frame as a field of flowers. Each column is represented as a separate flower, each row as a flower's petal.\n",
 	"#' @keywords plotting\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' flowerplot()")
-f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NULL,color2="lightgrey"){
+f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NULL,color2="lightgrey", add.numbers=F, ncex=.8, ncol="black"){
 	if(!is.null(x))data=data.frame(x)else data=NULL;
 	if(is.null(data))data=data.frame(option1=c(1,1,1,1,1,1,1),option2=c(.9,.8,.5,.9,1,0,.1),option3=c(.8,.9,.8,.9,1,.9,.7),option4=c(.9,1,.7,.5,.5,.5,.5),option5=c(.4,.4,.4,1,1,1,1))
 	dist=4;
@@ -1517,7 +1518,7 @@ f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NU
 	helleFarbe=rgb(.9,.9,.9)
 	if(is.null(color)){color=rainbow(dim(data)[1]);}#rgb(0/255,84/255,122/255);helleFarbe=rgb(217/255,231/255,239/255)}
         if(length(color)!=dim(data)[1])farben=colorRampPalette(c(helleFarbe,color))(dim(data)[1]+1) else farben=color;
-	petal=function(a=.5,b=1,l=1,max.l=7,fl=1,he=0,col=farben[l],border=NULL){
+	petal=function(a=.5,b=1,l=1,max.l=7,fl=1,he=0,col=farben[l],border=NULL,text=NA){
 		theta<-seq(0,2*pi,length=100);
 		x0=b*sin(seq(0,2*pi,length.out=max.l))[l];
 		y0=b*cos(seq(0,2*pi,length.out=max.l))[l];
@@ -1526,14 +1527,24 @@ f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NU
 		xr=dist*(fl-1)+x0+x*cos(r)+y*sin(r)
 		yr=he+y0-x*sin(r)+y*cos(r)
 		polygon(xr,yr,col=col,border=border);
+		if(add.numbers==T)
+		if(!is.na(text)){	
+			c=b+.2
+			x0=c*sin(seq(0,2*pi,length.out=max.l))[l];
+			y0=c*cos(seq(0,2*pi,length.out=max.l))[l];
+			x=a*c*cos(theta);y=c*sin(theta)		
+			xr=dist*(fl-1)+x0+x*cos(r)+y*sin(r)
+			yr=he+y0-x*sin(r)+y*cos(r)
+			text(xr[20],yr[20],ifelse(text==1,"1.0",ifelse(text==0,"0.0",round(text,2))),cex=ncex, col=ncol);			
+		}
 	}	
 	plot(x,x,type="n", xlab="",ylab="", axes = FALSE,xlim=c(-2-dist/2,dist*3/4+dist*(dim(data)[2]))+dist/2) 
 	for(flower1 in 1:dim(data)[2]){
 		height=(max(x)-2)*(colSums(data)/max(colSums(data)))[flower1]
 		segments(dist*(flower1-1),0,dist*(flower1-1),height,col="darkgreen",lwd=3);
 		for(petal1 in 1:dim(data)[1]){
-			petal(.3,1,petal1,dim(data)[1]+1,flower1,height,col=color2[1],border=NA)
-			petal(.3,data[petal1,flower1],petal1,dim(data)[1]+1,flower1,height)
+			petal(.3,1,petal1,dim(data)[1]+1,flower1,height,col=color2[1],border=NA, text=NA)
+			petal(.3,data[petal1,flower1],petal1,dim(data)[1]+1,flower1,height, text=data[petal1,flower1])
 		}
 		polygon(dist*(flower1-1)+.5*sin(seq(0,2*pi,length.out=dim(data)[1]+1)),height+.5*cos(seq(0,2*pi,length.out=dim(data)[1]+1)), col="black");
 		text(dist*(flower1-1),0,colnames[flower1],pos=1)
@@ -1561,7 +1572,7 @@ d <- paste0(
 	"#' @param lty Numeric vector specifying line type. Defaults to 1.\n",
 	"#' @param pch Numeric vector specifying points type. Defaults to NULL.\n",
 	"#' @param type Numeric vector specifying plot-type of lines. Defaults to \"l\".\n",
-	"#' @param main Character value representing the title. If NULL (default) it's set to \"Cumulation over Time\" if cumsum==T, and to \"Development over Time\" otherwise.\n",
+	"#' @param main Character value representing the title. Defaults to NULL.\n",
 	"#' @param xlim Numeric vector with two elements. If NULL (default) xlim is detemined automatically.\n",
 	"#' @param ylim Numeric vector with two elements. If NULL (default) ylim is detemined automatically.\n",
 	"#' @param xlim.factor Numeric value for adding extra space to the right of the plot. Defaults to 1.\n",
@@ -1612,7 +1623,7 @@ f<-function(matrix=NULL,main=NULL,xlab="",ylab=NULL,lwd=2,lty=1,pch=NULL,type="l
 
 	if(is.null(xlab))xlab="time";
 	if(is.null(ylab))ylab=ifelse(cumsum,"cumulated sum","value");
-	if(is.null(main))main=ifelse(cumsum,"Cumulation over Time","Development over Time");
+	#if(is.null(main))main=ifelse(cumsum,"Cumulation over Time","Development over Time");
 	if(!is.null(manual.addon))if(length(manual.addon)!=dim(matrix)[1]/2)manual.addon=rep(0,dim(matrix)[1]/2)	
 	cs=matrix;if(cumsum)cs=t(apply(matrix,1,function(x){x[is.na(x)]=0;return(cumsum(x))}))
 	if(cumsum)cs=cs[order(cs[,dim(cs)[2]],decreasing=T),]
