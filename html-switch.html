@@ -1,0 +1,31 @@
+<html>
+<body>
+        <title>Switch Example</title>
+        <style>
+            body { font-family: Arial,Helvetica,sans-serif; background: #181818; color: #EFEFEF; font-size: 16px }
+            .switch { display: block; position: relative; line-height: 22px; font-size: 16px; height: 22px }
+            .switch input { outline: 0; opacity: 0; width: 0; height: 0 }
+            .slider { width: 50px; height: 22px; border-radius: 22px; cursor: pointer; background-color: red }
+            .slider,.slider:before { display: inline-block; transition: .4s }
+            .slider:before { position: relative; content: ""; border-radius: 50%; 
+                height: 16px; width: 16px; left: 4px; top: 3px; background-color: white }
+            input:checked+.slider { background-color: green }
+            input:checked+.slider:before { -webkit-transform: translateX(26px); transform: translateX(26px) }
+        </style>
+                        <div>
+                            <h1>Switch</h1>
+                            <p>This example shows how to build a nice little switch in HTML.</p>
+                            <br>    
+                            <div class="switch">
+                                <input id="switch1" type="checkbox" checked="checked">
+                                <label class="slider" for="switch1"></label>
+                            </div>
+                            <br>
+                            <div class="switch">
+                                <input id="switch2" type="checkbox">
+                                <label class="slider" for="switch2"></label>
+                            </div>
+                        </div>
+
+       </body>
+</html>
