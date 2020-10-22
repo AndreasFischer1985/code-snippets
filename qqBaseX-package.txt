@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.6",
+"Version"="0.3.7",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -1321,8 +1321,8 @@ d <- paste0(	"#' Function spiderplot\n",
 	"#' @param main Character vector with one element containing the barplot's title. Defaults to NULL\n",
 	"#' @param max Numeric value determining the largest possible value of the data to be displayed. Defaults to 1.\n",
 	"#' @param xylim Numeric value determining both upper and lower limits on both x and y axis (xlim & ylim). Defaults to 1.5.\n",
-	"#' @param col Character or rgb value specifying the line's color. Defaults to rgb(0,0,1).\n",
-	"#' @param col2 Character or rgb value specifying the color of the area between upper and lower bound. Defaults to rgb(0,0,1,.5).\n",
+	"#' @param col Character or rgb value specifying the line's color. If NULL (default) col is set to \"#00547A\".\n",
+	"#' @param col2 Character or rgb value specifying the color of the area between upper and lower bound. If NULL (default) col2 is set to qqBaseX::cols2(col).\n",
 	"#' @param border Character or rgb value specifying the color of the polygon border. Defaults to NA.\n",
 	"#' @param mode Numeric value specifying whether to draw a polygon (mode=1) or arrows (mode!=1), and whether to draw a polygon for x (mode>=0) or not (mode<0). Defaults to 0.\n",
 	"#' @param arrows.lwd Numeric value specifying lwd for arrows (if any). Defaults to 2.\n",
@@ -1338,7 +1338,7 @@ d <- paste0(	"#' Function spiderplot\n",
 	"#' spiderplot()")
 f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL, 
     names = NULL, main = NULL, max = 1, min = 0, xylim = 1.5, 
-    add.scale = T, col = "#00547A", col2 = "#FFA500E6", 
+    add.scale = T, col = NULL, col2 = NULL, 
     border = NA, mode = 0, arrows.lwd = 3, arrows.length = 0.01, 
     add =F, add.numbers = F, numbers = 2, add.grid = T, add.labels = T,
     line.type="o",grid.detail=1, grid.points=NULL) 
@@ -1347,6 +1347,8 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     if(!is.null(grid.points))
 	if(is.null(names(grid.points))) 
 		names(grid.points)=grid.points;
+    if (is.null(col)) col="#00547A";
+    if (is.null(col2)) col2=qqBaseX::cols2(col);
 
     if (!is.null(upper) & !is.null(dimensions)) {
         if (max < max(c(lower, upper, dimensions))) 
@@ -1501,7 +1503,7 @@ d <- paste0(
 	"#' @export\n",
 	"#' @examples\n",
 	"#' flowerplot()")
-f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NULL,color2="lightgrey", add.numbers=F, ncex=.8, ncol="black"){
+f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NULL,color2="lightgrey", add.numbers=F, ncex=.8, ndigits=1, ncol="black"){
 	if(!is.null(x))data=data.frame(x)else data=NULL;
 	if(is.null(data))data=data.frame(option1=c(1,1,1,1,1,1,1),option2=c(.9,.8,.5,.9,1,0,.1),option3=c(.8,.9,.8,.9,1,.9,.7),option4=c(.9,1,.7,.5,.5,.5,.5),option5=c(.4,.4,.4,1,1,1,1))
 	dist=4;
@@ -1535,7 +1537,7 @@ f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NU
 			x=a*c*cos(theta);y=c*sin(theta)		
 			xr=dist*(fl-1)+x0+x*cos(r)+y*sin(r)
 			yr=he+y0-x*sin(r)+y*cos(r)
-			text(xr[20],yr[20],ifelse(text==1,"1.0",ifelse(text==0,"0.0",round(text,2))),cex=ncex, col=ncol);			
+			text(xr[20],yr[20],ifelse(text==1,"1.0",ifelse(text==0,"0.0",round(text,ndigits))),cex=ncex, col=ncol);			
 		}
 	}	
 	plot(x,x,type="n", xlab="",ylab="", axes = FALSE,xlim=c(-2-dist/2,dist*3/4+dist*(dim(data)[2]))+dist/2) 
