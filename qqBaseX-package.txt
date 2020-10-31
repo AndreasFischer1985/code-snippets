@@ -79,7 +79,7 @@ write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".
 n <- "getHTML";
 #-------------
 d <- paste0(	"#' Function getHTML\n",
-	"#' \n#' Extracts HTML from an URL.\n",
+	"#' \n#' Returns HTML from an URL obained via GET-request.\n",
 	"#' @param url Character string speficying a valid URL.\n",
 	"#' @param encoding Character value specifying the encoding. Defaults to \"UTF-8\".\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
@@ -90,12 +90,22 @@ d <- paste0(	"#' Function getHTML\n",
 	"#' @param curlHeaders Logical value specifying whether to apply curlHeaders. Defaults to F.\n",
 	"#' @param headers Logical value.\n",
 	"#' @param browseURL Locgical value specifying wether to open the URL in a web-browser. Defaults to F.\n",
-	"#' @details Extracts HTML from an URL. Assumes UTF-8 encoding by default. Returns a character element containing HTML-code.\n",
+	"#' @details Returns HTML from an URL obained via GET-request. Assumes UTF-8 encoding by default. Returns a character element containing HTML-code.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' getHTML()")
-f <- function(url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",encoding="UTF-8",save=F,prefix=NULL,closeCon=F,method="libcurl",silent=T,curlGetHeaders=F,browseURL=F,...){
+f <- function(
+	url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",
+	encoding="UTF-8",
+	save=F,
+	prefix=NULL,
+	closeCon=F,
+	method="libcurl",
+	silent=T,
+	curlGetHeaders=F,
+	browseURL=F,
+	...){
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
 	if(!silent)message(paste0("Trying to get html from ",url))
 	if(is.character(url)){
@@ -120,13 +130,20 @@ d <- paste0(	"#' Function scrapeHTML\n",
 	"#' @param short Logical value specifying whether only lines with verbal information or link should be returned. Defaults to F.\n",
 	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
+	"#' @param plot Logical value specifying whether to plot the frequency of each HTML-tag found in the html-object.\n",
 	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
-	"#' @details Extracts Information from HTML. Returns a data.frame with three columns: the first column contains html-code, the second column contains extracted verbal information, and the third column contains extracted links.\n",
+	"#' @details Extracts Information from HTML code (as returned by qqBaseX::getHTML, for example). Returns a data.frame with three columns: the first column contains html-code, the second column contains extracted verbal information, and the third column contains extracted links.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' scrapeHTML(getHTML())")
-f <- function(html,short=F,edit=T,save=F,plot=F,prefix=NULL){
+f <- function(
+	html,
+	short=F,
+	edit=T,
+	save=F,
+	plot=F,
+	prefix=NULL){
     if(length(html)>1) 
 	if(length(dim(html))>2) stop("please provide HTML as a character vector!") else
 	if(length(dim(html))>1) { warning("two-dimensional input detected. Only first column is used."); html=paste(as.character(html[,1]),collapse="   ")} else html=paste(as.character(html),collapse="   ")
@@ -157,15 +174,24 @@ d <- paste0(	"#' Function subsetHTML\n",
 	"#' @param pattern Regular expression further specifying subsets of interest. If NULL (default) equals tag.\n",
 	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
+	"#' @param plot Logical value specifying whether to plot the frequency of each HTML-tag found in the html-object.\n",
 	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
 	"#' @param trim Logical value specifying whether to trim text. Defaults to T.\n",
-	"#' @details Extracts a coherent subset of code from HTML-code.\n",
+	"#' @details Extracts a coherent subset of code from HTML-code (as returned by qqBaseX::getHTML, for example).\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' subsetHTML(getHTML(\"https://jobs.meinestadt.de/nuernberg/suche?words=Wissenschaftlicher%20Mitarbeiter\",tag=\"div\",pattern=\"class=\\\"m-resultListEntries__content\\\"\"))")
 
-f <- function (html, tag="div", pattern = NULL, edit=F, save = F, plot=F, prefix = NULL,trim=T) {
+f <- function (
+	html, 
+	tag="div", 
+	pattern = NULL, 
+	edit=F, 
+	save = F, 
+	plot=F, 
+	prefix = NULL,
+	trim=T) {
     if(length(html)>1) 
 	if(length(dim(html))>2) stop("please provide HTML as a character vector!") else
 	if(length(dim(html))>1) { warning("two-dimensional input detected. Only first column is used."); html=paste(as.character(html[,1]),collapse="   ")} else html=paste(as.character(html),collapse="   ")
@@ -220,12 +246,12 @@ n<-"extractTable"
 #-------------
 d <- paste0(	"#' Function extractTable\n",
 	"#' \n#' Extracts table as data.frames from multiple lines of text.\n",
+	"#' @param x A character element containing all the text toextract the table from (or a character vector containing one text-line per element).\n",
 	"#' @param reg.up Regular expression spefifying the top of the table. Defaults to NULL.\n",
 	"#' @param reg.down Regular expression spefifying the bottom of the table. Defaults to NULL.\n",
 	"#' @param reg.left Regular expression spefifying the bottom of the table. Defaults to \"^\".\n",
 	"#' @param reg.right Regular expression spefifying the bottom of the table. Defaults to \"$\"\n",
 	"#' @param reg.fix Regular expression spefifying the bottom of the table. Defaults to NULL.\n",
-	"#' @param x A character element containing all the text textract the table from (or a character vector containing one text-line per element).\n",
 	"#' @param header Logical value that specifies, whether to treat first row and column as row- and column-names. Defaults to F.\n",
 	"#' @param trim Logical value that specifies, whether to trim entries. Defaults to T.\n",
 	"#' @param convert Logical value that specifies, whether to convert table to numeric (after correcting for notation in case correctNotation is set to T). Please use with care, if table contains non-numeric information. Defaults to T.\n",
@@ -233,7 +259,17 @@ d <- paste0(	"#' Function extractTable\n",
 	"#' @details Extracts table as data.frames from multiple lines of text. Columns are assumed to be separated by whitespaces that are placed at the same position in each line. Please make sure that headers don't span multiple columns or rows.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n")
-f=function(x,reg.up=NULL,reg.down=NULL,reg.left="^",reg.right="$",reg.fix=NULL,header=F,trim=T,convert=F,correctNotation=F){
+f=function(
+	x,
+	reg.up=NULL,
+	reg.down=NULL,
+	reg.left="^",
+	reg.right="$",
+	reg.fix=NULL,
+	header=F,
+	trim=T,
+	convert=F,
+	correctNotation=F){
 	if(length(x)==1) x=strsplit(x,"(\r\n|\r|\n)")[[1]]
 	trimIt=function(x)gsub("(^[ ]+|[ ]+$)","",x);
 	if(!is.null(reg.up)){
@@ -274,13 +310,18 @@ d <- paste0(
 	"#' Function scrapeJDDM\n",
 	"#' \n#' Downloads and returns data and metadata from the database of the Journal of Dynamic Decision Making.\n",
 	"#' @param plot Logical value specifying wether to plot data on reads and downloads.\n",
+	"#' @param urls Character vector specifying the URLs of the individual issues to scrape.\n",
+	"#' @param url2 Character value specifying the URL of global journal statistics.\n",
+	"#' @param plot Logical value specifying wether to plot data on reads and downloads.\n",
+
 	"#' @details Downloads and returns data and metadata from the database of the Journal of Dynamic Decision Making.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' s=scrapeJDDM();"
 );
-f<-function(plot=T,
+f<-function(
+	plot=T,
 	urls=paste0("https://journals.ub.uni-heidelberg.de/index.php/jddm/issue/view/",c(3269,2836,2269,3694,4432)),	
 	url2="https://journals.ub.uni-heidelberg.de/cgi-bin/oastats.cgi?repo=ojs;from_date=2015-09-29%2021:39:27;id=jddm:"
 ){
@@ -432,7 +473,16 @@ d <- paste0(
 	"#' @examples\n",
 	"#' saveDevs();"
 );
-f <- function (filename = NA, width = NA, height = NA, dev = png, units = "in",res = 300, mess = T, close = F, ...){
+f <- function (
+	filename = NA, 
+	width = NA, 
+	height = NA, 
+	dev = png, 
+	units = "in",
+	res = 300, 
+	mess = T, 
+	close = F, 
+	...){
     n = deparse(substitute(dev))
     n[n == "win.metafile"] = "emf"
     l = dev.list()
@@ -473,6 +523,8 @@ d <- paste0(	"#' Function plotXY\n",
 		"#' @param x Numeric vector.\n",
 		"#' @param y Numeric vector of the same length as x.\n",
 		"#' @param complexity Numeric value specifying the amount of nonlinearity modelled. Defaults to 0 (i.e., a linear model).\n",
+		"#' @param rep.nnet Numeric value specifying the number of nnet-objects to choose the best model from.\n",
+		"#' @param attrModel Logical value specifying whether to add the model as an attribute to the object returned.\n",
 		"#' @param na.rm Logical value indicating whether missing values should be skipped. Defaults to T.\n",
 		"#' @param color1 Color of points in the scattergram. Defaults to rgb(0,0,0,.7).\n",
 		"#' @param color2 Color of the regression line. Defaults to rgb(0,0,1).\n",
@@ -484,15 +536,44 @@ d <- paste0(	"#' Function plotXY\n",
 		"#' @examples\n",
 		"#' plotXY()")
 
-f<- function (x = NULL, y = NULL, complexity = 0, rep.nnet = 10, 
-    attrModel = T, na.rm = T, color1 = rgb(0, 0, 0, 0.7), color2 = rgb(0, 0, 1), color3 = rgb(0, 0, 1, 0.2), xlab = "x", ylab = "y", axes = T, add = F, main = NA, sub = NA, 
-    pch = 16, lwd = 2, cex = 0.7, cex.sub = 0.7, generalize = F, 
-    main1 = NULL, main2 = NULL, main3 = NULL, mar=NA,
-    adj.main1 = 0, adj.main2 = 0, adj.main3 = 0, col.main1 = "black", 
-    col.main2 = "black", col.main3 = "black", cex.main1 = 1.2, 
-    cex.main2 = 1.2, cex.main3 = 1.2, font.main1 = 1, font.main2 = 2, 
-    font.main3 = 4,
-    ...) 
+f<- function (
+	x = NULL, 
+	y = NULL, 
+	complexity = 0, 
+	rep.nnet = 10, 
+    	attrModel = T, 
+	na.rm = T, 
+	color1 = rgb(0, 0, 0, 0.7), 
+	color2 = rgb(0, 0, 1), 
+	color3 = rgb(0, 0, 1, 0.2), 
+	xlab = "x", 
+	ylab = "y", 
+	axes = T, 
+	add = F, 
+	main = NA, 
+	sub = NA, 
+   	pch = 16, 
+	lwd = 2, 
+	cex = 0.7, 
+	cex.sub = 0.7, 
+	generalize = F, 
+    	main1 = NULL, 
+	main2 = NULL, 
+	main3 = NULL, 
+	mar=NA,
+    	adj.main1 = 0, 
+	adj.main2 = 0, 
+	adj.main3 = 0, 
+	col.main1 = "black", 
+    	col.main2 = "black", 
+	col.main3 = "black", 
+	cex.main1 = 1.2, 
+    	cex.main2 = 1.2, 
+	cex.main3 = 1.2, 
+	font.main1 = 1, 
+	font.main2 = 2, 
+    	font.main3 = 4,
+    	...) 
 {
     if (is.null(sub)) 
         sub = ifelse(complexity == 0, "Shaded area represents 95%-confidence interval.", 
