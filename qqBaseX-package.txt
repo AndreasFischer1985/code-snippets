@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.7",
+"Version"="0.3.8",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -82,8 +82,8 @@ d <- paste0(	"#' Function getHTML\n",
 	"#' \n#' Returns HTML from an URL obained via GET-request.\n",
 	"#' @param url Character string speficying a valid URL.\n",
 	"#' @param encoding Character value specifying the encoding. Defaults to \"UTF-8\".\n",
-	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
-	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
+	"#' @param save Logical value specifying whether the HTML-code should be saved to a txt-file.\n",
+	"#' @param filename Character value specifying the filename (if save is TRUE). If NULL (default) as.numeric(Sys.time()) is applied.\n",
 	"#' @param closeCon Logical value specifying whether to close open connections before and after scraping. defaults to F.\n",
 	"#' @param method Character value specifying the method. Defaults to \"libcurl\".\n",
 	"#' @param silent Logical value specifying whether to skip informative messages. Defaults to T.\n",
@@ -99,7 +99,7 @@ f <- function(
 	url="https://scholar.google.de/citations?user=-TjY7oEAAAAJ&hl=de&oi=sra",
 	encoding="UTF-8",
 	save=F,
-	prefix=NULL,
+	filename=NULL,
 	closeCon=F,
 	method="libcurl",
 	silent=T,
@@ -115,7 +115,9 @@ f <- function(
 		url=url(url,method=method,...)
 	}
 	html=paste(readLines(url,encoding=encoding), collapse="\n");       
-	if(save) write.csv2(data.frame(gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
+	if(save) writeLines(
+		 	gsub("^<\n","",gsub("[ ]+"," ",paste0("<",strsplit(html,"<")[[1]]))),
+		 	paste0(ifelse(is.character(filename),filename,as.numeric(Sys.time())),".txt"))
 	if(closeCon){co=as.numeric(rownames(showConnections(all=T)));for(i in co[co>2]) close(getConnection(i));}
         return(invisible(html))
 }
@@ -131,7 +133,7 @@ d <- paste0(	"#' Function scrapeHTML\n",
 	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
 	"#' @param plot Logical value specifying whether to plot the frequency of each HTML-tag found in the html-object.\n",
-	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
+	"#' @param filename Character value specifying the filename (if save is TRUE). If NULL (default) as.numeric(Sys.time()) is applied.\n",
 	"#' @details Extracts Information from HTML code (as returned by qqBaseX::getHTML, for example). Returns a data.frame with three columns: the first column contains html-code, the second column contains extracted verbal information, and the third column contains extracted links.\n",
 	"#' @keywords scraping\n",
 	"#' @export\n",
@@ -143,7 +145,7 @@ f <- function(
 	edit=T,
 	save=F,
 	plot=F,
-	prefix=NULL){
+	filename=NULL){
     if(length(html)>1) 
 	if(length(dim(html))>2) stop("please provide HTML as a character vector!") else
 	if(length(dim(html))>1) { warning("two-dimensional input detected. Only first column is used."); html=paste(as.character(html[,1]),collapse="   ")} else html=paste(as.character(html),collapse="   ")
@@ -159,7 +161,7 @@ f <- function(
 	result=data.frame(entry=as.character(strings),info=as.character(info),links=as.character(links), stringsAsFactors=F)
 	if(short)result=result[nchar(as.character(result[,2]))>0|nchar(as.character(result[,3]))>0,]
 	if(edit)result=edit(result)
-	if(save) write.csv2(data.frame(result),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
+	if(save) write.csv2(data.frame(result),paste0(ifelse(is.character(filename),filename,as.numeric(Sys.time())),".csv"))
 	return(invisible(result))
 }
 scrapeHTML=f
@@ -175,7 +177,7 @@ d <- paste0(	"#' Function subsetHTML\n",
 	"#' @param edit Logical value specifying whether the data.frame should be plotted/edited.\n",
 	"#' @param save Logical value specifying whether the HTML-code should be saved to a csv-file.\n",
 	"#' @param plot Logical value specifying whether to plot the frequency of each HTML-tag found in the html-object.\n",
-	"#' @param prefix Character value specifying the beginning of the filename (in case of saving). If NULL (default) as.numeric(Sys.time()) is applied.\n",
+	"#' @param filename Character value specifying the filename (if save is TRUE). If NULL (default) as.numeric(Sys.time()) is applied.\n",
 	"#' @param trim Logical value specifying whether to trim text. Defaults to T.\n",
 	"#' @details Extracts a coherent subset of code from HTML-code (as returned by qqBaseX::getHTML, for example).\n",
 	"#' @keywords scraping\n",
@@ -190,7 +192,7 @@ f <- function (
 	edit=F, 
 	save = F, 
 	plot=F, 
-	prefix = NULL,
+	filename = NULL,
 	trim=T) {
     if(length(html)>1) 
 	if(length(dim(html))>2) stop("please provide HTML as a character vector!") else
@@ -234,7 +236,7 @@ f <- function (
     result=result[grep(paste0("^",start),result[,1]),]
     if(edit) result=edit(result)
     if (save){ 
-        write.csv2(data.frame(result),paste0(ifelse(is.character(prefix),prefix,as.numeric(Sys.time())),"_result.csv"))
+        write.csv2(data.frame(result),paste0(ifelse(is.character(filename),filename,as.numeric(Sys.time())),".csv"))
     }
     return(invisible(result))
 }
