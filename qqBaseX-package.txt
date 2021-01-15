@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.8",
+"Version"="0.3.9",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -232,7 +232,7 @@ f <- function (
        		result3 = c(result3, (link))
 	}
     }
-    result=data.frame(entry=result0,info=result2,links=result3,text=result1, stringsAsFactors=F)
+    result=data.frame(entry=result0, info=result2, links=result3, stringsAsFactors=F) #text=result1
     result=result[grep(paste0("^",start),result[,1]),]
     if(edit) result=edit(result)
     if (save){ 
@@ -812,6 +812,7 @@ d <- paste0(
 	"#' @param cex Size of axis fonts. Defaults to 1.\n",
 	"#' @param beside Logical value indicating if bars should be placed next to each other. Defaults to T.\n",
 	"#' @param horiz Logical value indicating if bars should be placed horizontal. Defaults to F.\n",
+	"#' @param breakLabels Logical value indicating if labels of bars should be tranformed by qqBaseX::labelbreaker. Defaults to F.\n",
 	"#' @param add.numbers Logical value indicating if numbers should be placed above bars. Defaults to F.\n",
 	"#' @param ndigits Numeric value specifying the number of digits to be plotted (if add.numbers==T). Defaults to 2.\n",
 	"#' @param ncex Size of fonts. If NA (default) is set to cex.\n",
@@ -850,7 +851,7 @@ d <- paste0(
 	"#' @examples\n",
 	"#' bp(data.frame(group1=c(variable1=1,variable2=2),group2=c(variable1=3,variable2=4)),horiz=T,main=\"Example\")"
 );
-f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F, 
+f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F, breakLabels = F, 
     add.numbers = F, ndigits = 2, ncex = NA, nsrt = 0, npos = NA, 
     ncol = "black", sdcol="grey", grid = T, plot = T, main = NULL, sub = NULL, 
     xlim.factor = 1.5, las = 1, srt = 45, xlim = NULL, ylim = NULL, names.arg = NULL, 
@@ -1021,6 +1022,10 @@ f <- function (x = NULL, sd = NULL, cex = 1, beside = T, horiz = F,
 	    x2[x2==addChars]=""
             return(x2)
         }
+
+       	if(breakLabels==T) colnames(b2)=qqBaseX::labelbreaker(colnames(b2))
+    	if(is.numeric(breakLabels)) colnames(b2)=qqBaseX::labelbreaker(colnames(b2),breakLabels[1])
+
         if (!horiz) {
 	    if (axes != F){
         	xaxp <- ifelse((length(dev.list())>0|plot==T), list(par("xaxp")), list(c(0,1,5)))[[1]]
