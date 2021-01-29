@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.3.9",
+"Version"="0.4.0",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -732,7 +732,7 @@ d <- paste0(
 	"#' @examples\n",
 	"#' set.seed(0);decollide(x=rnorm(10),y=rnorm(10),text=paste0(1:10,\":\",round(rnorm(10),3)),cex=1,font=1,plot=T)"
 );
-f<-function(x,y,text,jitter=F,cex=1,font=1,frame=1.5,plot=F,lock.x=F,lock.y=F,verbose=T,repetitions=100){
+f<-function(x,y,text,jitter=F,cex=1,font=1,frame=1.5,plot=F,lock.x=F,lock.y=F,verbose=F,repetitions=100){
 	x0=x;y0=y;
 	if(plot){xrange=max(x)-min(x);yrange=max(y)-min(y);plot(x,y,type="n",xlim=c(min(x)-xrange/2,max(x)+xrange/2),ylim=c(min(y)-yrange/2,max(y)+yrange/2));text(x,y,text,font=font,cex=cex);}else
 		xrange=par("usr")[2]-par("usr")[1];yrange=par("usr")[4]-par("usr")[3];
@@ -1166,48 +1166,6 @@ bp=f;
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
-n<-"compareDocs"
-#------------
-d <- paste0(
-	"#' Function compareDocs\n",
-	"#' \n#' Plots difference between two documents as a modified dotchart.\n",
-	"#' @param a Character value.\n",
-	"#' @param b Character value.\n",
-	"#' @param relative Logical value. Defaults to T.\n",
-	"#' @param vertLine Logical value specifying whether to plot a vertical line at x=0. Defaults to T.\n",
-	"#' @param horizLines Logical value specifying whether to plot horizontal lines between each point and the y axis. Defaults to T.\n",
-	"#' @param max Numeric value indicating the maximum number of word frequencies to be displayed. Defaults to 40.\n",
-	"#' @param main Character value specifying the plot's title. Defaults to \"Comparison of Word Frequencies\"\n",
-	"#' @param pch Numeric element speccifying the symbol to represent points. Defaults to 16\n",
-	"#' @param cex Numeric value indicating the text size. Defaults to .7.\n",
-	"#' @details Plots difference between two documents as a modified dotchart. Returns matrix with relative frequencies and differences between documents a and b.\n",
-	"#' @keywords plotting\n",
-	"#' @export\n",
-	"#' @examples\n",
-	"#' compareDocs(\"This is document 1\",\"this is another document\")"
-);
-n<-"compareDocs"
-f<-function(a=NULL,b=NULL,relative=T,vertLine=T,horizLines=T,max=40,main="Comparison of Word Frequencies",pch=16,cex=.7,...){
-	if(is.null(a)&is.null(b)){a="a a b d c c"; b="a b b b b c"}
-	if(is.null(a)|is.null(b))stop("Please provide two character elements a and b")
-	a=paste(a,collapse=" ")
-	b=paste(b,collapse=" ")
-	common.terms=qqBaseX::vecToTDM(c(a,b))
-	#common.terms=subset(c,c[,1]>0&c[,2]>0);unique.terms=subset(c,(c[,1]==0&c[,2]>0)|(c[,1]>0&c[,2]==0))
-	if(relative)common.terms= apply(common.terms,2,function(x)x/sum(x))
-	common.terms=common.terms/colSums(common.terms)
-	diff=(common.terms[,1]-common.terms[,2]);common.terms=cbind(common.terms,diff)
-	common.terms=common.terms[order(common.terms[,3],decreasing=F),];
-	com=common.terms;#com=com[abs(com[,3])>0,]
-	if(dim(com)[1]>max){com=com[c(1:floor(max/2),(dim(com)[1]-floor(max/2)):dim(com)[1]),];warning(paste("Only",max,"differences are displayed"));}
-	dotchart(com[,3],pch=pch,main=main,cex=cex,...);
-	if(horizLines)segments(x0=0,y0=1:dim(com)[1],x1=round(com[,3],2),y1=1:dim(com)[1]);
-	if(vertLine)abline(v=0)
-	invisible(common.terms)
-}
-compareDocs=f
-write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
-
 
 n<-"dotplot"
 #------------
@@ -1396,6 +1354,52 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
 }
 dotplot=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
+
+
+n<-"compareDocs"
+#------------
+d <- paste0(
+	"#' Function compareDocs\n",
+	"#' \n#' Plots difference between two documents as a modified dotchart.\n",
+	"#' @param a Character value.\n",
+	"#' @param b Character value.\n",
+	"#' @param relative Logical value. Defaults to T.\n",
+	"#' @param vertLine Logical value specifying whether to plot a vertical line at x=0. Defaults to T.\n",
+	"#' @param horizLines Logical value specifying whether to plot horizontal lines between each point and the y axis. Defaults to T.\n",
+	"#' @param max Numeric value indicating the maximum number of word frequencies to be displayed. Defaults to 40.\n",
+	"#' @param main Character value specifying the plot's title. Defaults to \"Comparison of Word Frequencies\"\n",
+	"#' @param pch Numeric element speccifying the symbol to represent points. Defaults to 16\n",
+	"#' @param cex Numeric value indicating the text size. Defaults to .7.\n",
+	"#' @details Plots difference between two documents as a modified dotchart. Returns matrix with relative frequencies and differences between documents a and b.\n",
+	"#' @keywords plotting\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' compareDocs(\"This is document 1\",\"this is another document\")"
+);
+n<-"compareDocs"
+f<-function(a=NULL,b=NULL,relative=T,vertLine=T,horizLines=T,max=40,main="Comparison of Word Frequencies",pch=16,cex=.7,...){
+	if(is.null(a)&is.null(b)){a="a a b d c c"; b="a b b b b c"}
+	if(is.null(a)|is.null(b))stop("Please provide two character elements a and b")
+	a=paste(a,collapse=" ")
+	b=paste(b,collapse=" ")
+	common.terms=qqBaseX::vecToTDM(c(a,b))
+	#common.terms=subset(c,c[,1]>0&c[,2]>0);unique.terms=subset(c,(c[,1]==0&c[,2]>0)|(c[,1]>0&c[,2]==0))
+	if(relative)common.terms= apply(common.terms,2,function(x)x/sum(x))
+	common.terms=common.terms/colSums(common.terms)
+	diff=(common.terms[,1]-common.terms[,2]);common.terms=cbind(common.terms,diff)
+	common.terms=common.terms[order(common.terms[,3],decreasing=F),];
+	com=common.terms;#com=com[abs(com[,3])>0,]
+	if(dim(com)[1]>max){com=com[c(1:floor(max/2),(dim(com)[1]-floor(max/2)):dim(com)[1]),];warning(paste("Only",max,"differences are displayed"));}
+	#dotchart(com[,3],pch=pch,main=main,cex=cex,...);
+	qqBaseX::dotplot(com[,3],pch=pch,main=main,cex=cex,vertLine=ifelse(vertLine[1]==T,0,ifelse(vertLine[1]==F,NA,vertLine)),horizLines=horizLines,max=max+1,...)
+	if(horizLines)segments(x0=0,y0=1:dim(com)[1],x1=round(com[,3],2),y1=1:dim(com)[1]);
+	if(vertLine)abline(v=0)
+	invisible(common.terms)
+}
+compareDocs=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
+
 
 
 n <- "spiderplot";
