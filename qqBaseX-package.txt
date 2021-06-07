@@ -1187,7 +1187,7 @@ d <- paste0(
 );
 n<-"dotplot"
 f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("cex"),
-    pt.cex = cex, pch = 16, gpch = 21, bg = par("bg"),
+    pt.cex = cex, pch = 16, gpch = 21, bg = par("bg"), col=NULL,
     color = par("fg"), gcolor = par("fg"), lcolor = "gray",
     xlim = range(x[is.finite(x)]), main = NULL, xlab = NULL,
     ylab = NULL, deviations=NA, x2=NA, vertLine = 0, horizLines = T, max = 40, sort=F,
@@ -1249,7 +1249,7 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
         ncex = cex
     if (!is.null(npos)) 
         if (is.na(npos)) 
-             npos = 3
+             npos = 4
         round2 = function(x, ndigits, addChars="") {
             x2 = as.character(round(x, digits=ndigits))
             x2[is.na(x)] = ""
@@ -1319,9 +1319,9 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
     if(!is.na(x2[1])){
       horizLines=F
       segments(x0 = x, y0 = y, x1 = x2, y1 = y, col=color)
-      points(x2, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
+      points(x2, y, pch = pch, col = ifelse(is.null(col),list(color),list(col))[[1]], bg = bg, cex = pt.cex/cex)
     }
-    points(x, y, pch = pch, col = color, bg = bg, cex = pt.cex/cex)
+    points(x, y, pch = pch, col = ifelse(is.null(col),list(color),list(col))[[1]], bg = bg, cex = pt.cex/cex)
     if(add.numbers)text(x, y, round2(x, ndigits, addChars), pos = npos, col = ncol, cex = ncex, srt = nsrt, xpd = T)
     if (!is.null(groups)) {
         gpos <- rev(cumsum(rev(tapply(groups, groups, length)) + 2) - 1)
