@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.4.0",
+"Version"="0.4.1",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -638,7 +638,8 @@ f<- function (
     if (add == F) plot(data0[, 1], data0[, 2], xlab = xlab, ylab = ylab, main = main, type = "n", axes = axes, ...)
     if (add == F) if (!is.null(sub)) title(sub = sub, cex.sub = cex.sub)
     polygon(c(in1, in1[length(in1):1]), c(inner, outer[length(outer):1]), col = color3[1], border = NA)
-    points(data0[, 1], data0[, 2], pch = pch, col = color1[1])
+    if(length(data0[, 1])!=length(color1))color1=color1[1]
+    points(data0[, 1], data0[, 2], pch = pch, col = color1)
     lines(in1, ou1, , col = color2[1], lwd = lwd)
     dat = data.frame(predictor = in1, prediction = ou1, lower.bound = inner, upper.bound = outer)
     if (attrModel) 
@@ -1206,7 +1207,7 @@ f=function (x = NULL , labels = NULL, groups = NULL, gdata = NULL, cex = par("ce
         x = rnorm(100)
         names(x) = paste0("Var", 1:100)
     }
-    if (length(x) > max) {
+    if(is.null(dim(x)[2]))if (length(x) > max) {
 	if(!is.na(deviations[1]))
 		deviations = deviations[c(1:floor(max/2), (length(x) - floor(max/2)):length(x))]
 	if(!is.na(x2[1]))
@@ -1430,18 +1431,20 @@ d <- paste0(	"#' Function spiderplot\n",
 	"#' spiderplot()")
 f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL, 
     names = NULL, main = NULL, max = 1, min = 0, xylim = 1.5, 
-    add.scale = T, col = NULL, col2 = NULL, 
-    border = NA, mode = 0, arrows.lwd = 3, arrows.length = 0.01, 
-    add =F, add.numbers = F, numbers = 2, add.grid = T, add.labels = T,
-    line.type="o",grid.detail=1, grid.points=NULL) 
+    add.scale = T, col = NULL, col2 = NULL, border = NA, mode = 0, 
+    arrows.lwd = 3, arrows.length = 0.01, add = F, add.numbers = F, 
+    numbers = 2, add.grid = T, add.labels = T, line.type = "o", 
+    grid.detail = 1, grid.points = NULL, shift=0) 
 {
-    dimensions = x
-    if(!is.null(grid.points))
-	if(is.null(names(grid.points))) 
-		names(grid.points)=grid.points;
-    if (is.null(col)) col="#00547A";
-    if (is.null(col2)) col2=qqBaseX::cols2(col);
 
+    dimensions = x
+    if (!is.null(grid.points)) 
+        if (is.null(names(grid.points))) 
+            names(grid.points) = grid.points
+    if (is.null(col)) 
+        col = "#00547A"
+    if (is.null(col2)) 
+        col2 = qqBaseX::cols2(col)
     if (!is.null(upper) & !is.null(dimensions)) {
         if (max < max(c(lower, upper, dimensions))) 
             max = max(c(lower, upper, dimensions))
@@ -1469,10 +1472,12 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
         }
     }
     if (is.null(dimensions) & is.null(weights) & is.null(main)) {
-        dimensions = c(0.1, 0.2, 0.3, 0.8, 0.7, 0.1, 0.1, 0.1, 0.1, 0.2)
+        dimensions = c(0.1, 0.2, 0.3, 0.8, 0.7, 0.1, 0.1, 0.1, 
+            0.1, 0.2)
         x = dimensions
         lower = c(0, 0, 0.2, 0.7, 0.6, 0, 0, 0, 0, 0)
-        upper = c(0.2, 0.4, 0.4, 0.9, 0.8, 0.2, 0.2, 0.2, 0.1, 0.3)
+        upper = c(0.2, 0.4, 0.4, 0.9, 0.8, 0.2, 0.2, 0.2, 0.1, 
+            0.3)
         weights = 1
         main = "Consideration of option 1"
         names = c("artist's opinion", "restoration ethics", 
@@ -1491,86 +1496,99 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     if (!is.null(names)) 
         names(dimensions) = names
     theta = seq(0, 2 * pi, length = length(dimensions) + 1)
-   if(add==F) 
-   plot(weights2 * cos(theta), weights2 * sin(theta), type = "l", 
-        lty = 1, col = rgb(0, 0, 0), axes = F, xlab = "", 
-        ylab = "", xlim = c(-xylim, xylim), ylim = c(-xylim, xylim))
+    if (add == F) 
+        plot(weights2 * cos(theta), weights2 * sin(theta), type = "l", 
+            lty = 1, col = rgb(0, 0, 0), axes = F, xlab = "", 
+            ylab = "", xlim = c(-xylim, xylim), ylim = c(-xylim, 
+                xylim))
     no = function(x) {
-        (x - min(c(min, x)))/(max(c(max, max(x))) - min(min, min(x)))
+        (x - min(c(min, x)))/(max(c(max, max(x))) - min(min, 
+            min(x)))
     }
     if (!is.null(upper) & !is.null(lower)) {
         if (mode == 1) {
-            polygon(weights2 * no(c(upper, upper[1])) * cos(theta), 
-                weights2 * no(c(upper, upper[1])) * sin(theta), 
+            polygon(weights2 * no(c(upper, upper[1])) * cos(theta + shift), 
+                weights2 * no(c(upper, upper[1])) * sin(theta + shift), 
                 col = col2, border = border, lty = 1)
-            polygon(weights2 * no(c(lower, lower[1])) * cos(theta), 
-                weights2 * no(c(lower, lower[1])) * sin(theta), 
+            polygon(weights2 * no(c(lower, lower[1])) * cos(theta + shift), 
+                weights2 * no(c(lower, lower[1])) * sin(theta + shift), 
                 col = rgb(1, 1, 1), border = border, lty = 1)
         }
         else {
-            arrows((weights2 * no(c(lower, lower[1])) * cos(theta))[-length(weights2)], 
-                (weights2 * no(c(lower, lower[1])) * sin(theta))[-length(weights2)], 
-                (weights2 * no(c(upper, upper[1])) * cos(theta))[-length(weights2)], 
-                (weights2 * no(c(upper, upper[1])) * sin(theta))[-length(weights2)], 
+            arrows((weights2 * no(c(lower, lower[1])) * cos(theta + shift ))[-length(weights2)], 
+                (weights2 * no(c(lower, lower[1])) * sin(theta + shift ))[-length(weights2)], 
+                (weights2 * no(c(upper, upper[1])) * cos(theta + shift ))[-length(weights2)], 
+                (weights2 * no(c(upper, upper[1])) * sin(theta + shift ))[-length(weights2)], 
                 col = col2, angle = 90, length = arrows.length, 
                 code = 3, lwd = arrows.lwd)
         }
     }
-    if(add==F)
-    if (add.grid) {
-	if(is.null(grid.points)){
-		sapply(1:grid.detail,function(x)lines(weights2 * x/(grid.detail+1) * cos(theta), weights2 * x/(grid.detail+1) * sin(theta), 
-		            lty = 2, col = rgb(0, 0, 0, 0.2)))
-	} else {
-		sapply(grid.points,function(x)lines(weights2 * no(x) * cos(theta), weights2 * no(x) * sin(theta), 
-		            lty = 2, col = rgb(0, 0, 0, 0.2)))
-	}
-        segments(0, 0, weights2 * cos(theta), weights2 * sin(theta), 
-            lty = 1, col = rgb(0, 0, 0, 0.2))	 
-    }
+    if (add == F) 
+        if (add.grid) {
+            if (is.null(grid.points)) {
+                sapply(1:grid.detail, function(x) lines(weights2 * 
+                  x/(grid.detail + 1) * cos(theta), weights2 * 
+                  x/(grid.detail + 1) * sin(theta), lty = 2, 
+                  col = rgb(0, 0, 0, 0.2)))
+            }
+            else {
+                sapply(grid.points, function(x) lines(weights2 * 
+                  no(x) * cos(theta), weights2 * no(x) * sin(theta), 
+                  lty = 2, col = rgb(0, 0, 0, 0.2)))
+            }
+            segments(0, 0, weights2 * cos(theta), weights2 * 
+                sin(theta), lty = 1, col = rgb(0, 0, 0, 0.2))
+        }
     if (!is.null(dimensions) & mode >= 0) 
-        lines(weights2 * no(c(dimensions, dimensions[1])) * cos(theta), 
-            weights2 * no(c(dimensions, dimensions[1])) * sin(theta), 
-            col = col, lwd = 2, type=line.type, pch=16) 
-    if(add==F)
-    if (add.grid & numbers > 0) {
-	if(is.null(grid.points)){
-            text(1 * weights2[1], 0.05, round(max, numbers), cex = 0.6, pos = 2, col = "darkgrey")
-	    if (length(dimensions)/2 == round(length(dimensions)/2)) 
-        	    text(-1 * weights2[1], 0.05, round(max, numbers), cex = 0.6, pos = 4, col = "darkgrey")
-   
- 	    sapply(1:grid.detail,function(x)
-	            text(x/(grid.detail+1) * weights2[1], 0.05, round(((max + 
-	                min)*x/(grid.detail+1)), numbers), cex = 0.6, pos = 2, col = "darkgrey"))
-            if (length(dimensions)/2 == round(length(dimensions)/2)) 
-		sapply(1:grid.detail,function(x)
-	                text(-x/(grid.detail+1) * weights2[round(length(weights2)/2)], 0.05, round(((max + 
-	                    min)*x/(grid.detail+1)), numbers), cex = 0.6, pos = 4, col = "darkgrey"))
-	} else{
-	    for (x in 1:length(grid.points))
-	        text(no(grid.points[x]) * weights2[1], 0.05, names(grid.points)[x], cex = 0.6, pos = 2, col = "darkgrey")
-            if (length(dimensions)/2 == round(length(dimensions)/2)) 
-		for (x in 1:length(grid.points))
-	                text(-no(grid.points[x]) * weights2[round(length(weights2)/2)], 0.05, names(grid.points)[x], cex = 0.6, pos = 4, col = "darkgrey")
-	}
-    }
-    if(add==F)
-    if (add.labels) 
-        if (add.numbers) {
-            text(weights * cos(theta)[-(length(dimensions) + 
-                1)], weights * sin(theta)[-(length(dimensions) + 
-                1)], paste0(1:length(dimensions), ". ", 
-                names(dimensions)), pos = ifelse(cos(theta)[-(length(dimensions) + 
-                1)] < 0, 2, 4), xpd = T, cex = 0.6)
+        lines(weights2 * no(c(dimensions, dimensions[1])) * cos(theta + shift), 
+            weights2 * no(c(dimensions, dimensions[1])) * sin(theta + shift), 
+            col = col, lwd = 2, type = line.type, pch = 16)
+    if (add == F) 
+        if (add.grid & numbers > 0) {
+            if (is.null(grid.points)) {
+                text(1 * weights2[1], 0.05, round(max, numbers), 
+                  cex = 0.6, pos = 2, col = "darkgrey")
+                if (length(dimensions)/2 == round(length(dimensions)/2)) 
+                  text(-1 * weights2[1], 0.05, round(max, numbers), 
+                    cex = 0.6, pos = 4, col = "darkgrey")
+                sapply(1:grid.detail, function(x) text(x/(grid.detail + 
+                  1) * weights2[1], 0.05, round(((max + min) * 
+                  x/(grid.detail + 1)), numbers), cex = 0.6, 
+                  pos = 2, col = "darkgrey"))
+                if (length(dimensions)/2 == round(length(dimensions)/2)) 
+                  sapply(1:grid.detail, function(x) text(-x/(grid.detail + 
+                    1) * weights2[round(length(weights2)/2)], 
+                    0.05, round(((max + min) * x/(grid.detail + 
+                      1)), numbers), cex = 0.6, pos = 4, col = "darkgrey"))
+            }
+            else {
+                for (x in 1:length(grid.points)) text(no(grid.points[x]) * 
+                  weights2[1], 0.05, names(grid.points)[x], cex = 0.6, 
+                  pos = 2, col = "darkgrey")
+                if (length(dimensions)/2 == round(length(dimensions)/2)) 
+                  for (x in 1:length(grid.points)) text(-no(grid.points[x]) * 
+                    weights2[round(length(weights2)/2)], 0.05, 
+                    names(grid.points)[x], cex = 0.6, pos = 4, 
+                    col = "darkgrey")
+            }
         }
-        else {
-            text(weights * cos(theta)[-(length(dimensions) + 
-                1)], weights * sin(theta)[-(length(dimensions) + 
-                1)], paste0(names(dimensions)), pos = ifelse(cos(theta)[-(length(dimensions) + 
-                1)] < 0, 2, 4), xpd = T, cex = 0.6)
-        }
-    if(add==F)
-    title(main, cex.main = 0.8) 
+    if (add == F) 
+        if (add.labels) 
+            if (add.numbers) {
+                text(weights * cos(theta)[-(length(dimensions) + 
+                  1)], weights * sin(theta)[-(length(dimensions) + 
+                  1)], paste0(1:length(dimensions), ". ", 
+                  names(dimensions)), pos = ifelse(cos(theta)[-(length(dimensions) + 
+                  1)] < 0, 2, 4), xpd = T, cex = 0.6)
+            }
+            else {
+                text(weights * cos(theta)[-(length(dimensions) + 
+                  1)], weights * sin(theta)[-(length(dimensions) + 
+                  1)], paste0(names(dimensions)), pos = ifelse(cos(theta)[-(length(dimensions) + 
+                  1)] < 0, 2, 4), xpd = T, cex = 0.6)
+            }
+    if (add == F) 
+        title(main, cex.main = 0.8)
     invisible()
 }
 spiderplot=f#f(c(-1,.25,.5))
@@ -1587,7 +1605,7 @@ d <- paste0(
 	"#' @param rownames Character vector of the same length as x, containing the row names to be displayed. If NULL (default) rownames of x are applied.\n",
 	"#' @param colnames Character vector of the same length as x, containing the column names to be displayed. If NULL (default) colnames of x are applied.\n",
 	"#' @param main Character value, containing the title to be displayed. Defaults to NULL.\n",
-	"#' @param color Character vector, containing the colors of petals. If NULL (default) rainbow palette is applied.\n",
+	"#' @param color Character vector, containing the colors of petals. If NULL (default) the rainbow palette is applied.\n",
 	"#' @param color2 Character value, containing the color of the background petals. If NULL, no background petals are plotted. Defaults to \"lightgrey\".\n",
 	"#' @param add.numbers Logical value specifying whether to draw numbers next to each petal. Defaults to F.\n",
 	"#' @details Plots data.frame as a field of flowers. Each column is represented as a separate flower, each row as a flower's petal.\n",
@@ -1595,60 +1613,105 @@ d <- paste0(
 	"#' @export\n",
 	"#' @examples\n",
 	"#' flowerplot()")
-f<-function(x=NULL, maximum=NULL, rownames=NULL,colnames=NULL,main=NULL,color=NULL,color2="lightgrey", add.numbers=F, ncex=.8, ndigits=1, ncol="black"){
-	if(!is.null(x))data=data.frame(x)else data=NULL;
-	if(is.null(data))data=data.frame(option1=c(1,1,1,1,1,1,1),option2=c(.9,.8,.5,.9,1,0,.1),option3=c(.8,.9,.8,.9,1,.9,.7),option4=c(.9,1,.7,.5,.5,.5,.5),option5=c(.4,.4,.4,1,1,1,1))
-	dist=4;
-	x=seq(-2,(dim(data)[2]-1)*dist+2,length.out=2)
-	if(!is.numeric(as.matrix(data))) stop("Wrong input. Please provide a numerical matrix.");
-	data=as.matrix(data);
-	if(is.null(maximum))maximum=max(data)
-	data=data/max(c(data,maximum));
-	if(!(dim(data)[1]>1 & dim(data)[2]>1)) stop("Wrong input. Please provide a matrix with at least two rows and two columns.");
-	if(is.null(rownames(data)) && is.null(rownames)) rownames=paste0("v",1:dim(data)[1]); # Wenn keinerlei Namen angegeben wurden, nummeriere Spalten
-	if(!is.null(rownames(data)) && is.null(rownames)) rownames=rownames(data); # Wenn die data mit Namen geliefert wurden, verwende diese Namen
-	if(is.null(colnames(data)) && is.null(colnames)) colnames=1:dim(data)[2]; # Wenn keinerlei Namen angegeben wurden, nummeriere Spalten
-	if(!is.null(colnames(data)) && is.null(colnames)) colnames=colnames(data); # Wenn die data mit Namen geliefert wurden, verwende diese Namen
-	helleFarbe=rgb(.9,.9,.9)
-	if(is.null(color)){color=rainbow(dim(data)[1]);}#rgb(0/255,84/255,122/255);helleFarbe=rgb(217/255,231/255,239/255)}
-        if(length(color)!=dim(data)[1])farben=colorRampPalette(c(helleFarbe,color))(dim(data)[1]+1) else farben=color;
-	petal=function(a=.5,b=1,l=1,max.l=7,fl=1,he=0,col=farben[l],border=NULL,text=NA){
-		theta<-seq(0,2*pi,length=100);
-		x0=b*sin(seq(0,2*pi,length.out=max.l))[l];
-		y0=b*cos(seq(0,2*pi,length.out=max.l))[l];
-		r=seq(0,2*pi,length.out=max.l)[l]
-		x=a*b*cos(theta);y=b*sin(theta)		
-		xr=dist*(fl-1)+x0+x*cos(r)+y*sin(r)
-		yr=he+y0-x*sin(r)+y*cos(r)
-		polygon(xr,yr,col=col,border=border);
-		if(add.numbers==T)
-		if(!is.na(text)){	
-			c=b+.2
-			x0=c*sin(seq(0,2*pi,length.out=max.l))[l];
-			y0=c*cos(seq(0,2*pi,length.out=max.l))[l];
-			x=a*c*cos(theta);y=c*sin(theta)		
-			xr=dist*(fl-1)+x0+x*cos(r)+y*sin(r)
-			yr=he+y0-x*sin(r)+y*cos(r)
-			text(xr[20],yr[20],ifelse(text==1,"1.0",ifelse(text==0,"0.0",round(text,ndigits))),cex=ncex, col=ncol);			
-		}
-	}	
-	plot(x,x,type="n", xlab="",ylab="", axes = FALSE,xlim=c(-2-dist/2,dist*3/4+dist*(dim(data)[2]))+dist/2) 
-	for(flower1 in 1:dim(data)[2]){
-		height=(max(x)-2)*(colSums(data)/max(colSums(data)))[flower1]
-		segments(dist*(flower1-1),0,dist*(flower1-1),height,col="darkgreen",lwd=3);
-		for(petal1 in 1:dim(data)[1]){
-			petal(.3,1,petal1,dim(data)[1]+1,flower1,height,col=color2[1],border=NA, text=NA)
-			petal(.3,data[petal1,flower1],petal1,dim(data)[1]+1,flower1,height, text=data[petal1,flower1])
-		}
-		polygon(dist*(flower1-1)+.5*sin(seq(0,2*pi,length.out=dim(data)[1]+1)),height+.5*cos(seq(0,2*pi,length.out=dim(data)[1]+1)), col="black");
-		text(dist*(flower1-1),0,colnames[flower1],pos=1)
-	}
-	segments(-2,0,dist*(dim(data)[2])+1,0,col="darkgreen",lwd=3);	
-	if(!is.null(main)) title(main);
-	legX=dist*3/4+dist*(dim(data)[2]);
-	legend(x=legX-dist,y=legX-dist, legend=c(rownames), fill = farben[1:(dim(data)[1]+1)],bg="white",bty="n",xpd=T);	
-	invisible(data);
+f<-function (x = NULL, maximum = NULL, rownames = NULL, colnames = NULL, 
+    main = NULL, color = NULL, color2 = "lightgrey", add.numbers = F, 
+    ncex = 0.8, ndigits = 1, ncol = "black", 
+    cex=.8, xlim=NULL, ylim=NULL, dist = 4, legend=NULL, xshift=0) 
+{
+
+    if (!is.null(x)) {
+        data = data.frame(x)
+    } else data = NULL
+    if (is.null(data)) 
+        data = data.frame(option1 = c(1, 1, 1, 1, 1, 1, 1), option2 = c(0.9, 
+            0.8, 0.5, 0.9, 1, 0, 0.1), option3 = c(0.8, 0.9, 
+            0.8, 0.9, 1, 0.9, 0.7), option4 = c(0.9, 1, 0.7, 
+            0.5, 0.5, 0.5, 0.5), option5 = c(0.4, 0.4, 0.4, 1, 
+            1, 1, 1))
+    
+    x = seq(-2, (dim(data)[2] - 1) * dist + 2, length.out = 2)
+    if (!is.numeric(as.matrix(data))) 
+        stop("Wrong input. Please provide a numerical matrix.")
+    data = as.matrix(data)
+    if (is.null(maximum)) 
+        maximum = max(data)
+    data = data/max(c(data, maximum))
+    if (!(dim(data)[1] > 1 & dim(data)[2] > 1)) 
+        stop("Wrong input. Please provide a matrix with at least two rows and two columns.")
+    if (is.null(rownames(data)) && is.null(rownames)) 
+        rownames = paste0("v", 1:dim(data)[1])
+    if (!is.null(rownames(data)) && is.null(rownames)) 
+        rownames = rownames(data)
+    if (is.null(colnames(data)) && is.null(colnames)) 
+        colnames = 1:dim(data)[2]
+    if (!is.null(colnames(data)) && is.null(colnames)) 
+        colnames = colnames(data)
+    helleFarbe = rgb(0.9, 0.9, 0.9)
+    if (is.null(color)) {
+        color = rainbow(dim(data)[1])
+    }
+    if (length(color) != dim(data)[1]) 
+        farben = colorRampPalette(c(helleFarbe, color))(dim(data)[1] + 
+            1)
+    else farben = color
+    petal = function(a = 0.5, b = 1, l = 1, max.l = 7, fl = 1, 
+        he = 0, col = farben[l], border = NULL, text = NA) {
+        theta <- seq(0, 2 * pi, length = 100)
+        x0 = b * sin(seq(0, 2 * pi, length.out = max.l))[l]
+        y0 = b * cos(seq(0, 2 * pi, length.out = max.l))[l]
+        r = seq(0, 2 * pi, length.out = max.l)[l]
+        x = a * b * cos(theta)
+        y = b * sin(theta)
+        xr = dist * (fl - 1) + xshift + x0 + x * cos(r) + y * sin(r)
+        yr = he + y0 - x * sin(r) + y * cos(r)
+        polygon(xr, yr, col = col, border = border,xpd=T)
+        if (add.numbers == T) 
+            if (!is.na(text)) {
+                c = b + 0.2
+                x0 = c * sin(seq(0, 2 * pi, length.out = max.l))[l]
+                y0 = c * cos(seq(0, 2 * pi, length.out = max.l))[l]
+                x = a * c * cos(theta)
+                y = c * sin(theta)
+                xr = dist * (fl - 1) + x0 + x * cos(r) + y * 
+                  sin(r)
+                yr = he + y0 - x * sin(r) + y * cos(r)
+                text(xr[20], yr[20], ifelse(text == 1, "1.0", 
+                  ifelse(text == 0, "0.0", round(text, 
+                    ndigits))), cex = ncex, col = ncol, xpd=T)
+            }
+    }
+    if(is.null(xlim)) xlim=c(-2 - dist/2, dist * 3/4 + dist * (dim(data)[2])) + dist/2
+    if(is.null(ylim)) ylim=c(min(x),max(x))
+    plot(x, x, type = "n", xlab = "", ylab = "", 
+        axes = FALSE, xlim = xlim,ylim=ylim)
+    for (flower1 in 1:dim(data)[2]) {
+        height = (max(x) - 2) * (colSums(data)/max(colSums(data)))[flower1]
+        segments(dist * (flower1 - 1) + xshift, 0, dist * (flower1 - 1) + xshift, 
+            height, col = "darkgreen", lwd = 3, xpd=T)
+        for (petal1 in 1:dim(data)[1]) {
+            petal(0.3, 1, petal1, dim(data)[1] + 1, flower1, 
+                height, col = color2[1], border = NA, text = NA)
+            petal(0.3, data[petal1, flower1], petal1, dim(data)[1] + 
+                1, flower1, height, text = data[petal1, flower1])
+        }
+        polygon(dist * (flower1 - 1) + xshift + 0.5 * sin(seq(0, 2 * pi, 
+            length.out = dim(data)[1] + 1)), height + 0.5 * cos(seq(0, 
+            2 * pi, length.out = dim(data)[1] + 1)), col = "black", xpd=T)
+        text(dist * (flower1 - 1) + xshift, 0, colnames[flower1], pos = 1,cex=cex)
+    }
+    segments(-2, 0, dist * (dim(data)[2]) + 1 + shift, 0, col = "darkgreen", 
+        lwd = 3, xpd=T)
+    if (!is.null(main)) 
+        title(main)
+    legX = dist * 3/4 + dist * (dim(data)[2])
+    if(is.null(legend))
+    legend(x = legX - dist, y = legX - dist, legend = c(rownames), 
+        fill = farben[1:(dim(data)[1] + 1)], bg = "white", 
+        bty = "n", xpd = T,cex=cex.legend)
+    if(!is.null(legend)) legend
+    invisible(data)
 }
+
 flowerplot=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
