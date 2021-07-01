@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.4.2",
+"Version"="0.4.3",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -707,7 +707,14 @@ d <- paste0(
 	"#' @examples\n",
 	"#' cols2(cols(10,\"jddm\")))"
 );
-f<-function(col,transparency=.3){apply(col2rgb(col),2,function(x)rgb(x[1]/255,x[2]/255,x[3]/255,transparency))}
+f<-function(col,transparency=.7){
+    if(length(transparency)!=1)transparency=F
+    if(is.na(transparency)|!is.numeric(transparency))transparency=F
+    if(transparency<0)transparency=F
+    ifelse(transparency==F,
+        list(sapply(col,function(x)qqBaseX::cols(3,x,"white")[2])),
+        list(apply(col2rgb(col),2,function(x)rgb(x[1]/255,x[2]/255,x[3]/255,1-transparency))))[[1]]
+}
 cols2=f;
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
@@ -1434,7 +1441,7 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     add.scale = T, col = NULL, col2 = NULL, border = NA, mode = 0, 
     arrows.lwd = 3, arrows.length = 0.01, add = F, add.numbers = F, 
     numbers = 2, add.grid = T, add.labels = T, line.type = "o", 
-    grid.detail = 1, grid.points = NULL, shift=0) 
+    grid.detail = 1, grid.points = NULL, shift=0, arrows.transparency=.7) 
 {
 
     dimensions = x
@@ -1444,7 +1451,7 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     if (is.null(col)) 
         col = "#00547A"
     if (is.null(col2)) 
-        col2 = qqBaseX::cols2(col)
+        col2 = qqBaseX::cols2(col,arrows.transparency)
     if(!is.null(max)){  
         max=1
         if (!is.null(upper) & !is.null(dimensions)) {
@@ -1601,6 +1608,7 @@ spiderplot=f#f(c(-1,.25,.5))
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
+
 n <- "flowerplot" 
 #------------
 d <- paste0(
@@ -1697,6 +1705,8 @@ f<-function (x = NULL, maximum = NULL, rownames = NULL, colnames = NULL,
         for (petal1 in 1:dim(data)[1]) {
             petal(0.3, 1, petal1, dim(data)[1] + 1, flower1, 
                 height, col = color2[1], border = NA, text = NA)
+        }
+        for (petal1 in 1:dim(data)[1]) {
             petal(0.3, data[petal1, flower1], petal1, dim(data)[1] + 
                 1, flower1, height, text = data[petal1, flower1])
         }
@@ -2209,12 +2219,12 @@ f=function(dat,wei=NULL,kat=NULL,plot=T,plot.o=F,simplify=T,mar=NULL,width=NULL,
     })
     names(erg) = lev
     if (plot == T) {
-        cols2 = function(col, transparency = 0.3, opaque = T) {
+        cols2 = function(col, transparency = 0.7, opaque = T) {
             if (opaque == T) 
                 res = sapply(as.data.frame(col2rgb(col)), function(x) colorRampPalette(c(rgb(x[1]/255, 
                   x[2]/255, x[3]/255), "white"))(3)[2])
             else res = apply(col2rgb(col), 2, function(x) rgb(x[1]/255, 
-                x[2]/255, x[3]/255, transparency))
+                x[2]/255, x[3]/255, 1-transparency))
             return(res)
         }
         x = lapply(erg, function(x) x[["w.data"]])
