@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.4.3",
+"Version"="0.4.4",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -1187,6 +1187,12 @@ d <- paste0(
 	"#' @param main Character value specifying the plot's title. Defaults to \"Comparison of Word Frequencies\"\n",
 	"#' @param pch Numeric element speccifying the symbol to represent points. Defaults to 16\n",
 	"#' @param cex Numeric value indicating the text size. Defaults to .7.\n",
+	"#' @param add.numbers Logical value indicating if numbers should be placed next to the dots. Defaults to F.\n",
+	"#' @param ndigits Numeric value specifying the number of digits to be plotted (if add.numbers==T). Defaults to 2.\n",
+	"#' @param ncex Size of fonts. If NA (default) is set to cex.\n",
+	"#' @param nsrt Numeric value specifying the rotation of the numbers (between 0 and 360 degrees). Defaults to 0.\n",
+	"#' @param npos Numeric value specifying the position of numbers. If NA (default) it is determined automatically.\n",
+	"#' @param ncol Vector containing the color of bars. Defaults to \"black\".\n",
 	"#' @details Plots vector as modified dotchart.\n",
 	"#' @keywords plotting\n",
 	"#' @export\n",
@@ -1499,15 +1505,35 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
             "technical limit./poss.", "aest./art. factors", 
             "financial limit./poss.")
     }
+    if (is.null(names(dimensions))) 
+        names(dimensions) = 1:length(dimensions)
+    if (!is.null(names)) 
+        names(dimensions) = names
+    d=dim(cbind(x))[2]
+    if(length(d)>0)
+    if(d>1) {
+        spiderplot(x[,1], lower=cbind(lower)[,1], upper=cbind(upper)[,1], weights=cbind(weights)[,1], 
+        names=cbind(names)[,1], col=col[1], add=add[1], main=main[1], max=max[1], min=min[1], xylim=xylim[1], 
+        add.scale=add.scale[1], col2=col2[1], border=border[1], mode=mode[1], 
+        arrows.lwd=arrows.lwd[1], arrows.length=arrows.length[1], add.numbers=add.numbers[1], 
+        numbers=numbers[1], add.grid=add.grid[1], add.labels=add.labels[1], line.type=line.type[1], 
+        grid.detail=grid.detail[1], grid.points=grid.points[1], shift=shift[1], arrows.transparency=arrows.transparency[1]);
+        e=function(x) {if(is.null(x))return(x); if(length(x)==d) return(x) else return(rep(x,d));}
+        f=function(x) {if(is.null(x))return(x); if(dim(cbind(x))[2]==d) return(x) else return(matrix(rep(cbind(x)[,1],each=d),ncol=d,byrow=T));}
+        lapply(2:d,function(i)
+            spiderplot(x[,i], lower=cbind(f(lower))[,i], upper=cbind(f(upper))[,i], weights=cbind(f(weights))[,i], 
+            names=cbind(f(names))[,i], col=e(col)[i], col2=e(col2)[i], arrows.lwd=e(arrows.lwd)[i], arrows.length=e(arrows.length)[i], 
+            line.type=e(line.type)[i], shift=e(shift)[i], arrows.transparency=e(arrows.transparency)[i], mode=e(mode)[i],
+            add=T, main=NULL, max=max[1], min=min[1], xylim=xylim[1], add.scale=add.scale[1], border=border[1], add.numbers=add.numbers[1], numbers=numbers[1], add.grid=add.grid[1],             
+            add.labels=add.labels[1], grid.detail=grid.detail[1], grid.points=grid.points[1])   
+        );
+        return(invisible())
+    }
     if (length(weights) == 1) 
         weights = rep(weights[1], length(dimensions))
     if (is.null(weights)) 
         weights = rep(1, length(dimensions))
     weights2 = c(weights, weights[1])
-    if (is.null(names(dimensions))) 
-        names(dimensions) = 1:length(dimensions)
-    if (!is.null(names)) 
-        names(dimensions) = names
     theta = seq(0, 2 * pi, length = length(dimensions) + 1)
     if (add == F) 
         plot(weights2 * cos(theta), weights2 * sin(theta), type = "l", 
@@ -1604,7 +1630,8 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
         title(main, cex.main = 0.8)
     invisible()
 }
-spiderplot=f#f(c(-1,.25,.5))
+spiderplot=f 
+
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
@@ -1613,7 +1640,7 @@ n <- "flowerplot"
 #------------
 d <- paste0(
 	"#' Function flowerplot\n",
-	"#' \n#' Plots data.frame as a field of flowers.\n",
+	"#' \n#' Plots numeric matrix as a field of flowers.\n",
 	"#' @param x Numeric data.frame or matrix containing the values to be displayed.\n",
 	"#' @param maximum Numeric value representing the maximum value. Only needs to be specified when the data does not contain the theoretically possible maximum.\n",
 	"#' @param rownames Character vector of the same length as x, containing the row names to be displayed. If NULL (default) rownames of x are applied.\n",
@@ -1622,6 +1649,10 @@ d <- paste0(
 	"#' @param color Character vector, containing the colors of petals. If NULL (default) the rainbow palette is applied.\n",
 	"#' @param color2 Character value, containing the color of the background petals. If NULL, no background petals are plotted. Defaults to \"lightgrey\".\n",
 	"#' @param add.numbers Logical value specifying whether to draw numbers next to each petal. Defaults to F.\n",
+	"#' @param ndigits Numeric value specifying the number of digits to be plotted (if add.numbers==T). Defaults to 2.\n",
+	"#' @param ncex Size of fonts. If NA (default) is set to cex.\n",
+	"#' @param ncol Vector containing the color of bars. Defaults to \"black\".\n",
+	"#' @param xshift Numeric value specifying how much to shift flowers to the right. Defaults to 0.\n",
 	"#' @details Plots data.frame as a field of flowers. Each column is represented as a separate flower, each row as a flower's petal.\n",
 	"#' @keywords plotting\n",
 	"#' @export\n",
@@ -1634,19 +1665,17 @@ f<-function (x = NULL, maximum = NULL, rownames = NULL, colnames = NULL,
 {
 
     if (!is.null(x)) {
-        data = data.frame(x)
+        data = cbind(x)
     } else data = NULL
     if (is.null(data)) 
-        data = data.frame(option1 = c(1, 1, 1, 1, 1, 1, 1), option2 = c(0.9, 
+        data = cbind(option1 = c(1, 1, 1, 1, 1, 1, 1), option2 = c(0.9, 
             0.8, 0.5, 0.9, 1, 0, 0.1), option3 = c(0.8, 0.9, 
             0.8, 0.9, 1, 0.9, 0.7), option4 = c(0.9, 1, 0.7, 
             0.5, 0.5, 0.5, 0.5), option5 = c(0.4, 0.4, 0.4, 1, 
             1, 1, 1))
-    
     x = seq(-2, (dim(data)[2] - 1) * dist + 2, length.out = 2)
     if (!is.numeric(as.matrix(data))) 
         stop("Wrong input. Please provide a numerical matrix.")
-    data = as.matrix(data)
     if (is.null(maximum)) 
         maximum = max(data)
     data = data/max(c(data, maximum))
