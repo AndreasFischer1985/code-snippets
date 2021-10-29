@@ -9,21 +9,13 @@
 <head><meta charset="utf-8"><title>Eliza32</title></head>
 <body onload="CSScriptInit();">
     <center>
-	<table width="600" border="0" cellspacing="0" cellpadding="0">
-        <tr align="center" valign="top">
-            <td width="600" class="ram"><br>
-                <table width="585" border="0" cellspacing="0" cellpadding="8">
-                    <tr align="left" valign="top"><!-- Eliza-Eingabe -->
-						<td><a name="Eliza-Chat"></a>
-							<span><b>
-								<form name="eliza" onsubmit="setTimeout('handle(document.eliza.frage.value)',40+random(1000)); return false">							
-									<textarea name="ausgabe" class="textarea" cols="50" rows="5" readonly ></textarea><br>
-									<br>
-									<input name="frage" class="textfield" type="text" value=" "  size="50" maxlength="60">
-									<br>
-       								<input name="ok" class="button" type="button" value=" OK " onclick="handle(document.eliza.frage.value); return false">		                                   				
-								</form>
-
+	<h1>Chatbot</h1>
+        <table><tr><td>  
+		<form name="eliza" onsubmit="setTimeout('handle(document.eliza.frage.value)',40+random(1000)); return false">							<textarea name="ausgabe" class="textarea" cols="50" rows="5" readonly ></textarea><br>		
+		<input name="frage" class="textfield" type="text" value=" "  size="42" maxlength="60">
+		<input name="ok" class="button" type="button" value=" OK " onclick="handle(document.eliza.frage.value); return false">		        	
+		</form>
+	</td></tr></table>
     <script name="Focus">
 
         var end = 'index.html';      
