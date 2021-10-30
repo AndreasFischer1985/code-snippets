@@ -11,11 +11,15 @@
     <center>
 	<h1>Chatbot</h1>
         <table><tr><td>  
-		<form name="eliza" onsubmit="setTimeout('handle(document.eliza.frage.value)',40+random(1000)); return false">							<textarea name="ausgabe" class="textarea" cols="50" rows="5" readonly ></textarea><br>		
+		<form name="eliza" onsubmit="setTimeout('handle(document.eliza.frage.value)',40+random(1000)); return false">							
+		<textarea name="ausgabe" class="textarea" cols="50" rows="5" readonly ></textarea><br>		
 		<input name="frage" class="textfield" type="text" value=" "  size="42" maxlength="60">
 		<input name="ok" class="button" type="button" value=" OK " onclick="handle(document.eliza.frage.value); return false">		        	
 		</form>
 	</td></tr></table>
+    </center>
+</body>
+	
     <script name="Focus">
 
         var end = 'index.html';      
@@ -717,18 +721,6 @@
         document.eliza.ausgabe.value="";
 	    output(hello[random(hello.length)]);
         document.eliza.frage.value="";        
-
-    </script>
-                                <br>		
-							</b></span>
-						</td>
-					</tr>
-				</table>
-            </td>
-		</tr>
-    </table>
-    <br>		
-    </center>
-</body>
+    </script>                
 </html>
 
