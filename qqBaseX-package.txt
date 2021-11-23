@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.4.4",
+"Version"="0.4.5",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -2188,6 +2188,104 @@ f<-function(data,dist.function=function(x)as.dist(1-cor(x)),method="complete",k=
 af.hclust=f
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
+
+
+
+n <- "aggreg" 
+#------------
+d <- paste0(
+	"#' Function aggreg\n",
+	"#' \n#'Splits a numeric vector or matrix into subsets, computes summary statistics for each, and returns the result in a convenient form.\n",
+	"#' @param x Numeric vector or matrix.\n",
+	"#' @param y Vector or matrix specifying the subsets to compute summary statistics for.\n", 
+	"#' @param fun Function specifying the summary statistic to compute. If NULL (default), mean will be calculated.\n", 
+	"#' @param verbose Logical value specifying the verbocity of output.\n", 
+	"#' @details Splits a numeric vector or matrix into subsets, computes summary statistics for each, and returns the result in a convenient form.\n",
+	"#' @keywords modeling\n",
+	"#' @export\n",
+	"#' @examples\n",
+	"#' aggreg(x=1:10,y=c(rep(1,5),rep(2,5)))"
+);
+f=function(x,y=NULL,fun=NULL,verbose=T){
+
+	if(is.null(fun)) fun = function(x) mean(x,na.rm=T) # by default, return mean 
+	x=cbind(x) # convert x to matrix
+	if(is.null(y)) y=rep(1,dim(x)[1]) # if y is NULL, use a vector of 1s
+	y=cbind(y) # convert y to matrix
+
+	### Check if x should be a 2D matrix instead of a 1D factor
+	if(dim(x)[2]==1 & is.character(x)){
+		if(suppressWarnings(sum(is.na(as.numeric(x)))!=sum(is.na(x)))){ # check if character is not numeric in disguise
+			if(verbose==T)print("x is treated as a factor and translated to a dummy-matrix")
+			x=sapply(unique(x),function(y)x==y) # translate x from 1D to 2D matrix
+		}
+	}	
+
+	### dummy-code y
+       	dummy = function(x, g = NULL, na.rm = TRUE) {
+            n <- length(x)
+            t <- table(x)
+            l <- length(t)
+            if (is.null(g)) {
+                u <- matrix(0, nrow = n, ncol = l)
+                if (na.rm) {
+                  u[is.na(x), ] <- NA
+                }
+                xlev <- as.factor(x)
+                for (i in 1:n) {
+                  u[i, xlev[i]] <- 1
+                }
+                colnames(u) <- names(t)
+            }
+            else {
+                u <- rep(0, n)
+                xl <- as.factor(x)
+                if (na.rm) {
+                  u[is.na(x)] <- NA
+                }
+                for (i in 1:n) {
+                  u[i] <- xl[i] %in% g
+                }
+            }
+            return(u)
+       	}
+	if(dim(y)[2]==1) y=dummy(y) else { # if y is 1D dummy-code it, if y is 2D dummy-code each column separately
+		if(is.null(colnames(y)))colnames(y)=1:dim(y)[2]
+		n=colnames(y)	
+		y=lapply(1:dim(y)[2],function(z)dummy(y[,z]))
+		y=lapply(1:length(n),function(i){colnames(y[[i]])=paste(n[[i]],colnames(y[[i]]),sep="_");y[[i]]}) # expand colnames
+		y=do.call(cbind,y)
+	}
+
+	### Type-cast each column of x and y
+	typecast=function(x){
+		if(is.character(x)){
+			if(suppressWarnings(sum(is.na(as.numeric(x)))==sum(is.na(x)))){ # check if character is number or factor 
+				return(as.numeric(x))} else{ return(as.numeric(as.factor(x))) }
+		} else { return(as.numeric(x)) }
+	}
+	x=apply(x,2,typecast)	
+	y=apply(y,2,typecast)
+
+	### do some math, assuming x is 1D or 2D, y is 1D
+	if(dim(y)[2]==1){
+
+		if(verbose==T){print(x);print(y);}
+		y=y[,1] # convert y to vector
+		x=t(sapply(unique(y),function(subset)fun(rbind(x[y==subset,])))) # apply fun to each subset of x specified by unique elements of y
+
+	### do some math, assuming x is 1D or 2D, y is 2D
+	} else {
+
+		if(verbose==T){print(x);print(y);}
+		x=sapply(colnames(y),function(subset)apply(rbind(x[y[,subset]==1,]),2,fun)) # apply fun to each subset of x specified by columns of y
+
+	} 
+
+	return(x)
+}
+distrib=f
+write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
 n <- "distrib" 
