@@ -115,6 +115,35 @@ transform=function(ver,rver,thetaX=NULL,thetaY=NULL,thetaZ=NULL,persp=0){
 	}
 	return(tver)
 }
+vectorLength=function(...)sqrt(sum(sapply(...,function(x)x^2)))
+vectorDistance=function(a,b)sqrt(sum(sapply(1:length(a),function(i)(a[i]-b[i])^2)))
+polygonArea=function(a,b,c) (a[1]*b[2]-a[2]*b[1] + b[1]*c[2]-b[2]*c[1] + b[1]*a[2]-b[2]*a[1])/2
+crossProduct <- function(x,y) {
+	if (is.vector(x) && is.vector(y)) {
+		if (length(x) == length(y) && length(x) == 3) {
+			xxy <- c(x[2]*y[3] - x[3]*y[2],
+			        x[3]*y[1] - x[1]*y[3],
+    		         	x[1]*y[2] - x[2]*y[1])
+		}
+	} else {
+		if (is.matrix(x) && is.matrix(y)) {
+			if (all(dim(x) == dim(y))) {
+				if (ncol(x) == 3) {
+                    			xxy <- cbind(x[, 2]*y[, 3] - x[, 3]*y[, 2],
+        			             	x[, 3]*y[, 1] - x[, 1]*y[, 3],
+            		             		x[,1 ]*y[, 2] - x[, 2]*y[, 1])
+				} else {
+					if (nrow(x) == 3) {
+                        			xxy <- rbind(x[2, ]*y[3, ] - x[3, ]*y[2, ],
+            			             	x[3, ]*y[1, ] - x[1, ]*y[3, ],
+                		             	x[1, ]*y[2, ] - x[2, ]*y[1, ])
+					}
+				}
+			}
+		} 
+	}
+	return(xxy)
+}		 
 colourPolygons=function(tver,pol,col1="lightgrey",returnDegree=F){
 	d=numeric(0)
 	toDegree <- function(rad) rad * 57.29577951308232286465 # double for 180/pi
