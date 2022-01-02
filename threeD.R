@@ -94,7 +94,7 @@ form=function(form="cube")
 		return(list(
 		"ver"=c(-1,-1,-1, +1,-1,-1, +1,-1,+1, -1,-1,+1, -1,+1,-1, +1,+1,-1, +1,+1,+1, -1,+1,+1),
 		"con"=c(1,2, 2,3, 3,4, 1,4, 5,6, 6,7, 7,8, 5,8, 1,5, 2,6, 3,7, 4,8),
-		"pol"=c(1,2,3, 1,3,4, 5,6,7, 5,7,8, 1,2,5, 2,5,6, 2,3,7, 2,6,7, 1,4,8, 1,5,8, 3,4,8, 3,7,8)))
+		"pol"=c(1,3,2, 1,4,3, 5,6,7, 5,7,8, 1,2,5, 2,6,5, 2,3,7, 2,7,6, 1,8,4, 1,5,8, 3,4,8, 3,8,7)))
 	}
 toVer=function(x,y,z){
 	c(sapply(1:length(x), function(i) c(x[i],y[i],z[i])))
@@ -181,6 +181,7 @@ sortPol=function(pol,tver,fun=mean){
 	if(is.null(fun)) fun=mean
 	for(i in seq(1,length(pol),by=3))
 	for(j in seq(1,length(pol),by=3))
+	#if( max(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))>max(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3])) | (max(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))==max(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3])) & min(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))>min(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3]))) ) {
 	if(fun(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3])) > fun(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3]))){
 		h1=pol[i];h2=pol[i+1];h3=pol[i+2];
 		pol[i]=pol[j];pol[i+1]=pol[j+1];pol[i+2]=pol[j+2];
@@ -222,20 +223,20 @@ plotWireframe=function(tver,rver,con,add=F,col1="lightgrey",col2="black",subset=
 		col=cols[rank(z,ties.method="min")[co]])
 	}
 }
-plotPolygons=function(tver,rver,pol,add=F,col1="lightgrey",col2="black",subset=NULL,border="black",lim=NULL,fun=mean){
+plotPolygons=function(tver,rver,pol,add=F,col1="lightgrey",col2="black",border="black",culling="none",lim=NULL,fun=mean){
 	if(is.null(lim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
 	if(add==F) plot(c(lim[1],lim[2]),c(lim[1],lim[2]),type="n",axes=F,xlab=NA,ylab=NA)
+	if(is.null(culling))culling="none"
 	pol=sortPol(pol,tver,fun);
-	z=sapply(seq(1,length(pol),by=3),function(i) (tver[pol[i]*3]+tver[pol[i+1]*3]+tver[pol[i+2]*3])/3)
 	cols=colourPolygons(tver,pol,col1)
-	if(!is.null(subset)){
-		if(subset=="front")cols[z>0]=NA
-		if(subset=="back")cols[z<=0]=NA
-	}
 	co=0
 	for(i in seq(1,length(pol),by=3)){
 		co=co+1
+      		cp=crossProduct(
+            		c(tver[pol[i+1]*3-2]-tver[pol[i+0]*3-2],tver[pol[i+1]*3-1]-tver[pol[i+0]*3-1],tver[pol[i+1]*3-0]-tver[pol[i+0]*3-0]),
+            		c(-tver[pol[i+2]*3-2]+tver[pol[i+0]*3-2],-tver[pol[i+2]*3-1]+tver[pol[i+0]*3-1],-tver[pol[i+2]*3-0]+tver[pol[i+0]*3-0]))
+  		if((culling!="front"&culling!="back")|(cp%*%c(0,0,-1)>=0&culling=="back")|(cp%*%c(0,0,-1)<=0&culling=="front"))
 		polygon(
 			x=c(tver[pol[i]*3-2],tver[pol[i+1]*3-2],tver[pol[i+2]*3-2]),
 			y=c(tver[pol[i]*3-1],tver[pol[i+1]*3-1],tver[pol[i+2]*3-1]),
@@ -262,9 +263,13 @@ tver=transform(ver,rver,thetaX=320,thetaY=320,thetaZ=0)
 tver2=transform(poi,rver,thetaX=320,thetaY=320,thetaZ=0)
 
 dev.new();
-plotPolygons(tver,rver,pol,subset="back",border=NA, add=F);
+plotPolygons(tver,rver,pol,culling="front",border=NA, add=F);
 plotPoints(tver2,rver,con,add=T)
 
+dev.new();
+tver=transform(ver,rver,thetaX=10,thetaY=10,thetaZ=10);
+plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F, culling="back");
+		 
 dev.new();
 plotWireframe(tver,rver,con,add=F,subset="back")
 plotPoints(tver2,rver,con,add=T)
@@ -278,12 +283,11 @@ for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=0,thetaY=i,theta
 for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=0,thetaY=0,thetaZ=i);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
 for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=i,thetaY=i,thetaZ=i);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
 
-
 dev.new();
 p=function(a=F,tx=0,ty=0,tz=0){
 print(paste(tx,";",ty,";",tz))
 	tver=transform(ver,rver,thetaX=tx,thetaY=ty,thetaZ=tz);
-	plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=a);
+	plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=a, culling="back");
 }
 p(F)
 prevx=0;prevy=0;ax=0;ay=0;thetax=0;thetay=0;drag=F;
