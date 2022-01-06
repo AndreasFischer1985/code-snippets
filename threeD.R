@@ -12,7 +12,18 @@
 # Functions for rotating and plotting 3D-objects (points, wireframes or polygons)
 #################################################################################
 
-xRotate=function(theta,rver){
+readOBJ=function(file){
+	data=readLines(file,warn=F)
+	f=grep("^f ",data,value=T)
+	v=grep("^v ",data,value=T)
+	l=grep("^l ",data,value=T)
+	return(list(
+		"ver"=as.numeric(grep("[^v]",unlist(strsplit(v,"[ \n\r]+")),value=T)),		
+		"pol"=as.numeric(gsub("/.*","",grep("[^f]",unlist(strsplit(f,"[ \n\r]+")),value=T))),
+		"con"=unlist(lapply(strsplit(l,"[ \n\r]+"),function(x) as.numeric(rbind(x[-length(x)],x[-1])[,-1])))
+	))
+}
+xRotateRver=function(rver,theta){
 	while(theta>=360) theta=theta-360
 	theta[theta<0]=0
 	theta=theta*pi/180
@@ -29,7 +40,7 @@ xRotate=function(theta,rver){
 	rver2["z0"]=rver["z0"]*ct-rver["y0"]*st
 	rver2
 }
-yRotate=function(theta,rver){
+yRotateRver=function(rver,theta){
 	while(theta>=360) theta=theta-360
 	theta[theta<0]=0
 	theta=theta*pi/180
@@ -46,7 +57,7 @@ yRotate=function(theta,rver){
 	rver2["z0"]=rver["z0"]*ct-rver["x0"]*st
 	rver2
 }
-zRotate=function(theta,rver){
+zRotateRver=function(rver,theta){
 	while(theta>=360) theta=theta-360
 	theta[theta<0]=0
 	theta=theta*pi/180
@@ -63,31 +74,122 @@ zRotate=function(theta,rver){
 	rver2["x0"]=rver["x0"]*ct-rver["y0"]*st
 	rver2
 }
-scale=function(rver,fx,fy,fz){
-	rver["xx"]=rver["xx"]*fx;rver["xy"]=rver["xy"]*fx;rver["xz"]=rver["xz"]*fx;rver["x0"]=rver["x0"]*fx
-	rver["yx"]=rver["yx"]*fy;rver["yy"]=rver["yy"]*fy;rver["yz"]=rver["yz"]*fy;rver["y0"]=rver["y0"]*fy
-	rver["zx"]=rver["zx"]*fz;rver["zy"]=rver["zy"]*fz;rver["zz"]=rver["zz"]*fz;rver["z0"]=rver["z0"]*fz
-	rver
+transformRver=function(rver,ver,thetaX=NULL,thetaY=NULL,thetaZ=NULL,persp=0){
+	tver=ver*0
+	if(!is.null(thetaX)) rver=xRotateRver(rver,thetaX)
+	if(!is.null(thetaY)) rver=yRotateRver(rver,thetaY)
+	if(!is.null(thetaZ)) rver=zRotateRver(rver,thetaZ)
+	for(i in seq(length(ver),1,by=-3)-2){
+		tver[i+0]=ver[i]*rver["xx"]+ver[i+1]*rver["xy"]+ver[i+2]*rver["xz"]+rver["x0"]
+		tver[i+1]=ver[i]*rver["yx"]+ver[i+1]*rver["yy"]+ver[i+2]*rver["yz"]+rver["y0"]
+		tver[i+2]=ver[i]*rver["zx"]+ver[i+1]*rver["zy"]+ver[i+2]*rver["zz"]+rver["z0"]
+		if(persp>0){
+			tver[i+0]=tver[i+0]*(1-tver[i+2]/persp)
+			tver[i+1]=tver[i+1]*(1-tver[i+2]/persp)
+		}
+	}
+	return(tver)
 }
-translate=function(rver,fx,fy,fz){
+translateRver=function(rver,fx,fy,fz){
 	rver["x0"]=rver["x0"]+fx
 	rver["y0"]=rver["y0"]+fy
 	rver["z0"]=rver["z0"]+fz
 	rver
 }
-unit=function(){
+scaleRver=function(rver,fx,fy,fz){
+	rver["xx"]=rver["xx"]*fx;rver["xy"]=rver["xy"]*fx;rver["xz"]=rver["xz"]*fx;rver["x0"]=rver["x0"]*fx
+	rver["yx"]=rver["yx"]*fy;rver["yy"]=rver["yy"]*fy;rver["yz"]=rver["yz"]*fy;rver["y0"]=rver["y0"]*fy
+	rver["zx"]=rver["zx"]*fz;rver["zy"]=rver["zy"]*fz;rver["zz"]=rver["zz"]*fz;rver["z0"]=rver["z0"]*fz
+	rver
+}
+toStringRver=function(rver) {
+	x=paste0("[",rver["x0"],",",rver["xx"],",",rver["xy"],",",rver["xz"],";\n",
+		     rver["y0"],",",rver["yx"],",",rver["yy"],",",rver["yz"],";\n",
+		     rver["z0"],",",rver["zx"],",",rver["zy"],",",rver["zz"],"]");
+	message(x);return(x);
+}
+unitRver=function(){
 	rver=numeric(0)
 	rver["xx"]=1; rver["xy"]=0; rver["xz"]=0; rver["x0"]=0
 	rver["yx"]=0; rver["yy"]=1; rver["yz"]=0; rver["y0"]=0
 	rver["zx"]=0; rver["zy"]=0; rver["zz"]=1; rver["z0"]=0
 	rver
 }
-toString=function(rver) {
-	x=paste0("[",rver["x0"],",",rver["xx"],",",rver["xy"],",",rver["xz"],";\n",
-		     rver["y0"],",",rver["yx"],",",rver["yy"],",",rver["yz"],";\n",
-		     rver["z0"],",",rver["zx"],",",rver["zy"],",",rver["zz"],"]");
-	message(x);return(x);
+polArea=function(a,b,c) (a[1]*b[2]-a[2]*b[1] + b[1]*c[2]-b[2]*c[1] + b[1]*a[2]-b[2]*a[1])/2
+vecToVer=function(x,y,z) c(sapply(1:length(x), function(i) c(x[i],y[i],z[i])))
+vecLength=function(...)sqrt(sum(sapply(...,function(x)x^2)))
+vecDistance=function(a,b)sqrt(sum(sapply(1:length(a),function(i)(a[i]-b[i])^2)))
+vecCrossProduct <- function(x,y) {
+	if (is.vector(x) && is.vector(y)) {
+		if (length(x) == length(y) && length(x) == 3) {
+			xxy <- c(x[2]*y[3] - x[3]*y[2],
+			        x[3]*y[1] - x[1]*y[3],
+    		         	x[1]*y[2] - x[2]*y[1])
+		}
+	} else {
+		if (is.matrix(x) && is.matrix(y)) {
+			if (all(dim(x) == dim(y))) {
+				if (ncol(x) == 3) {
+                    			xxy <- cbind(x[, 2]*y[, 3] - x[, 3]*y[, 2],
+        			             	x[, 3]*y[, 1] - x[, 1]*y[, 3],
+            		             		x[,1 ]*y[, 2] - x[, 2]*y[, 1])
+				} else {
+					if (nrow(x) == 3) {
+                        			xxy <- rbind(x[2, ]*y[3, ] - x[3, ]*y[2, ],
+            			             	x[3, ]*y[1, ] - x[1, ]*y[3, ],
+                		             	x[1, ]*y[2, ] - x[2, ]*y[1, ])
+					}
+				}
+			}
+		} 
+	}
+	return(xxy)
+}		 
+sortCon=function(con,tver,fun=mean){
+	if(is.null(fun)) fun=mean
+	for(i in seq(1,length(con),by=2))
+	for(j in seq(1,length(con),by=2))
+	if(fun(c(tver[con[i]*3],ver[con[i+1]*3])) > fun(c(tver[con[j]*3],tver[con[j+1]*3]))){
+		h1=con[i];h2=con[i+1];
+		con[i]=con[j];con[i+1]=con[j+1];
+		con[j]=h1;con[j+1]=h2;
+	}
+	con
 }
+sortPol=function(pol,tver,fun=mean){
+	if(is.null(fun)) fun=mean
+	for(i in seq(1,length(pol),by=3))
+	for(j in seq(1,length(pol),by=3))
+	#if( max(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))>max(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3])) | (max(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))==max(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3])) & min(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))>min(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3]))) ) {
+	if(fun(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3])) > fun(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3]))){
+		h1=pol[i];h2=pol[i+1];h3=pol[i+2];
+		pol[i]=pol[j];pol[i+1]=pol[j+1];pol[i+2]=pol[j+2];
+		pol[j]=h1;pol[j+1]=h2;pol[j+2]=h3;
+	}
+	return(pol)
+}
+colourPol=function(pol,tver,col1="lightgrey",returnDegree=F){
+	d=numeric(0)
+	toDegree <- function(rad) rad * 57.29577951308232286465 # double for 180/pi
+	for(i in seq(1,length(pol),by=3)){
+		x1=tver[pol[i]*3-2];y1=tver[pol[i]*3-1];z1=tver[pol[i]*3-0]
+		x2=tver[pol[i+1]*3-2];y2=tver[pol[i+1]*3-1];z2=tver[pol[i+1]*3-0]
+		x3=tver[pol[i+2]*3-2];y3=tver[pol[i+2]*3-1];z3=tver[pol[i+2]*3-0]
+		v1=(y1-y2)*(z3-z2)-(z1-z2)*(y3-y2)
+		v2=(z1-z2)*(x3-x2)-(x1-x2)*(z3-z2)
+		v3=(x1-x2)*(y3-y2)-(y1-y2)*(x3-x2)
+		d=c(d,asin(sqrt((v1*v1+v2*v2)/(v1*v1+v2*v2+v3*v3))))
+	}
+	d=toDegree(d)
+	if(returnDegree) return(d)
+	d=round(d)
+	cols=unlist(lapply(1:length(d),function(i){
+		apply(col2rgb(col1), 2, function(x)
+			rgb( max(0,min(1,(x[1]-d[i])/255)),max(0,min(1,(x[2]-d[i])/255)),max(0,min(1,(x[3]-d[i])/255)) )
+		)
+	}))
+	cols
+ 	}
 form=function(form="cube",verbose=F)
 	if(form=="cube") {
 		if(verbose)message("Cube\n\n8 ------ 7 \n /|       /| \n 5 ------ 6| \n ||      | | \n |4 ------ 3 \n |/      |/  \n 1 ------2   ")
@@ -150,111 +252,7 @@ form=function(form="cube",verbose=F)
 146,134,133,149,147,28,147,27,28,125,150,148,123,152,147,123,147,149,125,148,151,150,137,136,152,139,138,59,154,153,61,155,154,62,156,155,62,153,156,67,153,154,68,154,155,69,155,156,67,156,153,64,158,157,65,159,158,65,160,159,66,157,160,72,157,158,72,158,159,74,159,160,71,160,157,152,163,27,152,27,147,150,124,28,150,28,164,151,148,164,151,164,163,28,165,164,146,165,29,146,29,141,144,128,30,144,30,166,145,142,166,145,166,165,43,163,164,44,164,165,46,165,166,26,171,170,31,173,172,32,170,173,42,170,171,47,172,173,41,173,170,174,168,167,174,167,169,75,78,77,80,82,81,161,181,180,180,162,58,168,178,177,169,177,179,187,166,30,187,30,31,178,187,172,184,166,187,175,187,178,175,186,187,26,27,188,188,27,163,185,188,163,179,171,188,176,179,188,176,188,186,183,161,58,162,185,183,181,184,187,186,180,181,182,188,185,186,182,180),
 		"con"=NULL))
 	} 
-readOBJ=function(file){
-	data=readLines(file,warn=F)
-	f=grep("^f ",data,value=T)
-	v=grep("^v ",data,value=T)
-	l=grep("^l ",data,value=T)
-	return(list(
-		"ver"=as.numeric(grep("[^v]",unlist(strsplit(v,"[ \n\r]+")),value=T)),		
-		"pol"=as.numeric(gsub("/.*","",grep("[^f]",unlist(strsplit(f,"[ \n]+")),value=T))),
-		"con"=unlist(lapply(strsplit(l,"[ \n]+"),function(x) as.numeric(rbind(x[-length(x)],x[-1])[,-1])))
-	))
-}
-toVer=function(x,y,z){
-	c(sapply(1:length(x), function(i) c(x[i],y[i],z[i])))
-}
-transform=function(ver,rver,thetaX=NULL,thetaY=NULL,thetaZ=NULL,persp=0){
-	tver=ver*0
-	if(!is.null(thetaX)) rver=xRotate(thetaX,rver)
-	if(!is.null(thetaY)) rver=yRotate(thetaY,rver)
-	if(!is.null(thetaZ)) rver=zRotate(thetaZ,rver)
-	for(i in seq(length(ver),1,by=-3)-2){
-		tver[i+0]=ver[i]*rver["xx"]+ver[i+1]*rver["xy"]+ver[i+2]*rver["xz"]+rver["x0"]
-		tver[i+1]=ver[i]*rver["yx"]+ver[i+1]*rver["yy"]+ver[i+2]*rver["yz"]+rver["y0"]
-		tver[i+2]=ver[i]*rver["zx"]+ver[i+1]*rver["zy"]+ver[i+2]*rver["zz"]+rver["z0"]
-		if(persp>0){
-			tver[i+0]=tver[i+0]*(1-tver[i+2]/persp)
-			tver[i+1]=tver[i+1]*(1-tver[i+2]/persp)
-		}
-	}
-	return(tver)
-}
-vectorLength=function(...)sqrt(sum(sapply(...,function(x)x^2)))
-vectorDistance=function(a,b)sqrt(sum(sapply(1:length(a),function(i)(a[i]-b[i])^2)))
-polygonArea=function(a,b,c) (a[1]*b[2]-a[2]*b[1] + b[1]*c[2]-b[2]*c[1] + b[1]*a[2]-b[2]*a[1])/2
-crossProduct <- function(x,y) {
-	if (is.vector(x) && is.vector(y)) {
-		if (length(x) == length(y) && length(x) == 3) {
-			xxy <- c(x[2]*y[3] - x[3]*y[2],
-			        x[3]*y[1] - x[1]*y[3],
-    		         	x[1]*y[2] - x[2]*y[1])
-		}
-	} else {
-		if (is.matrix(x) && is.matrix(y)) {
-			if (all(dim(x) == dim(y))) {
-				if (ncol(x) == 3) {
-                    			xxy <- cbind(x[, 2]*y[, 3] - x[, 3]*y[, 2],
-        			             	x[, 3]*y[, 1] - x[, 1]*y[, 3],
-            		             		x[,1 ]*y[, 2] - x[, 2]*y[, 1])
-				} else {
-					if (nrow(x) == 3) {
-                        			xxy <- rbind(x[2, ]*y[3, ] - x[3, ]*y[2, ],
-            			             	x[3, ]*y[1, ] - x[1, ]*y[3, ],
-                		             	x[1, ]*y[2, ] - x[2, ]*y[1, ])
-					}
-				}
-			}
-		} 
-	}
-	return(xxy)
-}		 
-colourPolygons=function(tver,pol,col1="lightgrey",returnDegree=F){
-	d=numeric(0)
-	toDegree <- function(rad) rad * 57.29577951308232286465 # double for 180/pi
-	for(i in seq(1,length(pol),by=3)){
-		x1=tver[pol[i]*3-2];y1=tver[pol[i]*3-1];z1=tver[pol[i]*3-0]
-		x2=tver[pol[i+1]*3-2];y2=tver[pol[i+1]*3-1];z2=tver[pol[i+1]*3-0]
-		x3=tver[pol[i+2]*3-2];y3=tver[pol[i+2]*3-1];z3=tver[pol[i+2]*3-0]
-		v1=(y1-y2)*(z3-z2)-(z1-z2)*(y3-y2)
-		v2=(z1-z2)*(x3-x2)-(x1-x2)*(z3-z2)
-		v3=(x1-x2)*(y3-y2)-(y1-y2)*(x3-x2)
-		d=c(d,asin(sqrt((v1*v1+v2*v2)/(v1*v1+v2*v2+v3*v3))))
-	}
-	d=toDegree(d)
-	if(returnDegree) return(d)
-	d=round(d)
-	cols=unlist(lapply(1:length(d),function(i){
-		apply(col2rgb(col1), 2, function(x)
-			rgb( max(0,min(1,(x[1]-d[i])/255)),max(0,min(1,(x[2]-d[i])/255)),max(0,min(1,(x[3]-d[i])/255)) )
-		)
-	}))
-	cols
- 	}
-sortCon=function(con,tver,fun=mean){
-	if(is.null(fun)) fun=mean
-	for(i in seq(1,length(con),by=2))
-	for(j in seq(1,length(con),by=2))
-	if(fun(c(tver[con[i]*3],ver[con[i+1]*3])) > fun(c(tver[con[j]*3],tver[con[j+1]*3]))){
-		h1=con[i];h2=con[i+1];
-		con[i]=con[j];con[i+1]=con[j+1];
-		con[j]=h1;con[j+1]=h2;
-	}
-	con
-}
-sortPol=function(pol,tver,fun=mean){
-	if(is.null(fun)) fun=mean
-	for(i in seq(1,length(pol),by=3))
-	for(j in seq(1,length(pol),by=3))
-	#if( max(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))>max(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3])) | (max(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))==max(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3])) & min(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3]))>min(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3]))) ) {
-	if(fun(c(tver[pol[i]*3],tver[pol[i+1]*3],tver[pol[i+2]*3])) > fun(c(tver[pol[j]*3],tver[pol[j+1]*3],tver[pol[j+2]*3]))){
-		h1=pol[i];h2=pol[i+1];h3=pol[i+2];
-		pol[i]=pol[j];pol[i+1]=pol[j+1];pol[i+2]=pol[j+2];
-		pol[j]=h1;pol[j+1]=h2;pol[j+2]=h3;
-	}
-	return(pol)
-}
-plotPoints=function(tver,rver,con,add=F,col1="lightgrey",col2="black",subset=NULL,lim=NULL){
+plotPoints=function(rver,tver,add=F,col1="lightgrey",col2="black",subset=NULL,lim=NULL){
 	if(is.null(lim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
 	if(add==F) plot(c(lim[1],lim[2]),c(lim[1],lim[2]),type="n",axes=F,xlab=NA,ylab=NA)
@@ -270,7 +268,7 @@ plotPoints=function(tver,rver,con,add=F,col1="lightgrey",col2="black",subset=NUL
 		points(tver[i+0],tver[i+1],pch=16,col=cols[rank(z,ties.method="min")[co]])
 	}
 }
-plotWireframe=function(tver,rver,con,add=F,col1="lightgrey",col2="black",subset=NULL,lim=NULL,fun=mean){
+plotWireframe=function(rver,tver,con,add=F,col1="lightgrey",col2="black",subset=NULL,lim=NULL,fun=mean){
 	if(is.null(lim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
 	if(add==F) plot(c(lim[1],lim[2]),c(lim[1],lim[2]),type="n",axes=F,xlab=NA,ylab=NA)
@@ -288,17 +286,17 @@ plotWireframe=function(tver,rver,con,add=F,col1="lightgrey",col2="black",subset=
 		col=cols[rank(z,ties.method="min")[co]])
 	}
 }
-plotPolygons=function(tver,rver,pol,add=F,col1="lightgrey",col2="black",border="black",culling="none",lim=NULL,fun=mean){
+plotPolygons=function(rver,tver,pol,add=F,col1="lightgrey",col2="black",border="black",culling="none",lim=NULL,fun=mean){
 	if(is.null(lim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
 	if(add==F) plot(c(lim[1],lim[2]),c(lim[1],lim[2]),type="n",axes=F,xlab=NA,ylab=NA)
 	if(is.null(culling))culling="none"
 	pol=sortPol(pol,tver,fun);
-	cols=colourPolygons(tver,pol,col1)
+	cols=colourPol(pol,tver,col1)
 	co=0
 	for(i in seq(1,length(pol),by=3)){
 		co=co+1
-      		cp=crossProduct(
+      		cp=vecCrossProduct(
             		c(tver[pol[i+1]*3-2]-tver[pol[i+0]*3-2],tver[pol[i+1]*3-1]-tver[pol[i+0]*3-1],tver[pol[i+1]*3-0]-tver[pol[i+0]*3-0]),
             		c(-tver[pol[i+2]*3-2]+tver[pol[i+0]*3-2],-tver[pol[i+2]*3-1]+tver[pol[i+0]*3-1],-tver[pol[i+2]*3-0]+tver[pol[i+0]*3-0]))
   		if((culling!="front"&culling!="back")|(cp%*%c(0,0,-1)>=0&culling=="back")|(cp%*%c(0,0,-1)<=0&culling=="front"))
@@ -308,16 +306,16 @@ plotPolygons=function(tver,rver,pol,add=F,col1="lightgrey",col2="black",border="
 			col=cols[co],border=border)
 	}
 }
-interactivePolygonPlot=function(tver,rver,pol,border="blue",lim=NULL,culling="back"){
+interactivePolygonPlot=function(rver,pol,border="blue",lim=NULL,culling="back"){
     dev.new();
     if(is.null(lim))lim=c(min(tver),max(tver))
     p=function(a=F,tx=0,ty=0,tz=0){
     print(paste(tx,";",ty,";",tz))
-    	tver=transform(ver,rver,thetaX=tx,thetaY=ty,thetaZ=tz);
-    	plotPolygons(tver,rver,pol,border=border, lim=lim, add=a, culling=culling);
+    	tver=transformRver(rver,ver,thetaX=tx,thetaY=ty,thetaZ=tz);
+    	plotPolygons(rver,tver,pol,border=border, lim=lim, add=a, culling=culling);
     }
     p(F)
-    prevx=0;prevy=0;ax=0;ay=0;thetax=0;thetay=0;drag=F;
+    thetax=0;thetay=0;
     toDegree <- function(rad) rad * 57.29577951308232286465 
     toRadians <- function(deg) deg / 57.29577951308232286465 
     f=function(prompt="Move the cube with cursor keys") getGraphicsEvent(
@@ -339,11 +337,27 @@ interactivePolygonPlot=function(tver,rver,pol,border="blue",lim=NULL,culling="ba
     )
     f()
 }
+scattergram3D=function(x,y,z,thetaX=320,thetaY=320,thetaZ=0,col1="darkgrey",col2="black",border=NA){
+    cube=form("cube")
+    ver=cube$ver
+    con=cube$con
+    pol=cube$pol
+    rver=unitRver()
+    tver=transformRver(rver,ver,thetaX,thetaY,thetaZ)
+    max=max(c(abs(x),abs(y),abs(z)),na.rm=T)
+    x=x/max;y=y/max;z=z/max;
+    poi=vecToVer(x,y,z)
+    tver2=transformRver(rver,poi,thetaX,thetaY,thetaZ)
+    #plotPolygons(rver,tver,pol,culling="front",border=border,add=F,col1=col1);
+    plotWireframe(rver,tver,con,add=F,subset="back")
+    plotPoints(rver,tver2,add=T,col1=col1,col2=col2)
+    plotWireframe(rver,tver,con,add=T,subset="front")
 
+}
 
-#####################
-# Build treeD-Package
-#####################
+######################
+# Build threeD-Package
+######################
 
 functions=ls()
 
@@ -420,41 +434,39 @@ devtools::install(package.name);
 
 library(threeD)
 
-ver=form()$ver
-con=form()$con
-pol=form()$pol
-rver=unit()
-tver=transform(ver,rver,thetaX=320,thetaY=320,thetaZ=0)
+set.seed(0)
+scattergram3D(rnorm(100),rnorm(100),rnorm(100))		 
 
+ver=form("sphere")$ver
+con=form("sphere")$con
+pol=form("sphere")$pol
+rver=unitRver()
+tver=transformRver(rver,ver,thetaX=10,thetaY=10,thetaZ=10);
 nv=length(ver)/3
 nc=length(con)/2
 np=length(pol)/3
-
-set.seed(0);
-poi=toVer(x=rnorm(100)/4,y=rnorm(100)/4,z=rnorm(100)/4);poi[poi>1]=1
-tver2=transform(poi,rver,thetaX=320,thetaY=320,thetaZ=0)
-
 dev.new();
-plotPolygons(tver,rver,pol,culling="front",border=NA, add=F);
-plotPoints(tver2,rver,con,add=T)
+plotPolygons(rver,tver,pol,col1="red",border=NA,lim=NULL,add=F,culling="back");
 
-dev.new();
-tver=transform(ver,rver,thetaX=10,thetaY=10,thetaZ=10);
-plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F, culling="back");
-		 
-dev.new();
-plotWireframe(tver,rver,con,add=F,subset="back")
-plotPoints(tver2,rver,con,add=T)
-plotWireframe(tver,rver,con,add=T,subset="front")
-
+ver=form("cone")$ver
+con=form("cone")$con
+pol=form("cone")$pol
+rver=unitRver()
+tver=transformRver(rver,ver,thetaX=10,thetaY=10,thetaZ=10);
 dev.new();
 par(mfrow=c(4,10))
 a=seq(10,360,length.out=10);
-for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=i,thetaY=0,thetaZ=0);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
-for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=0,thetaY=i,thetaZ=0);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
-for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=0,thetaY=0,thetaZ=i);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
-for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=i,thetaY=i,thetaZ=i);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=i,thetaY=0,thetaZ=0);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=0,thetaY=i,thetaZ=0);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=0,thetaY=0,thetaZ=i);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=i,thetaY=i,thetaZ=i);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
 
-interactivePolygonPlot(tver,rver,pol,lim=c(-2,2))
+
+ver=form("cube")$ver
+con=form("cube")$con
+pol=form("cube")$pol
+rver=unitRver()
+tver=transformRver(rver,ver,thetaX=20,thetaY=340,thetaZ=0);
+interactivePolygonPlot(rver,pol,lim=c(-2,2))
 
 
