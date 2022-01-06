@@ -149,7 +149,7 @@ sortCon=function(con,tver,fun=mean){
 	if(is.null(fun)) fun=mean
 	for(i in seq(1,length(con),by=2))
 	for(j in seq(1,length(con),by=2))
-	if(fun(c(tver[con[i]*3],ver[con[i+1]*3])) > fun(c(tver[con[j]*3],tver[con[j+1]*3]))){
+	if(fun(c(tver[con[i]*3],tver[con[i+1]*3])) > fun(c(tver[con[j]*3],tver[con[j+1]*3]))){
 		h1=con[i];h2=con[i+1];
 		con[i]=con[j];con[i+1]=con[j+1];
 		con[j]=h1;con[j+1]=h2;
@@ -338,7 +338,7 @@ interactivePolygonPlot=function(rver,pol,border="blue",lim=NULL,culling="back"){
     f()
 }
 scattergram3D=function(x,y,z,thetaX=320,thetaY=320,thetaZ=0,col1="darkgrey",col2="black",border=NA){
-    cube=form("cube")
+    cube=form("cube")    
     ver=cube$ver
     con=cube$con
     pol=cube$pol
