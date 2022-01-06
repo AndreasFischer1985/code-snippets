@@ -308,23 +308,130 @@ plotPolygons=function(tver,rver,pol,add=F,col1="lightgrey",col2="black",border="
 			col=cols[co],border=border)
 	}
 }
+interactivePolygonPlot=function(tver,rver,pol,border="blue",lim=NULL,culling="back"){
+    dev.new();
+    if(is.null(lim))lim=c(min(tver),max(tver))
+    p=function(a=F,tx=0,ty=0,tz=0){
+    print(paste(tx,";",ty,";",tz))
+    	tver=transform(ver,rver,thetaX=tx,thetaY=ty,thetaZ=tz);
+    	plotPolygons(tver,rver,pol,border=border, lim=lim, add=a, culling=culling);
+    }
+    p(F)
+    prevx=0;prevy=0;ax=0;ay=0;thetax=0;thetay=0;drag=F;
+    toDegree <- function(rad) rad * 57.29577951308232286465 
+    toRadians <- function(deg) deg / 57.29577951308232286465 
+    f=function(prompt="Move the cube with cursor keys") getGraphicsEvent(
+    	prompt=prompt,
+    	onKeybd=function(x){
+    		if(x=="ctrl-["){ print(paste("thetax=",thetax,"; thetay=",thetay)); return("ctrl-[")}
+    		if(x=="Down")  thetax<<-thetax+5
+    		if(x=="Left")  thetay<<-thetay+5
+    		if(x=="Right") thetay<<-thetay-5
+    		if(x=="Up")    thetax<<-thetax-5
+    		if(thetax>360)thetax<<-thetax-360
+    		if(thetay>360)thetay<<-thetay-360
+    		if(thetax<0)thetax<<-360+thetax
+       		if(thetay<0)thetay<<-360+thetay
+	    	p(F,thetax,thetay);
+	    	f(paste(x,"; ",thetax,";",thetay));
+	    	return(-1)
+	    	NULL}
+    )
+    f()
+}
+
+
+#####################
+# Build treeD-Package
+#####################
+
+functions=ls()
+
+library(roxygen2)
+library(devtools)
+package.name="threeD";
+remove.packages(package.name); 
+g=getwd();
+dir.create("MyPackages");
+setwd("MyPackages")
+
+if(F){
+	remove.packages("threeD"); 
+	devtools::install_github("AndreasFischer1985/qqBaseX")
+}
+
+create=function(name, description, 
+	rproj=list("Version"="1.0","RestoreWorkspace"="No","SaveWorkspace"="No","AlwaysSaveHistory"="Default","EnableCodeIndexing"="Yes","Encoding"="UTF-8","AutoAppendNewline"="Yes","StripTrailingWhitespace"="Yes","BuildType"="Package","PackageUseDevtools"="Yes","PackageInstallArgs"="--no-multiarch --with-keep.source","PackageRoxygenize"="rd,collate,namespace"),
+	gitignore=c(".Rproj.user"),
+	rbuildignore=c(paste0("^",name,"\\.Rproj$"),"^\\.Rproj\\.user$")
+){
+	wd=getwd()
+	if(!dir.exists(name))dir.create(name);
+	setwd(name)
+	writeList=function(list,file)write(paste0(names(list),(unlist(lapply(list,function(x)paste0(": ",x))))),file=file)
+	writeList(list=description,file="DESCRIPTION")
+	writeList(list=rproj,file=paste0(name,".Rproj"))
+	write(gitignore,file=".gitignore")
+	write(rbuildignore,file=".RBuildignore")
+	setwd(wd)
+};
+
+create(package.name,
+description=list(
+"Package"="threeD",
+"Title"="Basic functions for plotting and manipulating 3D-Objects based on R's default packages.",
+"Version"="0.0.1",
+"Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
+"Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
+"Description"=
+paste(
+	"The threeD package provides basic functions for plotting and manipulating 3D-Objects. It was written to extend R's default packages without introducing dependencies on other packages."
+),
+"Depends"="R (>= 3.0.0)",
+"License"="GPL-2",
+"Encoding"="UTF-8",
+"LazyData"="true",
+"RoxygenNote"="6.1.0",
+"VignetteBuilder"="knitr")
+);
+
+setwd(package.name)
+readLines("DESCRIPTION")
+
+if(!dir.exists("R"))dir.create("R");
+setwd("R")
+
+for(i in 1:length(functions))
+    write(
+        paste0("#' Function ",functions[i],"\n#' \n#' @export\n",
+            functions[i]," <- ",
+            paste(deparse(get(functions[i])),collapse="\n")),
+        file=paste0(functions[i],".r"))
+
+setwd("..");
+devtools::document();
+setwd("..");
+devtools::install(package.name);
+
 
 ####################
-# Example
+# Examples
 ####################
+
+library(threeD)
 
 ver=form()$ver
 con=form()$con
 pol=form()$pol
-
-set.seed(0);
-poi=toVer(x=rnorm(100)/4,y=rnorm(100)/4,z=rnorm(100)/4);poi[poi>1]=1
+rver=unit()
+tver=transform(ver,rver,thetaX=320,thetaY=320,thetaZ=0)
 
 nv=length(ver)/3
 nc=length(con)/2
-rver=unit()
+np=length(pol)/3
 
-tver=transform(ver,rver,thetaX=320,thetaY=320,thetaZ=0)
+set.seed(0);
+poi=toVer(x=rnorm(100)/4,y=rnorm(100)/4,z=rnorm(100)/4);poi[poi>1]=1
 tver2=transform(poi,rver,thetaX=320,thetaY=320,thetaZ=0)
 
 dev.new();
@@ -348,32 +455,6 @@ for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=0,thetaY=i,theta
 for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=0,thetaY=0,thetaZ=i);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
 for(i in a) {par(mar=c(0,0,0,0));tver=transform(ver,rver,thetaX=i,thetaY=i,thetaZ=i);plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=F);}
 
-dev.new();
-p=function(a=F,tx=0,ty=0,tz=0){
-print(paste(tx,";",ty,";",tz))
-	tver=transform(ver,rver,thetaX=tx,thetaY=ty,thetaZ=tz);
-	plotPolygons(tver,rver,pol,border="blue", lim=c(-2,2), add=a, culling="back");
-}
-p(F)
-prevx=0;prevy=0;ax=0;ay=0;thetax=0;thetay=0;drag=F;
-toDegree <- function(rad) rad * 57.29577951308232286465 
-toRadians <- function(deg) deg / 57.29577951308232286465 
-f=function(prompt="Move the cube with cursor keys") getGraphicsEvent(
-	prompt=prompt,
-	onKeybd=function(x){
-		if(x=="ctrl-["){ print(paste("thetax=",thetax,"; thetay=",thetay)); return("ctrl-[")}
-		if(x=="Down")  thetax<<-thetax+5
-		if(x=="Left")  thetay<<-thetay+5
-		if(x=="Right") thetay<<-thetay-5
-		if(x=="Up")    thetax<<-thetax-5
-		if(thetax>360)thetax<<-thetax-360
-		if(thetay>360)thetay<<-thetay-360
-		if(thetax<0)thetax<<-360+thetax
-		if(thetay<0)thetay<<-360+thetay
-		p(F,thetax,thetay);
-		f(paste(x,"; ",thetax,";",thetay));
-		return(-1)
-		NULL}
-)
-f()
+interactivePolygonPlot(tver,rver,pol,lim=c(-2,2))
+
 
