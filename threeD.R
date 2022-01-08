@@ -168,7 +168,7 @@ sortPol=function(pol,tver,fun=mean){
 	}
 	return(pol)
 }
-colourPol=function(pol,tver,col1="lightgrey",returnDegree=F){
+colourPol=function(pol,tver,col="lightgrey",transparency=0, returnDegree=F){
 	d=numeric(0)
 	toDegree <- function(rad) rad * 57.29577951308232286465 # double for 180/pi
 	for(i in seq(1,length(pol),by=3)){
@@ -184,12 +184,12 @@ colourPol=function(pol,tver,col1="lightgrey",returnDegree=F){
 	if(returnDegree) return(d)
 	d=round(d)
 	cols=unlist(lapply(1:length(d),function(i){
-		apply(col2rgb(col1), 2, function(x)
-			rgb( max(0,min(1,(x[1]-d[i])/255)),max(0,min(1,(x[2]-d[i])/255)),max(0,min(1,(x[3]-d[i])/255)) )
+		apply(col2rgb(col), 2, function(x)
+			rgb( max(0,min(1,(x[1]-d[i])/255)), max(0,min(1,(x[2]-d[i])/255)), max(0,min(1,(x[3]-d[i])/255)), 1-transparency)
 		)
 	}))
 	cols
- 	}
+}
 form=function(form="cube",verbose=F)
 	if(form=="cube") {
 		if(verbose)message("Cube\n\n8 ------ 7 \n /|       /| \n 5 ------ 6| \n ||      | | \n |4 ------ 3 \n |/      |/  \n 1 ------2   ")
@@ -252,12 +252,14 @@ form=function(form="cube",verbose=F)
 146,134,133,149,147,28,147,27,28,125,150,148,123,152,147,123,147,149,125,148,151,150,137,136,152,139,138,59,154,153,61,155,154,62,156,155,62,153,156,67,153,154,68,154,155,69,155,156,67,156,153,64,158,157,65,159,158,65,160,159,66,157,160,72,157,158,72,158,159,74,159,160,71,160,157,152,163,27,152,27,147,150,124,28,150,28,164,151,148,164,151,164,163,28,165,164,146,165,29,146,29,141,144,128,30,144,30,166,145,142,166,145,166,165,43,163,164,44,164,165,46,165,166,26,171,170,31,173,172,32,170,173,42,170,171,47,172,173,41,173,170,174,168,167,174,167,169,75,78,77,80,82,81,161,181,180,180,162,58,168,178,177,169,177,179,187,166,30,187,30,31,178,187,172,184,166,187,175,187,178,175,186,187,26,27,188,188,27,163,185,188,163,179,171,188,176,179,188,176,188,186,183,161,58,162,185,183,181,184,187,186,180,181,182,188,185,186,182,180),
 		"con"=NULL))
 	} 
-plotPoints=function(rver,tver,add=F,col1="lightgrey",col2="black",subset=NULL,lim=NULL){
-	if(is.null(lim)) {
+plotPoints=function(tver,add=F,col=c("lightgrey","black"),subset=NULL,xlim=NULL,ylim=NULL){
+	if(is.null(xlim)|is.null(ylim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
-	if(add==F) plot(c(lim[1],lim[2]),c(lim[1],lim[2]),type="n",axes=F,xlab=NA,ylab=NA)
+	if(add==F) plot(c(xlim[1],xlim[2]),c(ylim[1],ylim[2]),type="n",axes=F,xlab=NA,ylab=NA)
 	z=sapply(seq(1,length(tver),by=3),function(i) tver[i+2])
-	cols=colorRampPalette(c(col2,col1))(length(levels(as.factor(z))));
+    if(is.null(col))col="black";
+    if(length(col)==1)col=rep(col,2)
+	cols=colorRampPalette(c(col[2],col[1]))(length(levels(as.factor(z))));
 	if(!is.null(subset)){
 		if(subset=="front")cols[z<=0]=NA
 		if(subset=="back")cols[z>0]=NA
@@ -268,13 +270,15 @@ plotPoints=function(rver,tver,add=F,col1="lightgrey",col2="black",subset=NULL,li
 		points(tver[i+0],tver[i+1],pch=16,col=cols[rank(z,ties.method="min")[co]])
 	}
 }
-plotWireframe=function(rver,tver,con,add=F,col1="lightgrey",col2="black",subset=NULL,lim=NULL,fun=mean){
-	if(is.null(lim)) {
+plotWireframe=function(tver,con,add=F,col=c("lightgrey","black"),subset=NULL,xlim=NULL,ylim=NULL,fun=mean){
+	if(is.null(xlim)|is.null(ylim)) {   
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
-	if(add==F) plot(c(lim[1],lim[2]),c(lim[1],lim[2]),type="n",axes=F,xlab=NA,ylab=NA)
+	if(add==F) plot(c(xlim[1],xlim[2]),c(ylim[1],ylim[2]),type="n",axes=F,xlab=NA,ylab=NA)
 	con=sortCon(con,tver,fun);
 	z=sapply(seq(1,length(con),by=2),function(i) (tver[con[i]*3]+tver[con[i+1]*3])/2)
-	cols=colorRampPalette(c(col2,col1))(length(levels(as.factor(z))));
+    if(is.null(col))col="black";
+    if(length(col)==1)col=rep(col,2)
+	cols=colorRampPalette(c(col[2],col[1]))(length(levels(as.factor(z))));
 	if(!is.null(subset)){
 		if(subset=="front")cols[z<=0]=NA
 		if(subset=="back")cols[z>0]=NA
@@ -286,13 +290,13 @@ plotWireframe=function(rver,tver,con,add=F,col1="lightgrey",col2="black",subset=
 		col=cols[rank(z,ties.method="min")[co]])
 	}
 }
-plotPolygons=function(rver,tver,pol,add=F,col1="lightgrey",col2="black",border="black",culling="none",lim=NULL,fun=mean){
-	if(is.null(lim)) {
+plotPolygons=function(tver,pol,add=F,col="lightgrey",transparency=0,border="black",culling="none",xlim=NULL,ylim=NULL,fun=mean){
+	if(is.null(xlim)|is.null(ylim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
-	if(add==F) plot(c(lim[1],lim[2]),c(lim[1],lim[2]),type="n",axes=F,xlab=NA,ylab=NA)
+	if(add==F) plot(c(xlim[1],xlim[2]),c(ylim[1],ylim[2]),type="n",axes=F,xlab=NA,ylab=NA)
 	if(is.null(culling))culling="none"
 	pol=sortPol(pol,tver,fun);
-	cols=colourPol(pol,tver,col1)
+	cols=colourPol(pol,tver,col,transparency=transparency)
 	co=0
 	for(i in seq(1,length(pol),by=3)){
 		co=co+1
@@ -306,13 +310,14 @@ plotPolygons=function(rver,tver,pol,add=F,col1="lightgrey",col2="black",border="
 			col=cols[co],border=border)
 	}
 }
-interactivePolygonPlot=function(rver,pol,border="blue",lim=NULL,culling="back"){
+interactivePolygonPlot=function(rver,pol,border="blue",xlim=NULL,ylim=NULL,culling="back"){
     dev.new();
-    if(is.null(lim))lim=c(min(tver),max(tver))
+    if(is.null(xlim))xlim=c(min(tver),max(tver))
+    if(is.null(ylim))ylim=c(min(tver),max(tver))
     p=function(a=F,tx=0,ty=0,tz=0){
     print(paste(tx,";",ty,";",tz))
     	tver=transformRver(rver,ver,thetaX=tx,thetaY=ty,thetaZ=tz);
-    	plotPolygons(rver,tver,pol,border=border, lim=lim, add=a, culling=culling);
+    	plotPolygons(tver,pol,border=border,xlim=xlim,ylim=ylim,add=a,culling=culling);
     }
     p(F)
     thetax=0;thetay=0;
@@ -337,7 +342,7 @@ interactivePolygonPlot=function(rver,pol,border="blue",lim=NULL,culling="back"){
     )
     f()
 }
-scattergram3D=function(x,y,z,thetaX=320,thetaY=320,thetaZ=0,col1="darkgrey",col2="black",border=NA){
+scattergram3D=function(x,y,z,thetaX=320,thetaY=320,thetaZ=0,col=c("darkgrey","black"),border=NA, main="3D Scattergram"){
     cube=form("cube")    
     ver=cube$ver
     con=cube$con
@@ -348,12 +353,64 @@ scattergram3D=function(x,y,z,thetaX=320,thetaY=320,thetaZ=0,col1="darkgrey",col2
     x=x/max;y=y/max;z=z/max;
     poi=vecToVer(x,y,z)
     tver2=transformRver(rver,poi,thetaX,thetaY,thetaZ)
-    #plotPolygons(rver,tver,pol,culling="front",border=border,add=F,col1=col1);
-    plotWireframe(rver,tver,con,add=F,subset="back")
-    plotPoints(rver,tver2,add=T,col1=col1,col2=col2)
-    plotWireframe(rver,tver,con,add=T,subset="front")
-
+    #plotPolygons(tver,pol,culling="front",border=border,add=F,col=col);
+    if(is.null(col))col="black";
+    if(length(col)==1)col=rep(col,2)
+    plotWireframe(tver,con,add=F,subset="back")
+    plotPoints(tver2,add=T,col=col)
+    plotWireframe(tver,con,add=T,subset="front")
+    if(!is.null(main))title(main)
 }
+barplot3D=function(x,col=NULL,transparency=.2,xlim=NULL,ylim=NULL,main="3D Barplot",thetaX=10,thetaY=10,thetaZ=0,add.numbers=F,txt.srt=0,txt.pos=3){   
+    x=cbind(x);    
+    bar=list(
+   		"ver"=c(-1,0,-1, +1,0,-1, +1,0,+1, -1,0,+1, -1,+2,-1, +1,+2,-1, +1,+2,+1, -1,+2,+1),
+		"pol"=c(1,3,2, 1,4,3, 5,6,7, 5,7,8, 1,2,5, 2,6,5, 2,3,7, 2,7,6, 1,8,4, 1,5,8, 3,4,8, 3,8,7),
+		"con"=c(1,2, 2,3, 3,4, 1,4, 5,6, 6,7, 7,8, 5,8, 1,5, 2,6, 3,7, 4,8))
+    ver=bar$ver
+    con=bar$con
+    pol=bar$pol
+    rver=unitRver()
+    tver=transformRver(rver,ver,thetaX=thetaX,thetaY=thetaY,thetaZ=thetaZ);
+    ver2=ver
+    ver2[seq(1,length(ver),by=3)+1] = ver[seq(1,length(ver),by=3)+1]*max(x)
+    ver2[seq(1,length(ver),by=3)+2] = ver[seq(1,length(ver),by=3)+2]+(dim(x)[2]-1)*3
+    ver2[seq(1,length(ver),by=3)+0] = ver[seq(1,length(ver),by=3)+0]+(1-1)*3
+    ver3=ver
+    ver3[seq(1,length(ver),by=3)+1] = ver[seq(1,length(ver),by=3)+1]*0
+    ver3[seq(1,length(ver),by=3)+2] = ver[seq(1,length(ver),by=3)+2]+(1-1)*3
+    ver3[seq(1,length(ver),by=3)+0] = ver[seq(1,length(ver),by=3)+0]+(dim(x)[1]-1)*3
+    tver2=transformRver(rver,ver2,thetaX=thetaX,thetaY=thetaY,thetaZ=thetaZ);
+    tver3=transformRver(rver,ver3,thetaX=thetaX,thetaY=thetaY,thetaZ=thetaZ);
+    if(is.null(xlim))xlim=c(
+            min(tver2[seq(1,length(tver2),by=3)+0]),
+            max(tver2[seq(1,length(tver2),by=3)+0]+(dim(x)[1]-1)*3))
+    d1=abs(min(tver2[seq(1,length(tver2),by=3)+1])-min(tver3[seq(1,length(tver3),by=3)+1]))
+    d2=(sort(tver2[seq(1,length(tver2),by=3)+1],decreasing=T)[1:2]);d2=d2[1]-d2[2]
+    if(is.null(ylim))ylim=c(
+            min(tver2[seq(1,length(tver2),by=3)+1])-d1*dim(x)[2],
+            max(tver2[seq(1,length(tver2),by=3)+1])+d2*dim(x)[1])
+    plotPolygons(tver,pol,col=NA,transparency=transparency,border=NA,xlim=xlim,ylim=ylim,add=F,culling="back");
+    if(is.null(col))col=rainbow(dim(x)[1])
+    k=1;x1=numeric(0);y1=numeric(0);v1=numeric(0);
+    for(i in 1:dim(x)[1])
+        for(j in dim(x)[2]:1){         
+            ver2=ver
+            ver2[seq(1,length(ver),by=3)+1] = ver[seq(1,length(ver),by=3)+1]*x[i,j]
+            ver2[seq(1,length(ver),by=3)+2] = ver[seq(1,length(ver),by=3)+2]+(j-1)*3
+            ver2[seq(1,length(ver),by=3)+0] = ver[seq(1,length(ver),by=3)+0]+(i-1)*3            
+            tver2=transformRver(rver,ver2,thetaX=thetaX,thetaY=thetaY,thetaZ=thetaZ);
+            plotPolygons(tver2,pol,col=col[i],transparency=transparency,border=NA,xlim=xlim,ylim=ylim,add=T,culling="back");
+            k=k+1
+            x1=c(x1,mean(tver2[seq(1,length(tver),by=3)+0][order(tver2[seq(1,length(tver),by=3)+1],decreasing=T)[1:2]]))
+            y1=c(y1,max(tver2[seq(1,length(tver),by=3)+1]))
+            v1=c(v1,x[i,j])
+    }
+    if(!is.null(main))title(main)
+    if(add.numbers==T)text(x1,y1,v1,srt=txt.srt,pos=txt.pos,xpd=T)
+    return(list(x=x1,y=y1,value=v1))
+}
+
 
 ######################
 # Build threeD-Package
@@ -394,12 +451,12 @@ create(package.name,
 description=list(
 "Package"="threeD",
 "Title"="Basic functions for plotting and manipulating 3D-Objects based on R's default packages.",
-"Version"="0.0.1",
+"Version"="0.0.3",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
 paste(
-	"The threeD package provides basic functions for plotting and manipulating 3D-Objects. It was written to extend R's default packages without introducing dependencies on other packages."
+	"The threeD package provides basic functions for parsing, plotting and manipulating 3D-Objects. It was written to extend R's default packages without introducing dependencies on other packages."
 ),
 "Depends"="R (>= 3.0.0)",
 "License"="GPL-2",
@@ -434,7 +491,12 @@ devtools::install(package.name);
 
 library(threeD)
 
+x=cbind(c(1,2,3),c(2,2,2),c(3,2,1))
+dev.new();
+b=barplot3D(x,add.numbers=T)
+
 set.seed(0)
+dev.new();
 scattergram3D(rnorm(100),rnorm(100),rnorm(100))		 
 
 ver=form("sphere")$ver
@@ -446,7 +508,7 @@ nv=length(ver)/3
 nc=length(con)/2
 np=length(pol)/3
 dev.new();
-plotPolygons(rver,tver,pol,col1="red",border=NA,lim=NULL,add=F,culling="back");
+plotPolygons(tver,pol,col="red",border=NA,add=F,culling="back");
 
 ver=form("cone")$ver
 con=form("cone")$con
@@ -454,19 +516,19 @@ pol=form("cone")$pol
 rver=unitRver()
 tver=transformRver(rver,ver,thetaX=10,thetaY=10,thetaZ=10);
 dev.new();
-par(mfrow=c(4,10))
-a=seq(10,360,length.out=10);
-for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=i,thetaY=0,thetaZ=0);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
-for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=0,thetaY=i,thetaZ=0);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
-for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=0,thetaY=0,thetaZ=i);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
-for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=i,thetaY=i,thetaZ=i);plotPolygons(rver,tver,pol,border="blue", lim=NULL, add=F);}
-
+par(mfrow=c(4,5))
+a=seq(10,360,length.out=5);
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=i,thetaY=0,thetaZ=0);plotPolygons(tver,pol,border="blue", add=F);}
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=0,thetaY=i,thetaZ=0);plotPolygons(tver,pol,border="blue", add=F);}
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=0,thetaY=0,thetaZ=i);plotPolygons(tver,pol,border="blue", add=F);}
+for(i in a) {par(mar=c(0,0,0,0));tver=transformRver(rver,ver,thetaX=i,thetaY=i,thetaZ=i);plotPolygons(tver,pol,border="blue", add=F);}
 
 ver=form("cube")$ver
 con=form("cube")$con
 pol=form("cube")$pol
 rver=unitRver()
 tver=transformRver(rver,ver,thetaX=20,thetaY=340,thetaZ=0);
-interactivePolygonPlot(rver,pol,lim=c(-2,2))
+interactivePolygonPlot(rver,pol,xlim=c(-2,2),ylim=c(-2,2))
+
 
 
