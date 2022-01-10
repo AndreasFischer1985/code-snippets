@@ -252,7 +252,7 @@ form=function(form="cube",verbose=F)
 146,134,133,149,147,28,147,27,28,125,150,148,123,152,147,123,147,149,125,148,151,150,137,136,152,139,138,59,154,153,61,155,154,62,156,155,62,153,156,67,153,154,68,154,155,69,155,156,67,156,153,64,158,157,65,159,158,65,160,159,66,157,160,72,157,158,72,158,159,74,159,160,71,160,157,152,163,27,152,27,147,150,124,28,150,28,164,151,148,164,151,164,163,28,165,164,146,165,29,146,29,141,144,128,30,144,30,166,145,142,166,145,166,165,43,163,164,44,164,165,46,165,166,26,171,170,31,173,172,32,170,173,42,170,171,47,172,173,41,173,170,174,168,167,174,167,169,75,78,77,80,82,81,161,181,180,180,162,58,168,178,177,169,177,179,187,166,30,187,30,31,178,187,172,184,166,187,175,187,178,175,186,187,26,27,188,188,27,163,185,188,163,179,171,188,176,179,188,176,188,186,183,161,58,162,185,183,181,184,187,186,180,181,182,188,185,186,182,180),
 		"con"=NULL))
 	} 
-plotPoints=function(tver,add=F,col=c("lightgrey","black"),subset=NULL,xlim=NULL,ylim=NULL){
+plotPoints=function(tver=form("cube")$ver,add=F,col=c("lightgrey","black"),subset=NULL,xlim=NULL,ylim=NULL){
 	if(is.null(xlim)|is.null(ylim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
 	if(add==F) plot(c(xlim[1],xlim[2]),c(ylim[1],ylim[2]),type="n",axes=F,xlab=NA,ylab=NA)
@@ -270,7 +270,7 @@ plotPoints=function(tver,add=F,col=c("lightgrey","black"),subset=NULL,xlim=NULL,
 		points(tver[i+0],tver[i+1],pch=16,col=cols[rank(z,ties.method="min")[co]])
 	}
 }
-plotWireframe=function(tver,con,add=F,col=c("lightgrey","black"),subset=NULL,xlim=NULL,ylim=NULL,fun=mean){
+plotWireframe=function(tver=form("cube")$ver,con=form("cube")$con,add=F,col=c("lightgrey","black"),subset=NULL,xlim=NULL,ylim=NULL,fun=mean){
 	if(is.null(xlim)|is.null(ylim)) {   
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
 	if(add==F) plot(c(xlim[1],xlim[2]),c(ylim[1],ylim[2]),type="n",axes=F,xlab=NA,ylab=NA)
@@ -290,13 +290,19 @@ plotWireframe=function(tver,con,add=F,col=c("lightgrey","black"),subset=NULL,xli
 		col=cols[rank(z,ties.method="min")[co]])
 	}
 }
-plotPolygons=function(tver,pol,add=F,col="lightgrey",transparency=0,border="black",culling="none",xlim=NULL,ylim=NULL,fun=mean){
+plotPolygons=function(tver=form("cube")$ver,pol=form("cube")$pol,add=F,col="lightgrey",transparency=0,border="black",culling="none",xlim=NULL,ylim=NULL,fun=mean){
 	if(is.null(xlim)|is.null(ylim)) {
 	if(add==F) plot(c(min(tver),max(tver)),c(min(tver),max(tver)),type="n",axes=F,xlab=NA,ylab=NA)}else
 	if(add==F) plot(c(xlim[1],xlim[2]),c(ylim[1],ylim[2]),type="n",axes=F,xlab=NA,ylab=NA)
 	if(is.null(culling))culling="none"
 	pol=sortPol(pol,tver,fun);
 	cols=colourPol(pol,tver,col,transparency=transparency)
+    borders=NULL;
+    if (is.null(border)) 
+        borders = cols
+    if (length(borders) != length(cols)) 
+        borders = rep(border[1], length(cols))
+    else borders = cols
 	co=0
 	for(i in seq(1,length(pol),by=3)){
 		co=co+1
@@ -307,10 +313,10 @@ plotPolygons=function(tver,pol,add=F,col="lightgrey",transparency=0,border="blac
 		polygon(
 			x=c(tver[pol[i]*3-2],tver[pol[i+1]*3-2],tver[pol[i+2]*3-2]),
 			y=c(tver[pol[i]*3-1],tver[pol[i+1]*3-1],tver[pol[i+2]*3-1]),
-			col=cols[co],border=border)
+			col=cols[co],border=borders[co])
 	}
 }
-interactivePolygonPlot=function(rver,pol,border="blue",xlim=NULL,ylim=NULL,culling="back"){
+interactivePolygonPlot=function(rver=unitRver(),pol=form("cube")$pol,border="blue",xlim=NULL,ylim=NULL,culling="back"){
     dev.new();
     if(is.null(xlim))xlim=c(min(tver),max(tver))
     if(is.null(ylim))ylim=c(min(tver),max(tver))
@@ -342,7 +348,8 @@ interactivePolygonPlot=function(rver,pol,border="blue",xlim=NULL,ylim=NULL,culli
     )
     f()
 }
-scattergram3D=function(x,y,z,thetaX=320,thetaY=320,thetaZ=0,col=c("darkgrey","black"),border=NA, main="3D Scattergram"){
+scattergram3D=function(x=NULL,y=NULL,z=NULL,thetaX=320,thetaY=320,thetaZ=0,col=c("darkgrey","black"),add.polygon=F,border=NA, main="3D Scattergram"){
+    if(is.null(x)&is.null(y)&is.null(z)){ x=rnorm(100);y=rnorm(100);z=rnorm(100); }
     cube=form("cube")    
     ver=cube$ver
     con=cube$con
@@ -353,15 +360,18 @@ scattergram3D=function(x,y,z,thetaX=320,thetaY=320,thetaZ=0,col=c("darkgrey","bl
     x=x/max;y=y/max;z=z/max;
     poi=vecToVer(x,y,z)
     tver2=transformRver(rver,poi,thetaX,thetaY,thetaZ)
-    #plotPolygons(tver,pol,culling="front",border=border,add=F,col=col);
+    if(add.polygon)plotPolygons(tver,pol,culling="front",border=border,add=F,col=col);
     if(is.null(col))col="black";
     if(length(col)==1)col=rep(col,2)
     plotWireframe(tver,con,add=F,subset="back")
     plotPoints(tver2,add=T,col=col)
     plotWireframe(tver,con,add=T,subset="front")
     if(!is.null(main))title(main)
+    invisible(list("ver"=ver,"tver"=tver2))
 }
-barplot3D=function(x,col=NULL,transparency=.2,xlim=NULL,ylim=NULL,main="3D Barplot",thetaX=10,thetaY=10,thetaZ=0,add.numbers=F,txt.srt=0,txt.pos=3){   
+
+barplot3D=function(x=NULL,col=NULL,transparency=.2,border=NA,xlim=NULL,ylim=NULL,main="3D Barplot",thetaX=10,thetaY=10,thetaZ=0,add.numbers=F,txt.srt=0,txt.pos=3){   
+    if(is.null(x))x=cbind(c(1,2,3),c(2,2,2),c(3,2,1))
     x=cbind(x);    
     bar=list(
    		"ver"=c(-1,0,-1, +1,0,-1, +1,0,+1, -1,0,+1, -1,+2,-1, +1,+2,-1, +1,+2,+1, -1,+2,+1),
@@ -390,7 +400,7 @@ barplot3D=function(x,col=NULL,transparency=.2,xlim=NULL,ylim=NULL,main="3D Barpl
     if(is.null(ylim))ylim=c(
             min(tver2[seq(1,length(tver2),by=3)+1])-d1*dim(x)[2],
             max(tver2[seq(1,length(tver2),by=3)+1])+d2*dim(x)[1])
-    plotPolygons(tver,pol,col=NA,transparency=transparency,border=NA,xlim=xlim,ylim=ylim,add=F,culling="back");
+    plotPolygons(tver,pol,col=NA,transparency=transparency,border=border,xlim=xlim,ylim=ylim,add=F,culling="back");
     if(is.null(col))col=rainbow(dim(x)[1])
     k=1;x1=numeric(0);y1=numeric(0);v1=numeric(0);
     for(i in 1:dim(x)[1])
@@ -400,7 +410,7 @@ barplot3D=function(x,col=NULL,transparency=.2,xlim=NULL,ylim=NULL,main="3D Barpl
             ver2[seq(1,length(ver),by=3)+2] = ver[seq(1,length(ver),by=3)+2]+(j-1)*3
             ver2[seq(1,length(ver),by=3)+0] = ver[seq(1,length(ver),by=3)+0]+(i-1)*3            
             tver2=transformRver(rver,ver2,thetaX=thetaX,thetaY=thetaY,thetaZ=thetaZ);
-            plotPolygons(tver2,pol,col=col[i],transparency=transparency,border=NA,xlim=xlim,ylim=ylim,add=T,culling="back");
+            plotPolygons(tver2,pol,col=col[i],transparency=transparency,border=border,xlim=xlim,ylim=ylim,add=T,culling="back");
             k=k+1
             x1=c(x1,mean(tver2[seq(1,length(tver),by=3)+0][order(tver2[seq(1,length(tver),by=3)+1],decreasing=T)[1:2]]))
             y1=c(y1,max(tver2[seq(1,length(tver),by=3)+1]))
@@ -410,7 +420,7 @@ barplot3D=function(x,col=NULL,transparency=.2,xlim=NULL,ylim=NULL,main="3D Barpl
     if(add.numbers==T)text(x1,y1,v1,srt=txt.srt,pos=txt.pos,xpd=T)
     return(list(x=x1,y=y1,value=v1))
 }
-surfaceplot3D=function(x=-10:10,y=-10:10,fun=NULL,dim=c(10,10),border=NA,col=rgb(0,0,1),transparency=.1,thetaX=10,thetaY=60,thetaZ=10,culling="none",add.wireframe=T,add.polygons=T,...){
+surfaceplot3D=function(x=-10:10,y=-10:10,fun=NULL,dim=c(10,10),col=rgb(0,0,1),border=NA,main="3D Surfaceplot",transparency=.1,thetaX=10,thetaY=60,thetaZ=10,culling="none",add.wireframe=T,add.polygons=T,...){
     if(is.null(fun))fun=function(x,y)x*y
     x=rep(seq(min(x),max(x),length.out=dim[1]),times=dim[2])
     y=rep(seq(min(y),max(y),length.out=dim[2]),each=dim[2])
@@ -442,7 +452,8 @@ surfaceplot3D=function(x=-10:10,y=-10:10,fun=NULL,dim=c(10,10),border=NA,col=rgb
     if(add.polygons)plotPolygons(tver,pol,border=border,add=T,col=col,culling=culling,transparency=transparency,...)
     if(add.wireframe)plotWireframe(tver,con,add=T,col=c(col,"black"))
     plotWireframe(tver2,form("cube")$con,add=T,subset="front")
-    invisible(list("ver"=ver,"pol"=pol,"con"=con))
+    if(!is.null(main))title(main)
+    invisible(list("ver"=ver,"tver"=tver,"pol"=pol,"con"=con))
 }
 
 
@@ -526,7 +537,7 @@ devtools::install(package.name);
 library(threeD)
 
 dev.new();
-f=surfaceplot3D(fun=function(x,y)x*y);#f
+f=surfaceplot3D(fun=function(x,y)x*y);
 
 x=cbind(c(1,2,3),c(2,2,2),c(3,2,1))
 dev.new();
