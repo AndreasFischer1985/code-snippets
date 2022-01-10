@@ -316,13 +316,13 @@ plotPolygons=function(tver=form("cube")$ver,pol=form("cube")$pol,add=F,col="ligh
 			col=cols[co],border=borders[co])
 	}
 }
-interactivePolygonPlot=function(rver=unitRver(),pol=form("cube")$pol,border="blue",xlim=NULL,ylim=NULL,culling="back"){
+interactivePolygonPlot=function(rver=unitRver(),ver=form("cube")$ver,pol=form("cube")$pol,border="blue",xlim=NULL,ylim=NULL,culling="back"){
     dev.new();
-    if(is.null(xlim))xlim=c(min(tver),max(tver))
-    if(is.null(ylim))ylim=c(min(tver),max(tver))
     p=function(a=F,tx=0,ty=0,tz=0){
     print(paste(tx,";",ty,";",tz))
     	tver=transformRver(rver,ver,thetaX=tx,thetaY=ty,thetaZ=tz);
+        if(is.null(xlim))xlim=c(min(ver),max(ver))
+        if(is.null(ylim))ylim=c(min(ver),max(ver))
     	plotPolygons(tver,pol,border=border,xlim=xlim,ylim=ylim,add=a,culling=culling);
     }
     p(F)
@@ -496,7 +496,7 @@ create(package.name,
 description=list(
 "Package"="threeD",
 "Title"="Basic functions for plotting and manipulating 3D-Objects based on R's default packages.",
-"Version"="0.0.4",
+"Version"="0.0.5",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -576,7 +576,7 @@ con=form("cube")$con
 pol=form("cube")$pol
 rver=unitRver()
 tver=transformRver(rver,ver,thetaX=20,thetaY=340,thetaZ=0);
-interactivePolygonPlot(rver,pol,xlim=c(-2,2),ylim=c(-2,2))
+interactivePolygonPlot(rver,ver,pol,xlim=c(-2,2),ylim=c(-2,2))
 
 
 
