@@ -145,6 +145,16 @@ vecCrossProduct <- function(x,y) {
 	}
 	return(xxy)
 }		 
+sortVer=function(tver){
+	for(i in seq(1,length(tver),by=3))
+	for(j in seq(1,length(tver),by=3))
+	if(tver[i+2]>tver[j+2]){
+		h1=tver[i];h2=tver[i+1];h3=tver[i+2];
+		tver[i]=tver[j];tver[i+1]=tver[j+1];tver[i+2]=tver[j+2];
+		tver[j]=h1;tver[j+1]=h2;tver[j+2]=h3;
+	}
+	tver
+}
 sortCon=function(con,tver,fun=mean){
 	if(is.null(fun)) fun=mean
 	for(i in seq(1,length(con),by=2))
@@ -364,7 +374,7 @@ scattergram3D=function(x=NULL,y=NULL,z=NULL,thetaX=320,thetaY=320,thetaZ=0,col=c
     if(is.null(col))col="black";
     if(length(col)==1)col=rep(col,2)
     plotWireframe(tver,con,add=F,subset="back")
-    plotPoints(tver2,add=T,col=col)
+    plotPoints(sortVer(tver2),add=T,col=col)
     plotWireframe(tver,con,add=T,subset="front")
     if(!is.null(main))title(main)
     invisible(list("ver"=ver,"tver"=tver2))
@@ -496,7 +506,7 @@ create(package.name,
 description=list(
 "Package"="threeD",
 "Title"="Basic functions for plotting and manipulating 3D-Objects based on R's default packages.",
-"Version"="0.0.5",
+"Version"="0.0.6",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
