@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><meta charset="utf-8">
+
+<style>
+	body, html { height: 100%;  margin: 0;  font-family: Arial; }
+	.tablink {  background-color: #555;  color: white;  float: left;  border: none; 
+		outline: none;  cursor: pointer;  padding: 14px 16px;  font-size: 17px;  width: 33%; }
+	.tablink:hover {  background-color: #777; }
+	.tabcontent {  color: white;  display: none;  padding: 20px 20px;  height: 100%; overflow: scroll; }
+	#t1 {background-color: white; color:black;}
+	#t2 {background-color: white; color:black;}
+	#t3 {background-color: white; color:black;}
+</style>
+</head><body>
+<button class="tablink" onclick="openPage('t1', this, '#005578')" id="bt1" style="background-color: rgb(0, 85, 120);">Intro</button>
+<button class="tablink" onclick="openPage('t2', this, '#67a2be')" id="bt2">Nachrichten</button>
+<button class="tablink" onclick="openPage('t3', this, '#da8e42')" id="bt3">Kanäle</button>
+<div id="t1" class="tabcontent" style="display: block;">
+	<h1>Intro</h1>
+	<p>Das vorliegende Dokument demonstriert die Möglichkeiten der Tagesschau-API (dokumentiert auf 
+	<a href="http://85.214.77.179/www.github.com/AndreasFischer1985/tagesschau-api">www.github.com/AndreasFischer1985/tagesschau-api</a>).
+	</p>
+</div>
+<div id="t2" class="tabcontent" style="display: none;">
+	<h1>Nachrichten</h1>
+	<p>Folgende Nachrichten sind aktuell auf 
+	<a href="https://www.tagesschau.de/api2/news/">https://www.tagesschau.de/api2/news/</a> zu finden:
+	<br><br></p>
+	<div id="pleaseWait">
+            <div class="loader"><div class="spinner one"></div><div class="spinner two"></div><div class="spinner three"></div></div>
+            <center><p>Bitte warten, Nachrichten werden geladen...</p></center></div>
+	<div id="myData"></div>
+</div>
+<div id="t3" class="tabcontent" style="display: none;">
+	<h1>Kanäle</h1>
+	<p>Die folgenden Sendungen sind aktuell im Angebot:</p>
+	<div id="pleaseWait2">
+            <div class="loader"><div class="spinner one"></div><div class="spinner two"></div><div class="spinner three"></div></div>
+            <center><p>Bitte warten, Kanäle werden geladen...</p></center></div>
+	<div id="myChannel"></div>
+</div>
+<style>
+.loader {  position: absolute;top: calc(50% - 32px);left: calc(50% - 32px);width: 64px;height: 64px;border-radius: 50%;perspective: 800px;}
+.spinner {position: absolute;box-sizing: border-box;width: 100%;height: 100%;border-radius: 50%;}
+.spinner.one {left: 0%;top: 0%;animation: rotate-one 1s linear infinite;border-bottom: 3px solid #000000;}
+.spinner.two {right: 0%;top: 0%;animation: rotate-two 1s linear infinite;border-right: 3px solid #000000;}
+.spinner.three {right: 0%;bottom: 0%;animation: rotate-three 1s linear infinite;border-top: 3px solid  #000000;}
+@keyframes rotate-one {0% {transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg);} 100% {transform: rotateX(35deg) rotateY(-45deg) rotateZ(360deg);}}
+@keyframes rotate-two {0% {transform: rotateX(50deg) rotateY(10deg) rotateZ(0deg);} 100% {transform: rotateX(50deg) rotateY(10deg) rotateZ(360deg);}}
+@keyframes rotate-three {0% {transform: rotateX(35deg) rotateY(55deg) rotateZ(0deg);} 100% {transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg);}}
+</style>
+<script>
+        function sleep(milliseconds) {const date = Date.now();let currentDate = null;do {currentDate = Date.now();} while (currentDate - date < milliseconds);}
+
+	function openPage(pageName, element, color) {
+		  var i, tabcontent, tablinks;
+		  tabcontent = document.getElementsByClassName("tabcontent"); 
+		  for (i = 0; i < tabcontent.length; i++) {
+		    tabcontent[i].style.display = "none";
+		  }
+		  tablinks = document.getElementsByClassName("tablink");
+		  for (i = 0; i < tablinks.length; i++) {
+		    tablinks[i].style.backgroundColor = "";
+		  }  
+		  document.getElementById(pageName).style.display = "block";
+		  element.style.backgroundColor = color;
+		  if(pageName=="t2") fetchNews();
+		  if(pageName=="t3") fetchChannels();
+	}
+	function fetchNews(){
+		if(!!document.getElementById("pleaseWait"))
+		fetch('https://www.tagesschau.de/api2/news/')
+			 .then(function (response) {return response.json();})
+			 .then(function (data) {appendData(data);})
+			 .catch(function (err){
+				 var div = document.createElement("div");
+				 div.innerHTML = 'Error: '+err; 
+				 document.getElementById("myData").appendChild(div);
+			 });
+		function appendData(data){
+			document.getElementById("pleaseWait").remove();
+			var myContainer = document.getElementById("myData");
+			for (var i = 0; i<data.news.length-1; i++){ //data.length
+				var div = document.createElement("div");
+				div.innerHTML = '<details>'+
+					'<summary><strong>No. ' + (data.news.length-1-i) + '</strong><small> um ' + data.news[i].date + '</small><br>' +					
+					'<a href=' + data.news[i].detailsweb + '>' +
+					data.news[i].title + '</a><br>' +
+					data.news[i].topline+':<br>'+data.news[i].firstSentence + '<br>' +
+					'</summary><ul>' +				
+					'<li>type: ' + data.news[i].type + '</li>' +
+					'<li>ressort: ' + data.news[i].ressort + '</li>' +
+					'<li>regionId: ' + data.news[i].regionId + '</li>' +
+					'<li>id: ' + data.news[i].sophoraId + '</li>' +
+					//'<li>id: ' + data.news[i].tags + '</li>' +
+					'</ul></details>' +
+					'<br>';
+				 sleep(20);
+                                 myContainer.appendChild(div);	
+			}
+		}
+	}
+	function fetchChannels(){
+		if(!!document.getElementById("pleaseWait2"))
+		fetch('https://www.tagesschau.de/api2/channels/')
+			 .then(function (response) {return response.json();})
+			 .then(function (data) {appendData(data);})
+			 .catch(function (err){
+				 var div = document.createElement("div");
+				 div.innerHTML = 'Error: '+err; 
+				 document.getElementById("myData").appendChild(div);
+			 });
+		function appendData(data){
+			document.getElementById("pleaseWait2").remove();
+			var myContainer = document.getElementById("myChannel");
+			for (var i = 0; i<data.channels.length-1; i++){ //data.length
+				var div = document.createElement("div");
+				div.innerHTML = '<details>'+
+					'<summary><strong>' + data.channels[i].title + 			
+					'</strong><small> um ' + data.channels[i].date + '</small><br>' +						
+					'<a href=' + data.channels[i].streams.adaptivestreaming + '>' + 
+					data.channels[i].streams.adaptivestreaming + '</a><br>' +
+					//data.channels[i].alttext+'<br>'+
+					'</summary><ul>' +		
+					'<li>(c) '+data.channels[i].copyright + '</li>' +		
+					'<li>type: ' + data.channels[i].type + '</li>' +
+					'<li>id: ' + data.channels[i].sophoraId + '</li>' +
+					'</ul></details>' +
+					'<br>';
+                                sleep(100);
+				myContainer.appendChild(div);	
+			}
+		}
+	}
+	openPage('t1', document.getElementById("bt1"), '#005578');
+</script>
+
+
+</body></html>
