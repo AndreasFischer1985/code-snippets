@@ -4,6 +4,7 @@
 
 <style>
 	body, html { height: 100%;  margin: 0;  font-family: Arial; }
+    .newsblock {background-color: #eaeaea; border-radius: 25px; padding: 20px; }
 	.tablink {  background-color: #555;  color: white;  float: left;  border: none; 
 		outline: none;  cursor: pointer;  padding: 14px 16px;  font-size: 17px;  width: 33%; }
 	.tablink:hover {  background-color: #777; }
@@ -83,21 +84,26 @@
 			var myContainer = document.getElementById("myData");
 			for (var i = 0; i<data.news.length-1; i++){ //data.length
 				var div = document.createElement("div");
-				div.innerHTML = '<details>'+
-					'<summary><strong>No. ' + (data.news.length-1-i) + '</strong><small> um ' + data.news[i].date + '</small><br>' +					
+                var txt = '<details class="newsblock">'+
+					'<summary><strong>No. ' + (data.news.length-1-i) + 
+                    '</strong><small> um ' + data.news[i].date + '</small><br>'+
 					'<a href=' + data.news[i].detailsweb + '>' +
-					data.news[i].title + '</a><br>' +
-					data.news[i].topline+':<br>'+data.news[i].firstSentence + '<br>' +
+					data.news[i].title + '</a><br>';
+                if (typeof data.news[i].topline != 'undefined')  
+                      txt+=data.news[i].topline+':<br>';
+                if (typeof data.news[i].firstSentence != 'undefined')  
+                      txt+=data.news[i].firstSentence + '<br>';
+                txt+=
 					'</summary><ul>' +				
 					'<li>type: ' + data.news[i].type + '</li>' +
 					'<li>ressort: ' + data.news[i].ressort + '</li>' +
 					'<li>regionId: ' + data.news[i].regionId + '</li>' +
 					'<li>id: ' + data.news[i].sophoraId + '</li>' +
-					//'<li>id: ' + data.news[i].tags + '</li>' +
 					'</ul></details>' +
 					'<br>';
-				 sleep(20);
-                                 myContainer.appendChild(div);	
+                div.innerHTML=txt;
+				//sleep(20);
+                myContainer.appendChild(div);	
 			}
 		}
 	}
@@ -116,19 +122,23 @@
 			var myContainer = document.getElementById("myChannel");
 			for (var i = 0; i<data.channels.length-1; i++){ //data.length
 				var div = document.createElement("div");
-				div.innerHTML = '<details>'+
-					'<summary><strong>' + data.channels[i].title + 			
-					'</strong><small> um ' + data.channels[i].date + '</small><br>' +						
-					'<a href=' + data.channels[i].streams.adaptivestreaming + '>' + 
-					data.channels[i].streams.adaptivestreaming + '</a><br>' +
-					//data.channels[i].alttext+'<br>'+
-					'</summary><ul>' +		
+				var txt= '<details class="newsblock">'+
+					'<summary><strong>' + data.channels[i].title+"</strong>";
+                if (typeof data.channels[i].date != 'undefined')   			
+					  txt+='<small> um ' + data.channels[i].date + '</small>';
+                if (typeof data.channels[i].streams.h264m != 'undefined')  
+			          txt+='<br><a href=' + data.channels[i].streams.h264m + '>' + 
+					  data.channels[i].streams.h264m + '</a><br>';	else
+					  txt+='<br><a href=' + data.channels[i].streams.adaptivestreaming + '>' + 
+					  data.channels[i].streams.adaptivestreaming + '</a><br>';
+		        txt+='</summary><ul>' +		
 					'<li>(c) '+data.channels[i].copyright + '</li>' +		
 					'<li>type: ' + data.channels[i].type + '</li>' +
 					'<li>id: ' + data.channels[i].sophoraId + '</li>' +
 					'</ul></details>' +
 					'<br>';
-                                sleep(100);
+                div.innerHTML=txt;
+                //sleep(100);
 				myContainer.appendChild(div);	
 			}
 		}
