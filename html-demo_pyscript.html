@@ -1,0 +1,27 @@
+<html>
+<script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+<body>
+
+    <h2>PyScript Demo</h2>
+
+    PyScript ready...
+
+    <py-script>
+from datetime import datetime
+now = datetime.now()
+now.strftime("on %m/%d/%Y at %H:%M:%S")
+    </py-script>
+
+    <br>
+
+    <h2>Python REPL</h2>
+
+    <center><div style="height:100px;width:100%;border:1px solid #ccc;overflow:auto;"><pre id="out">
+    </pre></div></center>
+
+    <py-repl output="out">
+print("Hello world")
+    </py-repl> 
+
+</body>
+</html>
