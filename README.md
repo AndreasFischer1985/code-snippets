@@ -10,5 +10,5 @@ Html files can also be seen in action thanks to GitHub Pages:
 - [html/demo_typewriter.html](https://andreasfischer1985.github.io/code-snippets/html/demo_typewriter.html)
 - [html/switch.html](https://andreasfischer1985.github.io/code-snippets/html/switch.html)
 - [html/eliza32.html](https://andreasfischer1985.github.io/code-snippets/html/eliza32.html)
-- [css_loading_animation_atom.html](https://andreasfischer1985.github.io/code-snippets/css_loading_animation_atom.html)
+- [html/css_loading_animation_atom.html](https://andreasfischer1985.github.io/html/code-snippets/css_loading_animation_atom.html)
 
