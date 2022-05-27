@@ -15,20 +15,21 @@ $options = array(
 );
 $context  = stream_context_create($options);
 $tokendata = file_get_contents($url, false, $context);
-if ($tokendata === FALSE) { echo $tokendata; }
-
-// GET-request:
-//-------------
-$url = 'https://rest.arbeitsagentur.de/infosysbub/absuche/pc/v1/ausbildungsangebot?bart=101&sty=0';
-$options = array(
-    'http' => array(
-        'header'  => "OAuthAccessToken:".json_decode($tokendata, true)['access_token']." \r\n",
-        'method'  => 'GET'    
-    )
-);
-$context  = stream_context_create($options);
-$searchdata = file_get_contents($url, false, $context);
 header('Content-Type: application/json'); 
-echo $searchdata;
-
+if(isset($_GET['token']) & $_GET['token']==='TRUE'){
+	echo $tokendata;
+} else {
+    // GET-request:
+    //-------------
+    $url = 'https://rest.arbeitsagentur.de/infosysbub/absuche/pc/v1/ausbildungsangebot?'.$_SERVER['QUERY_STRING'];
+    $options = array(
+        'http' => array(
+            'header'  => "OAuthAccessToken:".json_decode($tokendata, true)['access_token']." \r\n",
+            'method'  => 'GET'    
+        )
+    );
+    $context  = stream_context_create($options);
+    $searchdata = file_get_contents($url, false, $context);
+    echo $searchdata;
+}
 ?>
