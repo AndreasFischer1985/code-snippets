@@ -41,7 +41,7 @@ if(isset($_GET['type']) & $_GET['type']==='token'){
         header('Content-Type: text/html'); 
         echo "
             <html>
-            <script src='chart.min.js'></script>
+            <script src='https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js'></script>
             <body style='background-color:black;'>
             <h1 style='color:white'>Dashboard Ausbildungssuche ".htmlspecialchars($_SERVER['QUERY_STRING'])."</h1>
             <h2 style='color:white'>".date("l jS \of F Y h:i:s A")."</h2>	        
