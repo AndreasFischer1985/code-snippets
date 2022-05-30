@@ -6,6 +6,7 @@ session_start();
 $pdo = new PDO('mysql:host=localhost;dbname=login', 'admin1', 'admin_password');
 
 //CREATE DATABASE login;
+//USE login;
 //CREATE USER 'admin1'@'localhost' IDENTIFIED BY 'admin_password';
 //GRANT ALL PRIVILEGES ON login.* TO 'admin1'@'localhost' WITH GRANT OPTION;
 //FLUSH PRIVILEGES;
@@ -95,7 +96,7 @@ body, html { height: 100%;  margin: 0;  font-family: Arial; }
   ?> 
 
   <?php // <!-- Register new User -->
-  $showFormular2 = true; //Variable ob das Registrierungsformular angezeigt werden soll 
+  $showFormular2 = true;
   if(isset($_SESSION['userid']) && $_SESSION['userid']==1) { 	
 	echo "<h1>Admin</h1>";
 	if(isset($_GET['register'])) {
@@ -155,7 +156,7 @@ body, html { height: 100%;  margin: 0;  font-family: Arial; }
 	<br>
 	
   <?php
-	} //Ende von if($showFormular2)
+	} 
   ?>
 	
 </div>
