@@ -2,7 +2,13 @@
 
 Small code snippets in different languages. 
 
-Html files can also be seen in action thanks to GitHub Pages:
+Php files demonstrate some basic backend functionalities:
+
+- [php/mysql_login_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/mysql_login_example.php) 
+- [php/ausbildungssuche_api_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_api_example.php)
+- [php/ausbildungssuche_dashboard_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_dashboard_example.php)
+
+Html files mostly demonstrate some frontend functionalities based on JavaScript or CSS. They can also be seen in action thanks to GitHub Pages:
 
 - [html/demo_tagesschau-api.html](https://andreasfischer1985.github.io/code-snippets/html/demo_tagesschau-api.html)
 - [html/demo_pyscript.html](https://andreasfischer1985.github.io/code-snippets/html/demo_pyscript.html)
@@ -10,5 +16,6 @@ Html files can also be seen in action thanks to GitHub Pages:
 - [html/demo_typewriter.html](https://andreasfischer1985.github.io/code-snippets/html/demo_typewriter.html)
 - [html/switch.html](https://andreasfischer1985.github.io/code-snippets/html/switch.html)
 - [html/eliza32.html](https://andreasfischer1985.github.io/code-snippets/html/eliza32.html)
-- [html/css_loading_animation_atom.html](https://andreasfischer1985.github.io/html/code-snippets/css_loading_animation_atom.html)
+- [html/css_loading_animation_atom.html](https://andreasfischer1985.github.io/code-snippets/html/css_loading_animation_atom.html)
+
 
