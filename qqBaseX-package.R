@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.4.5",
+"Version"="0.4.6",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -1459,7 +1459,6 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
     if (is.null(col2)) 
         col2 = qqBaseX::cols2(col,arrows.transparency)
     if(!is.null(max)){  
-        max=1
         if (!is.null(upper) & !is.null(dimensions)) {
          if (max < max(c(lower, upper, dimensions))) 
              max = max(c(lower, upper, dimensions))
@@ -1486,9 +1485,9 @@ f<-function (x = NULL, lower = NULL, upper = NULL, weights = NULL,
                  min = min(lower)
          }
     }} else {
-        if (!is.null(dimensions)) dimensions[dimensions>max]=max
-        if (!is.null(dimensions)) upper[upper>max]=dimensions[upper>max]
-        if (!is.null(dimensions)) lower[lower>max]=max
+        if (!is.null(dimensions)) {dimensions[dimensions>max]=max;x[x>max]=max}
+        if (!is.null(upper)) upper[upper>max]=max
+        if (!is.null(lower)) lower[lower>max]=max
     }
     if (is.null(dimensions) & is.null(weights) & is.null(main)) {
         dimensions = c(0.1, 0.2, 0.3, 0.8, 0.7, 0.1, 0.1, 0.1, 
@@ -1653,6 +1652,8 @@ d <- paste0(
 	"#' @param ncex Size of fonts. If NA (default) is set to cex.\n",
 	"#' @param ncol Vector containing the color of bars. Defaults to \"black\".\n",
 	"#' @param xshift Numeric value specifying how much to shift flowers to the right. Defaults to 0.\n",
+	"#' @param circle Numeric value specifying the size of the black circle at the center of each flower. Defaults to 0.\n",
+	"#' @param reverseLegend Logical value specifying whether to reverse the order of legend entries. Defaults to F.\n",
 	"#' @details Plots data.frame as a field of flowers. Each column is represented as a separate flower, each row as a flower's petal.\n",
 	"#' @keywords plotting\n",
 	"#' @export\n",
@@ -1660,12 +1661,14 @@ d <- paste0(
 	"#' flowerplot()")
 f<-function (x = NULL, maximum = NULL, rownames = NULL, colnames = NULL, 
     main = NULL, color = NULL, color2 = "lightgrey", add.numbers = F, 
-    ncex = 0.8, ndigits = 1, ncol = "black", 
+    ncex = 0.8, ndigits = 1, ncol = "black", circle=0.5, reverseLegend=F,
     cex=.8, cex.legend=.8, xlim=NULL, ylim=NULL, dist = 4, legend=NULL, xshift=0) 
 {
 
     if (!is.null(x)) {
-        data = cbind(x)
+        data = cbind(x);
+	data[is.na(data)]=0;
+	warning("Input contains missing data.")
     } else data = NULL
     if (is.null(data)) 
         data = cbind(option1 = c(1, 1, 1, 1, 1, 1, 1), option2 = c(0.9, 
@@ -1739,8 +1742,8 @@ f<-function (x = NULL, maximum = NULL, rownames = NULL, colnames = NULL,
             petal(0.3, data[petal1, flower1], petal1, dim(data)[1] + 
                 1, flower1, height, text = data[petal1, flower1])
         }
-        polygon(dist * (flower1 - 1) + xshift + 0.5 * sin(seq(0, 2 * pi, 
-            length.out = dim(data)[1] + 1)), height + 0.5 * cos(seq(0, 
+        polygon(dist * (flower1 - 1) + xshift + circle * sin(seq(0, 2 * pi, 
+            length.out = dim(data)[1] + 1)), height + circle * cos(seq(0, 
             2 * pi, length.out = dim(data)[1] + 1)), col = "black", xpd=T)
         text(dist * (flower1 - 1) + xshift, 0, colnames[flower1], pos = 1,cex=cex,xpd=T)
     }
@@ -1750,9 +1753,15 @@ f<-function (x = NULL, maximum = NULL, rownames = NULL, colnames = NULL,
         title(main)
     legX = dist * 3/4 + dist * (dim(data)[2])
     if(is.null(legend))
-    legend(x = legX - dist, y = legX - dist, legend = c(rownames), 
-        fill = farben[1:(dim(data)[1] + 1)], bg = "white", 
-        bty = "n", xpd = T,cex=cex.legend)
+    	if(reverseLegend==T){
+    		legend(x = legX - dist, y = legX - dist, legend = c(rownames), 
+        		fill = farben[1:(dim(data)[1] + 1)], bg = "white", 
+        		bty = "n", xpd = T,cex=cex.legend)
+    	} else {
+    		legend(x = legX - dist, y = legX - dist, legend = c(rownames)[length(rownames):1], 
+        		fill = farben[(dim(data)[1]):1], bg = "white", 
+        		bty = "n", xpd = T,cex=cex.legend)
+	}
     if(!is.null(legend)) legend
     invisible(data)
 }
@@ -2198,93 +2207,120 @@ d <- paste0(
 	"#' \n#'Splits a numeric vector or matrix into subsets, computes summary statistics for each, and returns the result in a convenient form.\n",
 	"#' @param x Numeric vector or matrix.\n",
 	"#' @param y Vector or matrix specifying the subsets to compute summary statistics for.\n", 
-	"#' @param fun Function specifying the summary statistic to compute. If NULL (default), mean will be calculated.\n", 
-	"#' @param verbose Logical value specifying the verbocity of output.\n", 
+	"#' @param fun Function specifying the summary statistic to compute. If NULL (default), mean is calculated.\n", 
+	"#' @param verbose Logical value specifying the verbocity of output. Defaults to F.\n", 
+	"#' @param y.is.dummy Logical value specifying whether y is already dummy-coded and thus does not have to be converted. Defaults to F.\n", 
+	"#' @param attr Logical value specifying whether subset-sizes should be added as an attribute of the returned result.\n", 
 	"#' @details Splits a numeric vector or matrix into subsets, computes summary statistics for each, and returns the result in a convenient form.\n",
 	"#' @keywords modeling\n",
 	"#' @export\n",
 	"#' @examples\n",
 	"#' aggreg(x=1:10,y=c(rep(1,5),rep(2,5)))"
 );
-f=function(x,y=NULL,fun=NULL,verbose=T){
-
-	if(is.null(fun)) fun = function(x) mean(x,na.rm=T) # by default, return mean 
-	x=cbind(x) # convert x to matrix
-	if(is.null(y)) y=rep(1,dim(x)[1]) # if y is NULL, use a vector of 1s
-	y=cbind(y) # convert y to matrix
-
-	### Check if x should be a 2D matrix instead of a 1D factor
-	if(dim(x)[2]==1 & is.character(x)){
-		if(suppressWarnings(sum(is.na(as.numeric(x)))!=sum(is.na(x)))){ # check if character is not numeric in disguise
-			if(verbose==T)print("x is treated as a factor and translated to a dummy-matrix")
-			x=sapply(unique(x),function(y)x==y) # translate x from 1D to 2D matrix
-		}
-	}	
-
-	### dummy-code y
-       	dummy = function(x, g = NULL, na.rm = TRUE) {
-            n <- length(x)
-            t <- table(x)
-            l <- length(t)
-            if (is.null(g)) {
-                u <- matrix(0, nrow = n, ncol = l)
-                if (na.rm) {
-                  u[is.na(x), ] <- NA
-                }
-                xlev <- as.factor(x)
-                for (i in 1:n) {
-                  u[i, xlev[i]] <- 1
-                }
-                colnames(u) <- names(t)
+f=function (x, y = NULL, fun = NULL, verbose = F, y.is.dummy=F, attr=F) 
+{
+    if (is.null(fun)) 
+        fun = function(x) mean(x, na.rm = T)
+    x = cbind(x)
+    if (is.null(y)) 
+        y = rep(1, dim(x)[1])
+    y = cbind(y)
+    x=cbind(x[,colSums(is.na(x))<dim(x)[1]])  
+    y=cbind(y[,colSums(is.na(y))<dim(y)[1]])
+    z=(rowSums(is.na(x))<dim(x)[2])&(rowSums(is.na(y))<dim(y)[2])
+    if(sum(z)<2)stop("less than two valid cases")
+	x=cbind(x[z,])
+	y=cbind(y[z,])
+    
+    if (dim(x)[2] == 1 & is.character(x)) {
+        if (suppressWarnings(sum(is.na(as.numeric(x))) != sum(is.na(x)))) {
+            if (verbose == T) 
+                print("x is treated as a factor and translated to a dummy-matrix")
+            x = sapply(unique(x), function(y) x == y)
+        }
+    }
+    dummy = function(x, g = NULL, na.rm = TRUE) {
+        n <- length(x)
+        t <- table(x)
+        l <- length(t)
+        if (is.null(g)) {
+            u <- matrix(0, nrow = n, ncol = l)
+            if (na.rm) {
+                u[is.na(x), ] <- NA
+            }
+            xlev <- as.factor(x)
+            for (i in 1:n) {
+                u[i, xlev[i]] <- 1
+            }
+            colnames(u) <- names(t)
+        } else {
+            u <- rep(0, n)
+            xl <- as.factor(x)
+            if (na.rm) {
+                u[is.na(x)] <- NA
+            }
+            for (i in 1:n) {
+                u[i] <- xl[i] %in% g
+            }
+        }
+        return(u)
+    }
+    if(y.is.dummy==F)                 
+    if (dim(y)[2] == 1) y = dummy(y) else {
+        if (is.null(colnames(y))) 
+            colnames(y) = 1:dim(y)[2]
+        n = colnames(y)
+        y = lapply(1:dim(y)[2], function(z) dummy(y[, z]))
+        y = lapply(1:length(n), function(i) {
+            colnames(y[[i]]) = paste(n[[i]], colnames(y[[i]]), 
+                sep = "_")
+            y[[i]]
+        })
+        y = do.call(cbind, y)
+    }
+    typecast = function(x) {
+        if (is.character(x)) {
+            if (suppressWarnings(sum(is.na(as.numeric(x))) == 
+                sum(is.na(x)))) {
+                return(as.numeric(x))
             }
             else {
-                u <- rep(0, n)
-                xl <- as.factor(x)
-                if (na.rm) {
-                  u[is.na(x)] <- NA
-                }
-                for (i in 1:n) {
-                  u[i] <- xl[i] %in% g
-                }
+                return(as.numeric(as.factor(x)))
             }
-            return(u)
-       	}
-	if(dim(y)[2]==1) y=dummy(y) else { # if y is 1D dummy-code it, if y is 2D dummy-code each column separately
-		if(is.null(colnames(y)))colnames(y)=1:dim(y)[2]
-		n=colnames(y)	
-		y=lapply(1:dim(y)[2],function(z)dummy(y[,z]))
-		y=lapply(1:length(n),function(i){colnames(y[[i]])=paste(n[[i]],colnames(y[[i]]),sep="_");y[[i]]}) # expand colnames
-		y=do.call(cbind,y)
-	}
-
-	### Type-cast each column of x and y
-	typecast=function(x){
-		if(is.character(x)){
-			if(suppressWarnings(sum(is.na(as.numeric(x)))==sum(is.na(x)))){ # check if character is number or factor 
-				return(as.numeric(x))} else{ return(as.numeric(as.factor(x))) }
-		} else { return(as.numeric(x)) }
-	}
-	x=apply(x,2,typecast)	
-	y=apply(y,2,typecast)
-
-	### do some math, assuming x is 1D or 2D, y is 1D
-	if(dim(y)[2]==1){
-
-		if(verbose==T){print(x);print(y);}
-		y=y[,1] # convert y to vector
-		x=t(sapply(unique(y),function(subset)fun(rbind(x[y==subset,])))) # apply fun to each subset of x specified by unique elements of y
-
-	### do some math, assuming x is 1D or 2D, y is 2D
-	} else {
-
-		if(verbose==T){print(x);print(y);}
-		x=sapply(colnames(y),function(subset)apply(rbind(x[y[,subset]==1,]),2,fun)) # apply fun to each subset of x specified by columns of y
-
-	} 
-
-	return(x)
+        }
+        else {
+            return(as.numeric(x))
+        }
+    }
+    x = apply(x, 2, typecast)
+    y = apply(y, 2, typecast)
+    z=NULL;n=NULL;
+    if (dim(y)[2] == 1) {
+        if (verbose == T) {
+            print(x)
+            print(y)
+        }
+        y = y[, 1]
+        z = sapply(unique(y), function(subset) apply(rbind(x[y == subset,]), ifelse(dim(x)[2]==1,1,2), fun)) 
+	if(attr==T) n = sapply(unique(y), function(subset) apply(rbind(x[y == subset,]), ifelse(dim(x)[2]==1,1,2), function(x)sum(!is.na(x)))) 
+    } else {
+        if (verbose == T) {
+            print(x)
+            print(y)
+        }
+        z = sapply(colnames(y), function(subset) apply(rbind(x[y[, subset] == 1, ]), ifelse(dim(x)[2]==1,1,2), fun))
+	if(attr==T) n = sapply(colnames(y), function(subset) apply(rbind(x[y[, subset] == 1, ]), ifelse(dim(x)[2]==1,1,2), function(x)sum(!is.na(x))))
+    }  
+    
+    if(attr==T){
+	attr(z,"n")=n; 
+	#attr(z,"text")=paste(round(z*100,1),"% of",n);
+	#dim(attr(z,"text"))=dim(z)
+    }
+    return(z)
 }
-distrib=f
+aggreg=f
+
 write(paste0(d,"\n\n",n," <- ",paste(deparse(f),collapse="\n")),file=paste0(n,".r"))
 
 
