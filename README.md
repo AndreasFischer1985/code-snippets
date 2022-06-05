@@ -2,9 +2,10 @@
 
 Small code snippets in different languages. 
 
-Php files demonstrate some basic backend functionalities:
+Php files mostly demonstrate basic backend functionalities:
 
 - [php/mysql_login_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/mysql_login_example.php) 
+- [php/mysql_search_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/mysql_search_example.php) 
 - [php/ausbildungssuche_api_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_api_example.php)
 - [php/ausbildungssuche_dashboard_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_dashboard_example.php)
 
