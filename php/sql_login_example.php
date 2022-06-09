@@ -1,7 +1,7 @@
 <!DOCTYPE html> 
 
 <?php 
-$pagename="mysql_login_example.php";
+$pagename="sql_login_example.php";
 session_start();
 $pdo = new PDO('mysql:host=localhost;dbname=login', 'admin1', 'admin_password');
 
