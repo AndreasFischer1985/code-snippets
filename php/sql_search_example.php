@@ -1,7 +1,7 @@
 <html>
 
 <?php 
-$pagename="mysql_search_example.php";
+$pagename="sql_search_example.php";
 session_start();
 $pdo = new PDO('mysql:host=localhost;dbname=search', 'admin1', 'admin_password');
 
