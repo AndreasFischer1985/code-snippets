@@ -1,0 +1,54 @@
+<html>
+<body>
+<h1>Display JSON</h1>
+<div id="data"></div>
+<script>
+const json = '{"test0":true, "test1":{"t1_0":1,"t1_1":2}, "test2":true}';
+const myContainer = document.getElementById("data");
+function displayJSON(json,myContainer,level) {
+	const obj = JSON.parse(json);
+	//alert (JSON.stringify(obj));
+	for (var i = 0; i<Object.keys(obj).length; i++){ 
+		var div = document.createElement("div");
+		div.setAttribute("id", "div"+"_"+level+"_"+i);
+		div.setAttribute("class","level"+level);
+		var lab = Object.keys(obj)[i];
+		var elm = obj[Object.keys(obj)[i]];
+		if (typeof elm != 'object') {
+	        	var txt = '<p>'+JSON.stringify(lab)+' : '+(elm)+'</p>';
+        		div.innerHTML=txt;
+			myContainer.appendChild(div);		
+		} else {
+			var txt = '<p>'+JSON.stringify(lab)+' : '+'</p>';
+        		div.innerHTML=txt;
+			myContainer.appendChild(div);
+			displayJSON(JSON.stringify(elm),div,level+1);
+		} 
+		 		
+	}
+
+}
+displayJSON(json,myContainer,0);
+</script>
+<style>
+.level0 {
+ padding-left: 0%;
+}
+.level1 {
+ padding-left: 1%;
+}
+.level2 {
+ padding-left: 2%;
+}
+.level3 {
+ padding-left: 3%;
+}
+.level4 {
+ padding-left: 5%;
+}
+.level5 {
+ padding-left: 5%;
+}
+</style>
+</body>
+</html>
