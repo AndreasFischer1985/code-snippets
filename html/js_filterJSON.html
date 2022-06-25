@@ -20,7 +20,7 @@ function appendJSON(json,myContainer,level) {
 		tr.setAttribute("class","level"+level);
 		var lab = Object.keys(obj)[i];
 		var elm = obj[Object.keys(obj)[i]];	
-		if (typeof elm != 'object') {
+		if (typeof elm != 'object' & elm != null) {
  	        	var txt = '<td style="float: both">'+JSON.stringify(lab)+' : </td>';
         		tr.innerHTML=txt;
 			var td = document.createElement("td");
@@ -28,7 +28,7 @@ function appendJSON(json,myContainer,level) {
 			tr.appendChild(td);
 			myContainer.appendChild(tr);
 			
-		} else {
+		} else if (elm != null){
 			var txt = '<td style="float: both">'+JSON.stringify(lab)+' : </td>';
         		tr.innerHTML=txt;             
 			myContainer.appendChild(tr);
