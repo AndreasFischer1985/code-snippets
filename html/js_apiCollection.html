@@ -16,7 +16,7 @@ function appendJSON(json,myContainer,level) {
 	//alert (JSON.stringify(obj));
 	for (var i = 0; i<Object.keys(obj).length; i++){
 		var tr = document.createElement("tr"); 
-		if(level>0) {tr = document.createElement("td");}
+		if(level>0) {tr = document.createElement("div");}
 		tr.setAttribute("id", "tr"+"_"+level+"_"+i);
 		tr.setAttribute("class","level"+level);
 		var lab = Object.keys(obj)[i];
