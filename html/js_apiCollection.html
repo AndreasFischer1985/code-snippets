@@ -9,11 +9,10 @@
 </table>
 <script>
 const myContainer = document.getElementById("data");
-//var json = '{"test0":true, "test1":{"t1_0":{"t1_0_1":true,"t1_0_2":false},"t1_1":false}, "test2":true}';
 
 function appendJSON(json,myContainer,level) {
 	const obj = JSON.parse(json);
-	//alert (JSON.stringify(obj));
+        const regex = /((http|https|ftp):\/\/[\w?=&.\/-;#~%-]+(?![\w\s?&.\/;#~%"=-]*>))/g;             
 	for (var i = 0; i<Object.keys(obj).length; i++){
 		var tr = document.createElement("tr"); 
 		if(level>0) {tr = document.createElement("div");}
@@ -22,7 +21,8 @@ function appendJSON(json,myContainer,level) {
 		var lab = Object.keys(obj)[i];
 		var elm = obj[Object.keys(obj)[i]];	
 		if (typeof elm != 'object' & elm != null) {
- 	        	var txt = '<td>'+lab+' : </td>';
+			elm=elm.replace(regex,"<a href='$1' target='_blank'>$1</a>");
+ 	        	var txt = '<td><strong>'+lab+' : </strong></td>';
         		tr.innerHTML=txt;
 			var td = document.createElement("td");
 			td.innerHTML=elm;
@@ -52,7 +52,7 @@ fetch('https://raw.githubusercontent.com/bundesAPI/apis/main/index.json')
            					tr.hidden = !tr.textContent.includes(input.value);
         				});
     				});
-			})
+			});           
 		})
 		 .catch(function (err){});
 </script>
@@ -61,7 +61,7 @@ table, th, td {
   border: 1px solid;
   padding: 5px;
   text-align: left;
-  min-width: 25px
+  min-width: 35px
 }
 tr:nth-child(even) {background-color: #f2f2f2;}
 tr:hover {background-color: coral;}
