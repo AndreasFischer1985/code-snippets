@@ -23,6 +23,7 @@ They can also be seen in action thanks to GitHub Pages:
 - [html/js_displayJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_displayJSON.html)
 - [html/js_filterJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_filterJSON.html)
 - [html/js_apiCollection.html](https://andreasfischer1985.github.io/code-snippets/html/js_apiCollection.html)
+- [html/js_profilbildung.html](https://andreasfischer1985.github.io/code-snippets/html/js_profilbildung.html)
 - [html/css_loading_animation_atom.html](https://andreasfischer1985.github.io/code-snippets/html/css_loading_animation_atom.html)
 
 
