@@ -193,12 +193,12 @@
 <script>
     function generateProfile() {
       var data = document.querySelector('input[name=fav_language]:checked').value;
-      alert("Generiere Profil\n\r"+data);
-      var blob = new Blob([data],
+      //alert("Generiere Profil\n\r"+data);
+      var blob = new Blob([JSON.stringify(data)],
                     { type: "text/plain;charset=utf-8" });
-      alert("Blob generated");
+      //alert("Blob generated");
       saveAs(blob, "profile.txt");
-      alert("Profile saved");
+      //alert("Profile saved");
     }
 </script>
 
