@@ -2,13 +2,25 @@
 <body>
 <h1>Profilbildung</h1>
 <form id="profile">
-<p>Welche Sprache bevorzugen Sie?</p>
-<input type="radio" id="de" name="fav_language" value="de">
-<label for="de">Deutsch</label><br>
-<input type="radio" id="en" name="fav_language" value="en">
-<label for="en">Englisch</label><br>
-<input type="radio" id="no" name="fav_language" value="default">
-<label for="no">Keine Angabe</label> 
+<p>Attribut A</p>
+<input type="radio" id="a1" name="a" value="1" checked>
+<label for="a1">1</label><br>
+<input type="radio" id="a2" name="a" value="2">
+<label for="a2">2</label><br>
+<input type="radio" id="a3" name="a" value="3">
+<label for="a3">3</label> 
+<br>
+<p>Attribut B</p>
+<input type="radio" id="b1" name="b" value="1" checked>
+<label for="b1">1</label><br>
+<input type="radio" id="b2" name="b" value="2">
+<label for="b2">2</label><br>
+<input type="radio" id="b3" name="b" value="3">
+<label for="b3">3</label> 
+<br>
+<p>Attribut C</p>
+<label for="t">Text:</label><br>
+<input type="text" id="t" name="t" value="Text">
 <br><br>
 <label for="no">Profil generieren:</label> 
 <input type="button" id="Generieren" value="Generieren" onclick="generateProfile()">
@@ -192,13 +204,13 @@
 
 <script>
     function generateProfile() {
-      var data = document.querySelector('input[name=fav_language]:checked').value;
-      //alert("Generiere Profil\n\r"+data);
-      var blob = new Blob([JSON.stringify(data)],
+      var blob = new Blob([JSON.stringify([
+			document.querySelector('#t').value,
+			document.querySelector('input[name=a]:checked').value,
+			document.querySelector('input[name=b]:checked').value
+			])],
                     { type: "text/plain;charset=utf-8" });
-      //alert("Blob generated");
       saveAs(blob, "profile.txt");
-      //alert("Profile saved");
     }
 </script>
 
