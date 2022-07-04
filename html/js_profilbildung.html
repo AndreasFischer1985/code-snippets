@@ -1,32 +1,47 @@
 <html>
 <body>
+
 <h1>Profilbildung</h1>
-<form id="profile">
-<p>Attribut A</p>
+
+<p>Auf der vorliegenden Seite hast du die Möglichkeit, ein individuelles Profil anzulegen um es lokal zu speichern (links) oder ein lokal gespeichertes Profil auszuwählen (rechts). In beiden Fällen verbleiben deine Angaben vollständig lokal auf deinem Computer. Auf diese Weise ermöglichen lokale Profile eine Personalisierung von Online-Angeboten ohne die Verarbeitung personenbezogener Daten durch unsere Server.</p>
+<div style="display:flex; padding: 20px;">
+
+<form id="generation" style="display:inline-block; background-color: #8FBC8F; border-radius: 25px; padding: 20px;margin-right: 10px;">
+<h2>Profil generieren</h2> 
+<h3>Attribut A</h3>
 <input type="radio" id="a1" name="a" value="1" checked>
-<label for="a1">1</label><br>
+<label for="a1">1</label>
 <input type="radio" id="a2" name="a" value="2">
-<label for="a2">2</label><br>
+<label for="a2">2</label>
 <input type="radio" id="a3" name="a" value="3">
 <label for="a3">3</label> 
 <br>
-<p>Attribut B</p>
+<h3>Attribut B</h3>
 <input type="radio" id="b1" name="b" value="1" checked>
-<label for="b1">1</label><br>
+<label for="b1">1</label>
 <input type="radio" id="b2" name="b" value="2">
-<label for="b2">2</label><br>
+<label for="b2">2</label>
 <input type="radio" id="b3" name="b" value="3">
 <label for="b3">3</label> 
 <br>
-<p>Attribut C</p>
+<h3>Attribut C</h3>
 <label for="t">Text:</label><br>
-<input type="text" id="t" name="t" value="Text">
+<input type="text" id="t" name="t" value="Beispieltext">
 <br><br>
-<label for="no">Profil generieren:</label> 
-<input type="button" id="Generieren" value="Generieren" onclick="generateProfile()">
+<input type="button" id="generate" value="Profil generieren" onclick="generateProfile()">
 </form>
 
+<form id="reconstruction" style="display:inline-block; background-color: #8FBC8F; border-radius: 25px; padding: 20px;">
+<h2>Profil rekonstruieren</h2>
+<input type="file" id="reconstruct" value="Rekonstruieren">
+</form>
+</div>
 <script>
+
+<style>
+form {background-color: #eaeaea; border-radius: 25px; padding: 20px; }
+</style>
+
 
     /*
     * FileSaver.js
@@ -202,7 +217,9 @@
 
 </script>
 
+
 <script>
+
     function generateProfile() {
       var blob = new Blob([JSON.stringify([
 			document.querySelector('#t').value,
@@ -212,6 +229,23 @@
                     { type: "text/plain;charset=utf-8" });
       saveAs(blob, "profile.txt");
     }
+
+    document.querySelector('#reconstruct').onchange = e => { 
+      var file = e.target.files[0]; 
+      var reader = new FileReader();
+      reader.readAsText(file,'UTF-8');
+      reader.onload = readerEvent => {
+        const content = readerEvent.target.result; 
+        if( confirm( "Rekonstruiere folgendes Profil:\n\r"+content ) == true ){
+          var arr = JSON.parse(content); 
+	  document.querySelector('#t').value=arr[0];
+	  document.querySelector('#a'+arr[1]).checked=true;
+	  document.querySelector('#b'+arr[2]).checked=true;
+        }
+      }
+    }
+
+
 </script>
 
 </body>
