@@ -11,31 +11,63 @@
 const myContainer = document.getElementById("data");
 
 function appendJSON(json,myContainer,level) {
-	const obj = JSON.parse(json);
-        const regex = /((http|https|ftp):\/\/[\w?=&.\/-;#~%-]+(?![\w\s?&.\/;#~%"=-]*>))/g;             
+	const obj = JSON.parse(json);	
+        const regex = /((http|https|ftp):\/\/[\w?=&.\/-;#~%-]+(?![\w\s?&.\/;#~%"=-]*>))/g;   
+	var oc=0; 
+	var lastOffice="";         
 	for (var i = 0; i<Object.keys(obj).length; i++){
-		var tr = document.createElement("tr"); 
-		if(level>0) {tr = document.createElement("div");}
-		tr.setAttribute("id", "tr"+"_"+level+"_"+i);
-		tr.setAttribute("class","level"+level);
-		var lab = Object.keys(obj)[i];
-		var elm = obj[Object.keys(obj)[i]];	
-		if (typeof elm != 'object' & elm != null) {
-			elm=elm.replace(regex,"<a href='$1' target='_blank'>$1</a>");
- 	        	var txt = '<td><strong>'+lab+' : </strong></td>';
-        		tr.innerHTML=txt;
+
+ 		if(lastOffice!=JSON.stringify(obj[[i]][["office"]])){
+			lastOffice=JSON.stringify(obj[[i]][["office"]]);
+			oc=oc+1;
+			var div = document.createElement("div"); 	
+			div.setAttribute("id", "div"+"_"+oc);
+			div.setAttribute("class","oc"+oc);
+			var details = document.createElement("details");
+			details.setAttribute("id", "details"+"_"+oc);
+			details.setAttribute("class","oc"+oc);
+			details.open = true;
+			var summary = document.createElement("summary");
+			summary.innerHTML="<strong>"+
+				(obj[[i]][["office"]])+"<strong>";
+			details.style.width="800";
+			details.appendChild(summary);
+			var tr = document.createElement("tr");		
 			var td = document.createElement("td");
-			td.innerHTML=elm;
+			td.style.width="66%";
+			td.innerHTML="<strong>"+
+				(obj[[i]][["name"]])+":</strong><br> "+JSON.stringify(obj[[i]][["description"]]);
 			tr.appendChild(td);
-			myContainer.appendChild(tr);
-			
-		} else if (elm != null){
-			var txt = '<td>'+lab+' : </td>';
-        		tr.innerHTML=txt;             
-			myContainer.appendChild(tr);
-			appendJSON(JSON.stringify(elm),tr,level+1);	
-		} 
-		 		
+			td = document.createElement("td");
+			td.innerHTML="<strong>Dokumentation:</strong><br> "+
+				JSON.stringify(obj[[i]][["documentationURL"]]).replace(regex,"<a href='$1' target='_blank'>$1</a>");
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.innerHTML="<strong>GitHub:</strong><br> "+
+				JSON.stringify(obj[[i]][["githubURL"]]).replace(regex,"<a href='$1' target='_blank'>$1</a>");
+			tr.appendChild(td);
+			details.appendChild(tr);
+			div.appendChild(details);
+		} else {
+			var details = document.getElementById("details"+"_"+oc);			
+			var tr = document.createElement("tr");		
+			var td = document.createElement("td");
+			td.style.width="66%";
+			td.innerHTML="<strong>"+
+				(obj[[i]][["name"]])+":</strong><br> "+JSON.stringify(obj[[i]][["description"]]);
+			tr.appendChild(td);
+			td = document.createElement("td");	
+			td.innerHTML="<strong>Dokumentation:</strong><br> "+
+				JSON.stringify(obj[[i]][["documentationURL"]]).replace(regex,"<a href='$1' target='_blank'>$1</a>");
+			tr.appendChild(td);
+			td = document.createElement("td");
+			td.innerHTML="<strong>GitHub:</strong><br> "+
+				JSON.stringify(obj[[i]][["githubURL"]]).replace(regex,"<a href='$1' target='_blank'>$1</a>");
+			tr.appendChild(td);
+			details.appendChild(tr);
+		}
+
+		myContainer.appendChild(div); 		
 	}
 
 }
