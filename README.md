@@ -18,7 +18,6 @@ They can also be seen in action thanks to GitHub Pages:
 
 | Snippet | Link | 
 |---|---|
-| Tagesschau API Demo | [html/demo_tagesschau-api.html](https://andreasfischer1985.github.io/code-snippets/html/demo_tagesschau-api.html) |
 | Pyscript Demo | [html/demo_pyscript.html](https://andreasfischer1985.github.io/code-snippets/html/demo_pyscript.html) |
 | Particles Demo | [html/demo_particles.js.html](https://andreasfischer1985.github.io/code-snippets/html/demo_particles.js.html) |
 | Typewriter Demo | [html/demo_typewriter.html](https://andreasfischer1985.github.io/code-snippets/html/demo_typewriter.html) |
