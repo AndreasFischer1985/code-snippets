@@ -1,6 +1,6 @@
 # Miscellaneous code snippets
 
-Small code snippets in different languages. 
+Small code snippets in different languages (primarilly R, PHP & HTML/JS/CSS). 
 
 Php files mostly demonstrate basic backend functionalities:
 
