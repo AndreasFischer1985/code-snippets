@@ -33,7 +33,7 @@ create(package.name,
 description=list(
 "Package"="qqBaseX",
 "Title"="Basic functions for analyzing qualitative and quantitative data based on R's default packages.",
-"Version"="0.4.6",
+"Version"="0.4.7",
 "Authors@R"="person(\"Andreas\", \"Fischer\", email = \"andreasfischer1985@web.de\", role = c(\"aut\", \"cre\"))",
 "Maintainer"="'Andreas Fischer' <andreasfischer1985@web.de>",
 "Description"=
@@ -1938,8 +1938,10 @@ d <- paste0(	"#' Function boxedText\n",
 		"#' @param x2 Numeric value specifying the arrow's position on the x-axis.\n",
 		"#' @param y2 Numeric value specifying the arrow's position on the y-axis.\n",
 		"#' @param txt Character value specifying the text to be plotted.\n",
-		"#' @param col Character value specifying the color of the box. Defaults to \"yellow\".\n",
-		"#' @param col Character value specifying the color of the border. Defaults to \"black\".\n",
+		"#' @param col Character value specifying the color of the text. Defaults to \"black\".\n",
+		"#' @param col2 Character value specifying the color of the box. Defaults to \"yellow\".\n",
+		"#' @param border Character value specifying the color of the border. Defaults to \"black\".\n",
+		"#' @param xpd Logical value specifying whether plotting is not clipped, or restricted, to the plotting region. Defaults to T.\n",
 		"#' @param pos Numeric value specifying the position of the arrow relative to the box (0=no arrow plotted, 1=down, 2=left, 3=up, 4=right).\n",
 		"#' @param ... Additional graphical parameters for text.\n",
 		"#' @details Adds a boxed text to a plot.\n",
@@ -1947,7 +1949,7 @@ d <- paste0(	"#' Function boxedText\n",
 		"#' @export\n",
 		"#' @examples\n#' plot(1:10,1:10);boxedText(7,2.5,text=\"This (3;3) is a remarkable point worth emphasizing\",3,3,col=\"yellow\",maxlength=20)"
 		)
-f<-function(x,y,text="Hello \nWorld",x2=NULL,y2=NULL,maxlength=NULL,col="yellow",border="black",pos=NULL,font=1,hspace=1,vspace=1.2,cex=1,decollide=F,decollide.repetitions=10,...){
+f<-function(x,y,text="Hello \nWorld",x2=NULL,y2=NULL,maxlength=NULL,col="black",col2="yellow",border="black",xpd=T,pos=NULL,font=1,hspace=1,vspace=1.2,cex=1,decollide=F,decollide.repetitions=10,...){
 
 	if(length(x)>1|length(y)>1){
 		if(length(y)>length(x))x=rep(x[1],length(y))
@@ -1983,35 +1985,35 @@ f<-function(x,y,text="Hello \nWorld",x2=NULL,y2=NULL,maxlength=NULL,col="yellow"
 	polygon(x=c(x-sw/2,x+sw/2,
 	    	x+sw/2,x-sw/2),
 		y=c(y+sh/2,y+sh/2,
-	    	y-sh/2,y-sh/2),col=col,border=border)
+	    	y-sh/2,y-sh/2),col=col2,border=border,xpd=xpd)
 	}else{
 	if(pos==0)
 	polygon(x=c(x-sw/2,x+sw/2,
 	    	x+sw/2,x-sw/2),
 		y=c(y+sh/2,y+sh/2,
-	    	y-sh/2,y-sh/2),col=col,border=border)
+	    	y-sh/2,y-sh/2),col=col2,border=border,xpd=xpd)
 	if(pos==1)
 	polygon(x=c(x-sw/2,x+sw/2,
 		x+sw/2,x+sw/6,x2,x-sw/6,x-sw/2),
 		y=c(y+sh/2,y+sh/2,
-		y-sh/2,y-sh/2,y2,y-sh/2,y-sh/2),col=col,border=border)
+		y-sh/2,y-sh/2,y2,y-sh/2,y-sh/2),col=col2,border=border,xpd=xpd)
 	if(pos==2)
 	polygon(x=c(x-sw/2,x+sw/2,
 		x+sw/2,x-sw/2,x-sw/2,x2,x-sw/2),
 		y=c(y+sh/2,y+sh/2,
-	    	y-sh/2,y-sh/2,y-sh/6,y2,y+sh/6),col=col,border=border)
+	    	y-sh/2,y-sh/2,y-sh/6,y2,y+sh/6),col=col2,border=border,xpd=xpd)
 	if(pos==3)	
 	polygon(x=c(x-sw/2,x-sw/6,x2,x+sw/6,x+sw/2,
 	    	x+sw/2,x-sw/2),
 		y=c(y+sh/2,y+sh/2,y2,y+sh/2,y+sh/2,
-	    	y-sh/2,y-sh/2),col=col,border=border)
+	    	y-sh/2,y-sh/2),col=col2,border=border,xpd=xpd)
 	if(pos==4)
 	polygon(x=c(x-sw/2,x+sw/2,x+sw/2,x2,x+sw/2,
 	    	x+sw/2,x-sw/2),
 		y=c(y+sh/2,y+sh/2,y+sh/6,y2,y-sh/6,
-	    	y-sh/2,y-sh/2),col=col,border=border)
+	    	y-sh/2,y-sh/2),col=col2,border=border,xpd=xpd)
 	}
-	text(x,y,text,cex=cex,font=font,...);
+	text(x,y,text,cex=cex,font=font,col=col,xpd=xpd,...);
 	invisible()
 }
 boxedText=f;
