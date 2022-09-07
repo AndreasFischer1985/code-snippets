@@ -2,6 +2,8 @@
 
 Small code snippets in different languages (primarilly R, PHP & HTML/JS/CSS). 
 
+## PHP section
+
 Php files mostly demonstrate basic backend functionalities:
 
 | Snippet | Link | 
@@ -11,6 +13,9 @@ Php files mostly demonstrate basic backend functionalities:
 | Chat Example | [php/sql_chat_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_chat_example.php) | 
 | API Example |  [php/ausbildungssuche_api_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_api_example.php) | 
 | Dashboard Example |  [php/ausbildungssuche_dashboard_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_dashboard_example.php) |
+
+
+## HTML section
 
 Html files mostly demonstrate some frontend functionalities based on JavaScript or CSS. 
 
