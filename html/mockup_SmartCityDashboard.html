@@ -1,0 +1,416 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<html>
+<body style="background-color:white; font-family: Arial, Helvetica, sans-serif;">
+<center>
+<div>
+<h1>Smart City Dashboard</h1>
+<p>Smart City Dashboard zur Stadt 
+<select id="city" name="city">
+  <option value="nue">Nürnberg</option>
+  <option value="ber">Berlin</option>
+  <option value="feu">Feucht</option>
+  <option value="tue">Tübingen</option>
+</select> </p>
+</div>
+<br>
+</center>
+<div class="wrapper" style="display: flex;">
+	<div style="width:300; height:200; display: background-color: black;">
+	<canvas id="myChart1" style="max-width:100%; max-height:100%;"></canvas>
+	</div>
+	<div style="width:300; height:200;  display: background-color: black;">
+	<canvas id="myChart2" style="max-width:100%; max-height:100%;"></canvas>
+	</div>
+	<div style="width:300; height:200; display: background-color: black;">
+	<canvas id="myChart3" style="max-width:100%; max-height:100%;"></canvas>
+	</div>
+</div>
+<br>
+<div class="wrapper" style="display: flex;">
+	<div style="width:300; height:200; display: background-color: black;">
+	<canvas id="myChart4" style="max-width:100%; max-height:100%;"></canvas>
+	</div>
+	<div style="width:300; height:200; display: background-color: black;">
+	<canvas id="myChart5" style="max-width:100%; max-height:100%;"></canvas>
+	</div>
+	<div style="width:300; height:200; display: background-color: black;">
+	<canvas id="myChart6" style="max-width:100%; max-height:100%;"></canvas>
+	</div>
+</div>
+</div>
+<br>
+<div class="centered">
+	<center>
+	<div style="width:300; height:100; display: background-color: black;">
+	<canvas id="myChart" style="width:100%; height:100%;"></canvas>
+	</div>
+	</center>
+</div>
+</body>
+</html>
+<script>
+Chart.defaults.font.size = 8;
+
+
+// Area-Chart based on Line-Chart
+//-----------------------------------
+var ctx1 = document.getElementById("myChart1").getContext('2d');
+var myChart1 = new Chart(ctx1, {
+    type: 'line',
+    data: {
+        labels: ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"],
+        datasets: [{
+            label: 'Series 1', // Name the series
+            data: [500,	50, 2424,14040,14141,4111,4544], // Specify the data values array
+            fill: true,
+            borderColor: 'rgba(255, 99, 132, 1)', // Add custom color border (Line)
+            backgroundColor: 'rgba(255, 99, 132, 0.2)', // Add custom color background (Points and Fill)
+            borderWidth: 1 // Specify bar border width
+        },
+        {
+            label: 'Series 2', // Name the series
+            data: [1288, 8942,4545,788,99,242,1417], // Specify the data values array
+            fill: true,
+            borderColor: 'rgba(54, 162, 235, 1)', // Add custom color border (Line)
+            backgroundColor: 'rgba(54, 162, 235, 0.2)', // Add custom color background (Points and Fill)
+            borderWidth: 1 // Specify bar border width
+        }]
+    },
+    options: {
+      responsive: true, 	  // Instruct chart js to respond nicely.
+      maintainAspectRatio: false, // Add to prevent default behaviour of full-width/height 
+      plugins: {
+        title: { display: true, text: 'Fahradzähler' }
+      }
+    }
+});
+
+
+// Doughnut-Chart with text in center
+//-----------------------------------
+var ctx2 = document.getElementById('myChart2').getContext('2d');
+const myChart2 = new Chart(ctx2, {
+  type: 'doughnut',
+  plugins: [{
+    beforeDraw: function(chart) {
+        if (chart.config.options.elements.center) {
+            // Get ctx from string
+            var ctx = chart.ctx;
+
+            // Get options from the center object in options
+            var centerConfig = chart.config.options.elements.center;
+            var fontStyle = centerConfig.fontStyle || 'Arial';
+            var txt = centerConfig.text;
+            var color = centerConfig.color || '#000';
+            var maxFontSize = centerConfig.maxFontSize || 75;
+            var sidePadding = centerConfig.sidePadding || 20;
+            var sidePaddingCalculated = (sidePadding / 100) * (chart._metasets[chart._metasets.length-1].data[0].innerRadius * 2)
+            // Start with a base font of 30px
+            ctx.font = "30px " + fontStyle;
+
+            // Get the width of the string and also the width of the element minus 10 to give it 5px side padding
+            var stringWidth = ctx.measureText(txt).width;
+            var elementWidth = (chart._metasets[chart._metasets.length-1].data[0].innerRadius * 2) - sidePaddingCalculated;            
+
+            // Find out how much the font can grow in width.
+            var widthRatio = elementWidth / stringWidth;
+            var newFontSize = Math.floor(30 * widthRatio);
+            var elementHeight = (chart._metasets[chart._metasets.length-1].data[0].innerRadius * 2);
+
+            // Pick a new font size so it will not be larger than the height of label.
+            var fontSizeToUse = Math.min(newFontSize, elementHeight, maxFontSize);
+            var minFontSize = centerConfig.minFontSize;
+            var lineHeight = centerConfig.lineHeight || 25;
+            var wrapText = false;
+
+            if (minFontSize === undefined) {
+                minFontSize = 20;
+            }
+
+            if (minFontSize && fontSizeToUse < minFontSize) {
+                fontSizeToUse = minFontSize;
+                wrapText = true;
+            }
+
+            // Set font settings to draw it correctly.
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            var centerX = ((chart.chartArea.left + chart.chartArea.right) / 2);
+            var centerY = ((chart.chartArea.top + chart.chartArea.bottom) / 2);
+            ctx.font = fontSizeToUse + "px " + fontStyle;
+            ctx.fillStyle = color;
+
+            if (!wrapText) {
+                ctx.fillText(txt, centerX, centerY);
+                return;
+            }
+
+            var words = txt.split(' ');
+            var line = '';
+            var lines = [];
+
+            // Break words up into multiple lines if necessary
+            for (var n = 0; n < words.length; n++) {
+                var testLine = line + words[n] + ' ';
+                var metrics = ctx.measureText(testLine);
+                var testWidth = metrics.width;
+                if (testWidth > elementWidth && n > 0) {
+                    lines.push(line);
+                    line = words[n] + ' ';
+                } else {
+                    line = testLine;
+                }
+            }
+
+            // Move the center up depending on line height and number of lines
+            centerY -= (lines.length / 2) * lineHeight;
+
+            for (var n = 0; n < lines.length; n++) {
+                ctx.fillText(lines[n], centerX, centerY);
+                centerY += lineHeight;
+            }
+            //Draw text in center
+            ctx.fillText(line, centerX, centerY);
+        }
+    }
+  }],
+  data: {
+        labels: ['Besetzt', 'Frei'],
+        datasets: [{
+            label: '# of Votes',
+            data: [12, 19],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(75, 192, 192, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(75, 192, 192, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+  options: {
+        responsive: true,
+    	plugins:{
+		legend: { display: true, position: 'right', labels: {boxWidth:2} },
+                title: { display: true, text: 'Parkplatzauslastung' }	
+	},
+    elements: {
+      center: {
+        text: '38%',
+        color: '#FF6384', // Default is #000000
+        fontStyle: 'Arial', // Default is Arial
+        sidePadding: 20, // Default is 20 (as a percentage)
+        minFontSize: 1, // Default is 20 (in px), set to false and text will not wrap.
+        lineHeight: 25 // Default is 25 (in px), used for when text wraps
+      }
+    }
+  }
+
+});
+
+
+
+// Gauge-like Chart with text in center
+//-------------------------------------
+var ctx3 = document.getElementById('myChart3').getContext('2d');
+new Chart(ctx3, {
+  type: 'doughnut',
+  data: {
+        labels: ['Rot', 'Blau', 'Gelb', 'Grün', 'Lila', 'Orange'],
+        datasets: [{
+            label: '# of Votes',
+            data: [12, 19, 3, 5, 2, 3],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+  options: {
+    responsive: true,
+    plugins:{
+		legend: { display: true, position: 'right', labels: {boxWidth:2} },
+		title: { display: true, text: 'Politisches Spektrum' } 
+    },
+    rotation: 270, // start angle in degrees
+    circumference: 180, // sweep angle in degrees
+  }
+});
+
+
+// Basic Line-Chart
+const ctx4 = document.getElementById('myChart4').getContext('2d');
+const myChart4 = new Chart(ctx4, {
+    type: 'line',
+    data: {
+        labels: ['2017','2018','2019','2020','2021','2022'],
+        datasets: [{
+            label: '# of Votes',
+            data: [12, 19, 3, 5, 2, 3],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: false,
+        scales: { y: { beginAtZero: true }},
+    	plugins:{
+		legend: { display: false },
+		title: { display: true, text: 'Grundwasserspiegel/Temperatur/Sonnentage' } 
+	}
+    }
+    
+});
+
+// Basic Doughnut-Chart
+//---------------------
+const ctx6 = document.getElementById('myChart6').getContext('2d');
+const myChart6 = new Chart(ctx6, {
+    type: 'doughnut',
+    data: {
+        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+        datasets: [{
+            label: '# of Votes',
+            data: [12, 19, 3, 5, 2, 3],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+    	plugins:{
+		legend: { display: true, position: 'right', labels: {boxWidth:2} },
+		title: { display: true, text: 'Standard Doughnut-Chart' } 
+		 
+	}
+     }
+    
+});
+
+
+// Basic Polar-Chart
+//------------------
+const ctx5 = document.getElementById('myChart5').getContext('2d');
+const myChart5 = new Chart(ctx5, {
+    type: 'polarArea',
+    data: {
+        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+        datasets: [{
+            label: '# of Votes',
+            data: [12, 19, 3, 5, 2, 3],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+    	plugins:{
+		legend: { display: false, position: 'right', labels: {boxWidth:2} }, 
+		title: { display: true, text: 'Standard Polar Chart' } 
+	}
+     }
+});
+
+
+// Bar chart
+//-----------
+const ctx = document.getElementById('myChart').getContext('2d');
+const myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+        datasets: [{
+            label: '# of Votes',
+            data: [12, 19, 3, 5, 2, 3],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: false,
+        scales: { y: { beginAtZero: true }},
+    	plugins:{
+		legend: { display: false },
+		title: { display: true, text: 'Standard Barplot' } 
+	}
+    }
+    
+});
+
+</script>
+
