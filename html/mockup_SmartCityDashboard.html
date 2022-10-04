@@ -17,6 +17,8 @@
 <div class="wrapper" style="display: flex;">
 	<div style="width:300; height:200; display: background-color: black;">
 	<canvas id="myChart1" style="max-width:100%; max-height:100%;"></canvas>
+	<input type="date" id="startDate" name="trip-start" value="2022-09-27" min="2018-01-01" max="2022-12-31" onchange="replaceData();">
+	<input type="date" id="endDate"   name="trip-start" value="2022-09-30" min="2018-01-01" max="2022-12-31" onchange="replaceData();">
 	</div>
 	<div style="width:300; height:200;  display: background-color: black;">
 	<canvas id="myChart2" style="max-width:100%; max-height:100%;"></canvas>
@@ -58,8 +60,16 @@ var ctx1 = document.getElementById("myChart1").getContext('2d');
 var myChart1 = new Chart(ctx1, {
     type: 'line',
     data: {
-        labels: ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"],
+        labels: [], //["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"],
         datasets: [{
+            label: 'Zählerstand', // Name the series
+            data: [], // Specify the data values array
+            fill: true,
+            borderColor: 'rgba(255, 99, 132, 1)', // Add custom color border (Line)
+            backgroundColor: 'rgba(255, 99, 132, 0.2)', // Add custom color background (Points and Fill)
+            borderWidth: 1 // Specify bar border width
+        }], 
+	/* [{
             label: 'Series 1', // Name the series
             data: [500,	50, 2424,14040,14141,4111,4544], // Specify the data values array
             fill: true,
@@ -75,6 +85,7 @@ var myChart1 = new Chart(ctx1, {
             backgroundColor: 'rgba(54, 162, 235, 0.2)', // Add custom color background (Points and Fill)
             borderWidth: 1 // Specify bar border width
         }]
+	*/
     },
     options: {
       responsive: true, 	  // Instruct chart js to respond nicely.
@@ -84,7 +95,37 @@ var myChart1 = new Chart(ctx1, {
       }
     }
 });
-
+function replaceData() { 
+    const chart=myChart1;	
+    const myStart=new Date(document.getElementById('startDate').value).toLocaleDateString("en-GB");
+    const myEnd=new Date(document.getElementById('endDate').value).toLocaleDateString("en-GB");
+    //alert("Start="+myStart+"; End="+myEnd);
+    var url = 'https://www.eco-visio.net/api/aladdin/1.0.0/pbl/publicwebpageplus/data/100125116?idOrganisme=4586&idPdc=100125116&interval=4&flowIds=101125116%3B102125116%3B353247560%3B353247561'
+    url = url + '&debut=' + myStart + '&fin=' + myEnd;
+    fetch(url)
+      .then(function (response) { return response.json(); })
+         .then(function (data) { 
+                        // Erase all Data
+    			chart.data.labels=[]; 
+    			chart.data.datasets.forEach((dataset) => {
+        			dataset.data=[]; 
+    			});
+                        // Add new Data
+			function addValue(d){
+				chart.data.labels.push(d[0]);
+				chart.data.datasets.forEach((dataset) => {
+    					dataset.data.push(d[1]);
+				});
+			}
+		        data.forEach(addValue);	   
+			chart.update();
+   
+	  })
+	  .catch(function (err){});  
+};
+document.getElementById('startDate').valueAsDate = new Date(new Date().setDate(new Date().getDate()-7));
+document.getElementById('endDate').valueAsDate = new Date();
+replaceData();
 
 // Doughnut-Chart with text in center
 //-----------------------------------
