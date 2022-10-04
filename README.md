@@ -33,5 +33,6 @@ They can also be seen in action thanks to GitHub Pages:
 | API Collection | [html/js_apiCollection.html](https://andreasfischer1985.github.io/code-snippets/html/js_apiCollection.html) |
 | Profilbildung| [html/js_profilbildung.html](https://andreasfischer1985.github.io/code-snippets/html/js_profilbildung.html) |
 | Loading Animation | [html/css_loading_animation_atom.html](https://andreasfischer1985.github.io/code-snippets/html/css_loading_animation_atom.html) |
+| Smart City Dashboard | [html/mockup_SmartCityDashboard.html](https://andreasfischer1985.github.io/code-snippets/html/mockup_SmartCityDashboard.html) |
 
 
