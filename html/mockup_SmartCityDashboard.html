@@ -1,5 +1,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <html>
+<style>
+.center {
+  margin: auto;
+  width: 90%;
+  border: 3px solid #73AD21;
+  padding: 10px;
+}
+</style>
 <body style="background-color:white; font-family: Arial, Helvetica, sans-serif;">
 <center>
 <div>
@@ -7,52 +15,67 @@
 <p>Smart City Dashboard zur Stadt 
 <select id="city" name="city">
   <option value="nue">Nürnberg</option>
-  <option value="ber">Berlin</option>
-  <option value="feu">Feucht</option>
-  <option value="tue">Tübingen</option>
 </select> </p>
 </div>
 <br>
 </center>
-<div class="wrapper" style="display: flex;">
-	<div style="width:300; height:200; display: background-color: black;">
-	<canvas id="myChart1" style="max-width:100%; max-height:100%;"></canvas>
-	<input type="date" id="startDate" name="trip-start" value="2022-09-27" min="2018-01-01" max="2022-12-31" onchange="replaceData();">
-	<input type="date" id="endDate"   name="trip-start" value="2022-09-30" min="2018-01-01" max="2022-12-31" onchange="replaceData();">
+<div style="margin: auto; width: 90%; border: 3px solid #73AD21; padding: 10px;border-radius: 20px 20px;">
+<div class="wrapper" style="display: flex; overflow:hidden;">
+	<div style="width:33%; height:200;">
+	<canvas id="myChart1" style="max-width:100%; max-height:80%;"></canvas>
+	<input type="date" id="startDate" name="start" value="2022-09-27" min="2018-01-01" max="2022-12-31" onchange="replaceData1();">
+	<input type="date" id="endDate"   name="end" value="2022-09-30" min="2018-01-01" max="2022-12-31" onchange="replaceData1();">
 	</div>
-	<div style="width:300; height:200;  display: background-color: black;">
+	<div style="width:33%; height:150;  display: background-color: black;">
 	<canvas id="myChart2" style="max-width:100%; max-height:100%;"></canvas>
+	<select id="parkhaus" name="parkhaus" style="margin-left: 10px;"><option value="ges">Gesamt</option></select>
 	</div>
-	<div style="width:300; height:200; display: background-color: black;">
+	<div style="width:33%; height:150; display: background-color: black;">
 	<canvas id="myChart3" style="max-width:100%; max-height:100%;"></canvas>
 	</div>
 </div>
 <br>
-<div class="wrapper" style="display: flex;">
-	<div style="width:300; height:200; display: background-color: black;">
+<div class="wrapper" style="display: flex; margin: auto;">
+	<div style="width:33%; height:150; display: background-color: black;">
 	<canvas id="myChart4" style="max-width:100%; max-height:100%;"></canvas>
 	</div>
-	<div style="width:300; height:200; display: background-color: black;">
+	<div style="width:33%; height:150; display: background-color: black;">
 	<canvas id="myChart5" style="max-width:100%; max-height:100%;"></canvas>
 	</div>
-	<div style="width:300; height:200; display: background-color: black;">
+	<div style="width:33%; height:150; display: background-color: black;">
 	<canvas id="myChart6" style="max-width:100%; max-height:100%;"></canvas>
 	</div>
 </div>
-</div>
 <br>
-<div class="centered">
-	<center>
-	<div style="width:300; height:100; display: background-color: black;">
-	<canvas id="myChart" style="width:100%; height:100%;"></canvas>
-	</div>
-	</center>
+<center><p style="background-color:grey; color:white; border-radius: 20px 20px;" id="pegelstand">Pegelstand</p></center>
+</div>
 </div>
 </body>
 </html>
 <script>
 Chart.defaults.font.size = 8;
+const production=true;
 
+function setPegel1(){
+    const url1='https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/4a69e82e-97a3-4573-8aeb-b695c1eaa0b1/W.json'; // MDK Bamberg
+    const url2='https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/ff02f181-491c-4925-ad13-07edd2ddb3f1/W.json'; // MDK Riedenburg Up
+    let text="Pegelstand des MDK: ";
+    fetch(url1)
+      .then(function (response) { return response.json(); })
+         .then(function (data) {      
+                        text=text+(data['gaugeZero']['value']);
+    	  		fetch(url2)
+      	      		  .then(function (response) { return response.json(); })
+         		    .then(function (data) { 
+                	        text=text+" (Bamberg) - "+(data['gaugeZero']['value'])+" (Riedenburg) m.ü.N.N.";
+				document.getElementById('pegelstand').innerText= text;
+				//alert(text);
+		  	 })
+		  	 .catch(function (err){alert(err);});  
+	  })
+	  .catch(function (err){alert(err);});  
+}
+if(production===true) setPegel1();
 
 // Area-Chart based on Line-Chart
 //-----------------------------------
@@ -69,33 +92,17 @@ var myChart1 = new Chart(ctx1, {
             backgroundColor: 'rgba(255, 99, 132, 0.2)', // Add custom color background (Points and Fill)
             borderWidth: 1 // Specify bar border width
         }], 
-	/* [{
-            label: 'Series 1', // Name the series
-            data: [500,	50, 2424,14040,14141,4111,4544], // Specify the data values array
-            fill: true,
-            borderColor: 'rgba(255, 99, 132, 1)', // Add custom color border (Line)
-            backgroundColor: 'rgba(255, 99, 132, 0.2)', // Add custom color background (Points and Fill)
-            borderWidth: 1 // Specify bar border width
-        },
-        {
-            label: 'Series 2', // Name the series
-            data: [1288, 8942,4545,788,99,242,1417], // Specify the data values array
-            fill: true,
-            borderColor: 'rgba(54, 162, 235, 1)', // Add custom color border (Line)
-            backgroundColor: 'rgba(54, 162, 235, 0.2)', // Add custom color background (Points and Fill)
-            borderWidth: 1 // Specify bar border width
-        }]
-	*/
     },
     options: {
       responsive: true, 	  // Instruct chart js to respond nicely.
       maintainAspectRatio: false, // Add to prevent default behaviour of full-width/height 
       plugins: {
-        title: { display: true, text: 'Fahradzähler' }
+        title: { display: true, text: 'Fahradzähler', font: { size: 20 } }
       }
     }
 });
-function replaceData() { 
+
+function replaceData1() { 
     const chart=myChart1;	
     const myStart=new Date(document.getElementById('startDate').value).toLocaleDateString("en-GB");
     const myEnd=new Date(document.getElementById('endDate').value).toLocaleDateString("en-GB");
@@ -125,7 +132,7 @@ function replaceData() {
 };
 document.getElementById('startDate').valueAsDate = new Date(new Date().setDate(new Date().getDate()-7));
 document.getElementById('endDate').valueAsDate = new Date();
-replaceData();
+if(production===true) replaceData1();
 
 // Doughnut-Chart with text in center
 //-----------------------------------
@@ -235,7 +242,7 @@ const myChart2 = new Chart(ctx2, {
         responsive: true,
     	plugins:{
 		legend: { display: true, position: 'right', labels: {boxWidth:2} },
-                title: { display: true, text: 'Parkplatzauslastung' }	
+                title: { display: true, text: 'Parkplatzauslastung', font: { size: 20 } }	
 	},
     elements: {
       center: {
@@ -259,23 +266,28 @@ var ctx3 = document.getElementById('myChart3').getContext('2d');
 new Chart(ctx3, {
   type: 'doughnut',
   data: {
-        labels: ['Rot', 'Blau', 'Gelb', 'Grün', 'Lila', 'Orange'],
+        labels: ['CSU', 'GRÜNE', 'SPD', 'FDP', 'AfD', 'DIE LINKE', 'Sonstige'],
         datasets: [{
             label: '# of Votes',
-            data: [12, 19, 3, 5, 2, 3],
+            data: [28.5, 22.6, 21.9, 7.5, 5.9,  5.4, 8.3],
+
+
             backgroundColor: [
-                'rgba(255, 99, 132, 0.2)',
-                'rgba(54, 162, 235, 0.2)',
-                'rgba(255, 206, 86, 0.2)',
-                'rgba(75, 192, 192, 0.2)',
+                
+		'rgba(0,   0,  0,   0.2)',
+		'rgba(75, 192, 192, 0.2)',
+		'rgba(255, 99, 132, 0.2)',
+		'rgba(255, 206, 86, 0.2)',
+                'rgba(54, 162, 235, 0.2)',     
                 'rgba(153, 102, 255, 0.2)',
                 'rgba(255, 159, 64, 0.2)'
             ],
-            borderColor: [
-                'rgba(255, 99, 132, 1)',
+            borderColor: [   
+		'rgba(0,   0,  0,   1)',
+		'rgba(75, 192, 192, 1)',
+		'rgba(255, 99, 132, 1)',
+		'rgba(255, 206, 86, 1)',
                 'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(75, 192, 192, 1)',
                 'rgba(153, 102, 255, 1)',
                 'rgba(255, 159, 64, 1)'
             ],
@@ -286,7 +298,7 @@ new Chart(ctx3, {
     responsive: true,
     plugins:{
 		legend: { display: true, position: 'right', labels: {boxWidth:2} },
-		title: { display: true, text: 'Politisches Spektrum' } 
+		title: { display: true, text: 'Politisches Spektrum', font: { size: 20 } } 
     },
     rotation: 270, // start angle in degrees
     circumference: 180, // sweep angle in degrees
@@ -327,7 +339,7 @@ const myChart4 = new Chart(ctx4, {
         scales: { y: { beginAtZero: true }},
     	plugins:{
 		legend: { display: false },
-		title: { display: true, text: 'Grundwasserspiegel/Temperatur/Sonnentage' } 
+		title: { display: true, text: 'Standard Line Chart', font: { size: 20 } } 
 	}
     }
     
@@ -335,8 +347,8 @@ const myChart4 = new Chart(ctx4, {
 
 // Basic Doughnut-Chart
 //---------------------
-const ctx6 = document.getElementById('myChart6').getContext('2d');
-const myChart6 = new Chart(ctx6, {
+const ctx5 = document.getElementById('myChart5').getContext('2d');
+const myChart5 = new Chart(ctx5, {
     type: 'doughnut',
     data: {
         labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
@@ -366,57 +378,17 @@ const myChart6 = new Chart(ctx6, {
         responsive: true,
     	plugins:{
 		legend: { display: true, position: 'right', labels: {boxWidth:2} },
-		title: { display: true, text: 'Standard Doughnut-Chart' } 
+		title: { display: true, text: 'Standard Doughnut-Chart', font: { size: 20 } } 
 		 
 	}
      }
     
 });
 
-
-// Basic Polar-Chart
-//------------------
-const ctx5 = document.getElementById('myChart5').getContext('2d');
-const myChart5 = new Chart(ctx5, {
-    type: 'polarArea',
-    data: {
-        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-        datasets: [{
-            label: '# of Votes',
-            data: [12, 19, 3, 5, 2, 3],
-            backgroundColor: [
-                'rgba(255, 99, 132, 0.2)',
-                'rgba(54, 162, 235, 0.2)',
-                'rgba(255, 206, 86, 0.2)',
-                'rgba(75, 192, 192, 0.2)',
-                'rgba(153, 102, 255, 0.2)',
-                'rgba(255, 159, 64, 0.2)'
-            ],
-            borderColor: [
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(75, 192, 192, 1)',
-                'rgba(153, 102, 255, 1)',
-                'rgba(255, 159, 64, 1)'
-            ],
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-    	plugins:{
-		legend: { display: false, position: 'right', labels: {boxWidth:2} }, 
-		title: { display: true, text: 'Standard Polar Chart' } 
-	}
-     }
-});
-
-
 // Bar chart
 //-----------
-const ctx = document.getElementById('myChart').getContext('2d');
-const myChart = new Chart(ctx, {
+const ctx6 = document.getElementById('myChart6').getContext('2d');
+const myChart6 = new Chart(ctx6, {
     type: 'bar',
     data: {
         labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
@@ -447,7 +419,7 @@ const myChart = new Chart(ctx, {
         scales: { y: { beginAtZero: true }},
     	plugins:{
 		legend: { display: false },
-		title: { display: true, text: 'Standard Barplot' } 
+		title: { display: true, text: 'Standard Barplot', font: { size: 20 } } 
 	}
     }
     
