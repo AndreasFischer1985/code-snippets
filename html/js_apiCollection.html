@@ -1,7 +1,7 @@
 <html>
 <body>
-<h1>API collection</h1>
-<label>Search term :</label>
+<h1>API-Kollektion<br>bund.dev</h1>
+<label>Suche:</label>
 <input type="search" class="filter" data-for="#api-table" autofocus="autofocus">
 <br><br>
 <table id="api-table">
@@ -30,11 +30,9 @@ function appendJSON(json,myContainer,level) {
 			var summary = document.createElement("summary");
 			summary.innerHTML="<strong>"+
 				(obj[[i]][["office"]])+"<strong>";
-			details.style.width="800";
 			details.appendChild(summary);
 			var tr = document.createElement("tr");		
 			var td = document.createElement("td");
-			td.style.width="66%";
 			td.innerHTML="<strong>"+
 				(obj[[i]][["name"]])+":</strong><br> "+JSON.stringify(obj[[i]][["description"]]);
 			tr.appendChild(td);
@@ -52,7 +50,6 @@ function appendJSON(json,myContainer,level) {
 			var details = document.getElementById("details"+"_"+oc);			
 			var tr = document.createElement("tr");		
 			var td = document.createElement("td");
-			td.style.width="66%";
 			td.innerHTML="<strong>"+
 				(obj[[i]][["name"]])+":</strong><br> "+JSON.stringify(obj[[i]][["description"]]);
 			tr.appendChild(td);
@@ -93,7 +90,13 @@ table, th, td {
   border: 1px solid;
   padding: 5px;
   text-align: left;
-  min-width: 35px
+}
+table {
+  width:800;
+}
+td {
+  max-width:247;
+  min-width:247;
 }
 tr:nth-child(even) {background-color: #f2f2f2;}
 tr:hover {background-color: coral;}
