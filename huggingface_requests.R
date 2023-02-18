@@ -82,16 +82,28 @@ model_ids=c(
   "facebook/opt-iml-max-1.3b"
 )
 
-
-model_id=model_ids[1]
-params=list("max_length"=100,"num_beams"=16, "early_stopping"=TRUE) #,length_penalty"=2, "min_length"=200, "return_full_text"=FALSE 
-url=paste0("https://api-inference.huggingface.co/models/",model_id)
-post=httr::POST(url=url, body=list("inputs"=payload, "parameters"=params), 
+bot=function(
+  model_id=model_ids[1],
+  payload=paste0(
+	"The following email explains two things:\n",
+	"1) The writer, Andy, is going to miss work.\n",
+	"2) The receiver, Betty, is Andy's boss and can email if anything needs to be done.\n",
+	"\nFrom:"),
+  params=list("max_length"=100,"num_beams"=16, "early_stopping"=TRUE) #,length_penalty"=2, "min_length"=200, "return_full_text"=FALSE
+){ 
+  url=paste0("https://api-inference.huggingface.co/models/",model_id)
+  post=httr::POST(url=url, body=list("inputs"=payload, "parameters"=params), 
 	#httr::add_headers(.headers=c("Authorization"=paste("Bearer",api_token))),
   	httr::add_headers(.headers=c("X-Wait-For-Model"="true","X-Use-Cache"="false")),	
 	#config=httr::config(connecttimeout=3600),
 	encode="json")
-httr::content(post)
+  httr::content(post)
+}
+
+for(i in 1:length(model_ids)){
+	print(Sys.time())
+	message(paste0(i,". ",model_ids[i],":\n",bot(model_ids[i])))
+}
 
 # Output of flan-t5-large:
 # "Andy: I'm going to miss work. Can you email me if anything needs to be done?"
