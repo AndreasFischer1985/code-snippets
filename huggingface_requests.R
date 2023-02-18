@@ -89,21 +89,31 @@ bot=function(
 	"1) The writer, Andy, is going to miss work.\n",
 	"2) The receiver, Betty, is Andy's boss and can email if anything needs to be done.\n",
 	"\nFrom:"),
-  params=list("max_length"=100,"num_beams"=16, "early_stopping"=TRUE) #,length_penalty"=2, "min_length"=200, "return_full_text"=FALSE
+  params=list("max_length"=200,"num_beams"=16, "early_stopping"=TRUE) #,length_penalty"=2, "min_length"=200, "return_full_text"=FALSE
 ){ 
   url=paste0("https://api-inference.huggingface.co/models/",model_id)
   post=httr::POST(url=url, body=list("inputs"=payload, "parameters"=params), 
-	#httr::add_headers(.headers=c("Authorization"=paste("Bearer",api_token))),
   	httr::add_headers(.headers=c("X-Wait-For-Model"="true","X-Use-Cache"="false")),	
-	#config=httr::config(connecttimeout=3600),
+	#httr::add_headers(.headers=c("Authorization"=paste("Bearer",api_token))),
 	encode="json")
   httr::content(post)
 }
 
-for(i in 1:length(model_ids)){
+working_ids=c(1,2,5,10,11,15,16,18)
+#4: num_beams=16 too much for CUDA
+#12,14: no parameters allowed (Internal Server Error without parameters)
+#17: model overloaded
+#other: model time out
+
+for(i in working_ids){
 	print(Sys.time())
 	message(paste0(i,". ",model_ids[i],":\n",bot(model_ids[i])))
 }
 
+
+# Inspect response of flan-t5-large:
+#-----------------------------------
+
+bot(model_ids[1])
 # Output of flan-t5-large:
 # "Andy: I'm going to miss work. Can you email me if anything needs to be done?"
