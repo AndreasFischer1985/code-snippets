@@ -14,23 +14,23 @@ url=paste0("https://api-inference.huggingface.co/models/",model_id)
 post=httr::POST(url=url, body=list("inputs"=payload, "parameters"=params), encode="json")
 httr::content(post)
 
-#!/usr/bin/env python
-import requests
-model_id = "google/flan-t5-xl" 
-payload = "Please write a step by step recipe to make bolognese pasta."
-params={"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":True}
-url = f"https://api-inference.huggingface.co/models/{model_id}"
-post = requests.post(url, json={"inputs":payload, "parameters":params})
-post.json()
+##!/usr/bin/env python
+#import requests
+#model_id = "google/flan-t5-xl" 
+#payload = "Please write a step by step recipe to make bolognese pasta."
+#params={"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":True}
+#url = f"https://api-inference.huggingface.co/models/{model_id}"
+#post = requests.post(url, json={"inputs":payload, "parameters":params})
+#post.json()
 
-#!/bin/bash
-model_id="google/flan-t5-xl" 
-payload="Please write a step by step recipe to make bolognese pasta."
-params='{"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":true}'
-url="https://api-inference.huggingface.co/models/"$model_id
-data='{"inputs":"'$payload'","parameters":'$params'}'
-post=$(curl -X POST $url -H "Content-Type: application/json" --data-raw "$data")
-echo $post
+##!/bin/bash
+#model_id="google/flan-t5-xl" 
+#payload="Please write a step by step recipe to make bolognese pasta."
+#params='{"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":true}'
+#url="https://api-inference.huggingface.co/models/"$model_id
+#data='{"inputs":"'$payload'","parameters":'$params'}'
+#post=$(curl -X POST $url -H "Content-Type: application/json" --data-raw "$data")
+#echo $post
 
 
 # Diffusers
