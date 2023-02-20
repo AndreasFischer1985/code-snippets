@@ -28,6 +28,7 @@ They can also be seen in action thanks to GitHub Pages:
 | Typewriter Demo | [html/demo_typewriter.html](https://andreasfischer1985.github.io/code-snippets/html/demo_typewriter.html) |
 | Simple Switch | [html/switch.html](https://andreasfischer1985.github.io/code-snippets/html/switch.html) |
 | Eliza | [html/eliza32.html](https://andreasfischer1985.github.io/code-snippets/html/eliza32.html) |
+| Bloom | [html/js_bloom.html](https://andreasfischer1985.github.io/code-snippets/html/js_bloom.html) |
 | Display JSON | [html/js_displayJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_displayJSON.html) |
 | Filter JSON | [html/js_filterJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_filterJSON.html) |
 | API Collection | [html/js_apiCollection.html](https://andreasfischer1985.github.io/code-snippets/html/js_apiCollection.html) |
