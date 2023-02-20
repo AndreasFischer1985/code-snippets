@@ -1,0 +1,52 @@
+<html>
+<h1>BLOOM</h1>
+<label for="output">JSON-Resonse:</label><br>
+<textarea id="output" name="text" cols="100" rows="10"></textarea><br><br>
+<form>
+  <label for="prompt">Prompt:</label><br>
+  <textarea id="prompt" name="text" cols="100" rows="5">def hello_world():</textarea><br>
+  <button type='button' id="request" onclick="bloom();">Send</button>
+  <button type="reset">Reset</button><br><br>
+  <label for="maxnewtokens">Max. new tokens:</label><br>
+  <input id="maxnewtokens" type="range" min="1" max="250" value="50" class="slider" list="steplist">
+  <datalist id="steplist">
+    <option>0</option><option>50</option><option>100</option><option>150</option><option>200</option><option>250</option>
+  </datalist>
+  <br><br>
+</form>
+<script>
+
+const bloom = async() => {
+  let myPromise = new Promise(function(resolve) {
+    prompt=document.getElementById("prompt").value;
+    alert(prompt);
+    maxnewtokens=document.getElementById("maxnewtokens").value;
+    document.getElementById("output").innerHTML="[Wait a moment, BLOOM's still thinking...]";
+    fetch("https://api-inference.huggingface.co/models/bigscience/bloom", {
+    		method: "POST",
+    		headers: {
+        		"Accept": "application/json",
+        		"Content-Type": "application/json"
+    		},
+    		body: JSON.stringify({
+			inputs:prompt,
+			parameters:{
+				max_new_tokens:parseInt(maxnewtokens),
+				temperature:0.5,
+				//num_beams:20, 
+				//early_stopping:true,
+				//no_repeat_ngram_size:3,
+ 				//do_sample:True, 
+    				//top_k:50, 
+    				//top_p:0.95, 
+				return_full_text:false
+			}})
+    })
+    .then(response => response.json())
+    .then(response => resolve(JSON.stringify(response)))
+  }); 
+  document.getElementById("output").innerHTML = await myPromise;
+}
+   
+</script>
+</html>
