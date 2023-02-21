@@ -4,7 +4,9 @@
 <textarea readonly id="output" cols="100" rows="5" style="background-color: lightgrey"></textarea><br><br>
 <form>
   <label for="prompt">Prompt:</label><br>
-  <textarea id="prompt" cols="100" rows="3">def hello_world():</textarea><br>
+  <textarea id="prompt" cols="100" rows="3">The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
+
+Human:</textarea><br>
   <button type='button' id="request" onclick="bloom();">Send</button>
   <button type="reset">Reset</button><br><br>
   <label for="params">JSON-Parameters (default:{})</label><br>
@@ -19,8 +21,7 @@
      <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5}'>
      <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5, "length_penalty":2}'>
    </datalist>
-  <input type="search" list="parameters" id="params" size="120" 
-    value=''><br><br>
+  <input type="search" list="parameters" id="params" size="120" value=''><br><br>
   <datalist id="models">
      <option value="">
      <option value="google/flan-t5-large">
@@ -47,7 +48,7 @@ const bloom = async() => {
     if(params==="") params="{}";
     params=JSON.parse(params);
     model=document.getElementById("model").value;
-    if(model==="") params="bigscience/bloom";
+    if(model==="") model="bigscience/bloom";
     document.getElementById("output").innerHTML="[Wait a moment, AI's still thinking...]";
     fetch("https://api-inference.huggingface.co/models/"+model, {
     		method: "POST",
