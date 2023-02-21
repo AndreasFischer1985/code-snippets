@@ -1,28 +1,55 @@
 <html>
-<h1>BLOOM</h1>
+<h1>AI-Interface</h1>
 <label for="output">JSON-Resonse:</label><br>
-<textarea id="output" name="text" cols="100" rows="10"></textarea><br><br>
+<textarea readonly id="output" cols="100" rows="5" style="background-color: lightgrey"></textarea><br><br>
 <form>
   <label for="prompt">Prompt:</label><br>
-  <textarea id="prompt" name="text" cols="100" rows="5">def hello_world():</textarea><br>
+  <textarea id="prompt" cols="100" rows="3">def hello_world():</textarea><br>
   <button type='button' id="request" onclick="bloom();">Send</button>
   <button type="reset">Reset</button><br><br>
-  <label for="maxnewtokens">Max. new tokens:</label><br>
-  <input id="maxnewtokens" type="range" min="1" max="250" value="50" class="slider" list="steplist">
-  <datalist id="steplist">
-    <option>0</option><option>50</option><option>100</option><option>150</option><option>200</option><option>250</option>
-  </datalist>
-  <br><br>
+  <label for="params">JSON-Parameters (default:{})</label><br>
+  <datalist id="parameters">
+     <option value=''>
+     <option value='{"max_length":200}'>
+     <option value='{"max_length":200, "num_beams"=16, "early_stopping":true}'>
+     <option value='{"max_length":200, "num_beams"=16, "early_stopping":true, "temperature":0.5}'>
+     <option value='{"max_length":200, "num_beams"=16, "early_stopping":true, "temperature":0.5, "length_penalty":2}'>
+     <option value='{"max_new_tokens":50, "return_full_text":false}'>
+     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true}'>
+     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5}'>
+     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5, "length_penalty":2}'>
+   </datalist>
+  <input type="search" list="parameters" id="params" size="120" 
+    value=''><br><br>
+  <datalist id="models">
+     <option value="">
+     <option value="google/flan-t5-large">
+     <option value="google/flan-t5-xl">
+     <option value="google/flan-t5-xxl">
+     <option value="bigscience/bloom">
+     <option value="bigscience/bloomz-1b7">
+     <option value="bigscience/bloomz-1b1">
+     <option value="bigscience/T0_3B">
+     <option value="bigscience/mt0-base">
+     <option value="bigscience/mt0-xl">
+     <option value="EleutherAI/gpt-j-6B">
+   </datalist>
+  <label for="model">Huggingface model-id (default:bigscience/bloom)</label><br>
+  <input type="search" list="models" id="model" size="120" value="">
+  <br><br><br><br><br><br>
 </form>
 <script>
 
 const bloom = async() => {
   let myPromise = new Promise(function(resolve) {
     prompt=document.getElementById("prompt").value;
-    alert(prompt);
-    maxnewtokens=document.getElementById("maxnewtokens").value;
-    document.getElementById("output").innerHTML="[Wait a moment, BLOOM's still thinking...]";
-    fetch("https://api-inference.huggingface.co/models/bigscience/bloom", {
+    params=document.getElementById("params").value;
+    if(params==="") params="{}";
+    params=JSON.parse(params);
+    model=document.getElementById("model").value;
+    if(model==="") params="bigscience/bloom";
+    document.getElementById("output").innerHTML="[Wait a moment, AI's still thinking...]";
+    fetch("https://api-inference.huggingface.co/models/"+model, {
     		method: "POST",
     		headers: {
         		"Accept": "application/json",
@@ -30,17 +57,7 @@ const bloom = async() => {
     		},
     		body: JSON.stringify({
 			inputs:prompt,
-			parameters:{
-				max_new_tokens:parseInt(maxnewtokens),
-				temperature:0.5,
-				//num_beams:20, 
-				//early_stopping:true,
-				//no_repeat_ngram_size:3,
- 				//do_sample:True, 
-    				//top_k:50, 
-    				//top_p:0.95, 
-				return_full_text:false
-			}})
+			parameters:params})
     })
     .then(response => response.json())
     .then(response => resolve(JSON.stringify(response)))
