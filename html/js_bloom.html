@@ -1,15 +1,27 @@
 <html>
+<style>
+.extra-info { display: none; font-size: 12px; }
+.info:hover .extra-info { display: inline-block; }
+.info { width: 20px; }
+.info:hover { background-color: white; width: 315px; text-align: left !important; }
+</style>
+<body>
 <h1>AI-Interface</h1>
+<p>Send requests to AI-models from <a target="_blank" rel="noopener noreferrer" href="https://huggingface.co/models">huggingface.co</a></p>
 <label for="output">JSON-Resonse:</label><br>
 <textarea readonly id="output" cols="100" rows="5" style="background-color: lightgrey"></textarea><br><br>
 <form>
-  <label for="prompt">Prompt:</label><br>
+  <label for="prompt">Prompt</label>
+  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Enter text. Some models are trained to complete text (e.g., bloom), others are trained to follow instructions (e.g., flan-t5).</span></span>
+<br>
   <textarea id="prompt" cols="100" rows="3">The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
 
 Human:</textarea><br>
   <button type='button' id="request" onclick="bloom();">Send</button>
   <button type="reset">Reset</button><br><br>
-  <label for="params">JSON-Parameters (default:{})</label><br>
+  <label for="params">JSON-Parameters (default:{})</label>
+  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Click on the text field for options. Set parameter max_new_tokens (bloom) or max_length (flan-t5).</span></span>
+<br>
   <datalist id="parameters">
      <option value=''>
      <option value='{"max_length":200}'>
@@ -21,7 +33,8 @@ Human:</textarea><br>
      <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5}'>
      <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5, "length_penalty":2}'>
    </datalist>
-  <input type="search" list="parameters" id="params" size="120" value=''><br><br>
+  <input type="search" list="parameters" id="params" size="120" 
+    value=''><br><br>
   <datalist id="models">
      <option value="">
      <option value="google/flan-t5-large">
@@ -35,10 +48,13 @@ Human:</textarea><br>
      <option value="bigscience/mt0-xl">
      <option value="EleutherAI/gpt-j-6B">
    </datalist>
-  <label for="model">Huggingface model-id (default:bigscience/bloom)</label><br>
+  <label for="model">Huggingface model-id (default:bigscience/bloom)</label>
+  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Click on the text field for options. Try bigscience/bloom for text completion, google/flan-t5-xl for instructions.</span></span>
+<br>
   <input type="search" list="models" id="model" size="120" value="">
   <br><br><br><br><br><br>
 </form>
+</body>
 <script>
 
 const bloom = async() => {
@@ -64,7 +80,7 @@ const bloom = async() => {
     .then(response => resolve(JSON.stringify(response)))
   }); 
   document.getElementById("output").innerHTML = await myPromise;
-}
-   
+}   
+
 </script>
 </html>
