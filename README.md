@@ -1,18 +1,6 @@
 # Miscellaneous code snippets
 
-Small code snippets in different languages (primarilly R, PHP & HTML/JS/CSS). 
-
-## PHP section
-
-Php files mostly demonstrate basic backend functionalities:
-
-| Snippet | Link | 
-|---|---|
-| Login Example | [php/sql_login_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_login_example.php) | 
-| Search Example | [php/sql_search_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_search_example.php) | 
-| Chat Example | [php/sql_chat_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_chat_example.php) | 
-| API Example |  [php/ausbildungssuche_api_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_api_example.php) | 
-| Dashboard Example |  [php/ausbildungssuche_dashboard_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_dashboard_example.php) |
+Small code snippets in different languages (mostly R, PHP & HTML/JS/CSS). 
 
 
 ## HTML section
@@ -37,3 +25,14 @@ They can also be seen in action thanks to GitHub Pages:
 | Smart City Dashboard | [html/mockup_SmartCityDashboard.html](https://andreasfischer1985.github.io/code-snippets/html/mockup_SmartCityDashboard.html) |
 
 
+## PHP section
+
+Php files mostly demonstrate basic backend functionalities:
+
+| Snippet | Link | 
+|---|---|
+| Login Example | [php/sql_login_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_login_example.php) | 
+| Search Example | [php/sql_search_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_search_example.php) | 
+| Chat Example | [php/sql_chat_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_chat_example.php) | 
+| API Example |  [php/ausbildungssuche_api_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_api_example.php) | 
+| Dashboard Example |  [php/ausbildungssuche_dashboard_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_dashboard_example.php) |
