@@ -90,8 +90,8 @@
 
 const bloom = async(task) => {
   prompt=document.getElementById("prompt").value;
-  if(task==2) prompt="The following text can be summarized in one sentence.\n\nText: "+prompt+"\n\nSummary: ";
-  if(task==3) prompt="Explain the following text to a second-grade in simple language.\n\nText: "+prompt+"\n\nSimplified: ";
+  if(task==2) prompt="Produce a short summary of the following text.\n\nText: "+prompt+"\n\nSummary: ";
+  if(task==3) prompt="Rephrase the following text in simple language:\n\nText: "+prompt+"\n\nSummary: ";
   if(task==4) prompt="Fix typos in the following text.\n\nText: "+prompt+"\n\nFixed: ";
   //if(task==5) prompt="Translate the following text to German.\n\nText: "+prompt+"\n\nTranslation: ";
   var conf=confirm(prompt);
