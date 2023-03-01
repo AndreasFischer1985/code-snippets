@@ -4,23 +4,39 @@
 .info:hover .extra-info { display: inline-block; }
 .info { width: 20px; }
 .info:hover { background-color: white; width: 315px; text-align: left !important; }
+#div1 {
+    display: inline-block;
+    max-width:49%;
+    height:50%;
+}
+#div2 {
+    vertical-align:top;
+    display: inline-block;
+    max-width:50%;
+    height:50%;
+}
 </style>
 <body>
-<h1>AI-Interface</h1>
-<p>Send requests to AI-models from <a target="_blank" rel="noopener noreferrer" href="https://huggingface.co/models">huggingface.co</a></p>
-<label for="output">JSON-Resonse:</label><br>
-<textarea readonly id="output" cols="100" rows="5" style="resize: none; background-color: lightgrey"></textarea><br><br>
-<form>
-  <label for="prompt">Prompt</label>
-  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Enter text. Some models are trained to complete text (e.g., bloom), others are trained to follow instructions (e.g., flan-t5).</span></span>
-<br>
-  <textarea id="prompt" cols="100" rows="3" style="resize: none;">The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
+<h1>Bloom-Interface</h1>
+<p>Request completions, summaries, simple explanations or corrections of texts from <a target="_blank" rel="noopener noreferrer" href="https://huggingface.co/bigscience/bloom">Bloom</a> via API of <a target="_blank" rel="noopener noreferrer" href="https://huggingface.co">huggingface.co</a> 🤗</p>
+<div id="wrapper">
 
-Human:</textarea><br>
-  <button type='button' id="request" onclick="bloom();">Send</button>
+<div id="div1">
+<form>
+  <label for="prompt">Text</label>
+  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Enter a text you want to transform.</span></span>
+<br>
+  <textarea id="prompt" cols="50" rows="3" style="resize: none;">"So-caleld partial qualifications are a prominent example of modular offers of vocational training (cf. Dauser/Fischer/Weber 2022; Fischer/Wittig/Hecker 2020). As a whoel in the above-mentioned sense, these are based on a training occupation which is divided into modules that prepare for a vocational qualification in systematic, sequential steps (cf. Federal Employment Agency 2022). Such a design has a demonstrably positive effect on the probability of integration into the labor market (cf. Bönke/Hammer/Hügle 2022; Patuzzi 2020) - even if usually only individual modules are used (cf. Patuzzi 2020; Fischer/Wittig/Hecker). 2020). In the case of partial qualifications, a reference occupation is divided into parts as the 'entirety' of the modularization, which are certified separately. This enables the participants to decide which modules they want to complete when (or at all). If, on the other hand, the entirety is first constituted by the assembly of parts, one speaks of basic modularization in the sense of a 'fragmentation concept' (cf. Pilz 2005; Cedefop 2015), in which the modules can be combined in a variety of ways and form just as many entireties , how there are combinations (cf. the concept of 'micro-credentials', which can be flexibly compiled. In recent years, this concept has been increasingly used at EU level as part of the discussion about a European credit point system for vocational training, ECVET elaborated, see Sabbagh 2022). In both cases, modules are units that perform a specific function in a larger whole or provide specific services in a functionally closed manner."</textarea><br>
+  <button type='button' id="request" onclick="bloom(1);">Complete</button>
+  <button type='button' id="summarize" onclick="bloom(2);">Summarize</button>
+  <button type='button' id="simplify" onclick="bloom(3);">Simplify</button>
+  <button type='button' id="fix" onclick="bloom(4);">Correct</button>
   <button type="reset">Reset</button><br><br>
-  <label for="params">JSON-Parameters (default:{})</label>
-  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Click on the text field for options. Set parameter max_new_tokens (bloom) or max_length (flan-t5).</span></span>
+<details>
+<summary>Details</summary>
+  <div>
+  <label for="params">JSON-Parameters</label>
+  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Tips? Click on emptied text field.</span></span>
 <br>
   <datalist id="parameters">
      <option value=''>
@@ -29,12 +45,15 @@ Human:</textarea><br>
      <option value='{"max_length":200, "num_beams":16, "early_stopping":true, "temperature":0.5}'>
      <option value='{"max_length":200, "num_beams":16, "early_stopping":true, "temperature":0.5, "length_penalty":2}'>
      <option value='{"max_new_tokens":50, "return_full_text":false}'>
-     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true}'>
-     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5}'>
-     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5, "length_penalty":2}'>
+     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams":16, "early_stopping":true}'>
+     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams":16, "early_stopping":true,"temperature":0.5}'>
+     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams":16, "early_stopping":true,"temperature":0.5, "length_penalty":2}'>
    </datalist>
-  <input type="search" list="parameters" id="params" size="120" 
-    value=''><br><br>
+  <input type="search" list="parameters" id="params" size="55" 
+    value='{"max_new_tokens":100, "return_full_text":false, "num_beams":16, "early_stopping":true,"temperature":0.5}'><br><br>
+  </div>
+
+  <div>
   <datalist id="models">
      <option value="">
      <option value="google/flan-t5-large">
@@ -48,20 +67,40 @@ Human:</textarea><br>
      <option value="bigscience/mt0-xl">
      <option value="EleutherAI/gpt-j-6B">
    </datalist>
-  <label for="model">Huggingface model-id (default:bigscience/bloom)</label>
-  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Click on the text field for options. Try bigscience/bloom for text completion, google/flan-t5-xl for instructions.</span></span>
+  <label for="model">Huggingface model-id</label>
+  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Tips? Click on emptied text field.</span></span>
 <br>
-  <input type="search" list="models" id="model" size="120" value="">
+  <input type="search" list="models" id="model" size="55" value="bigscience/bloom">
   <br><br><br><br><br><br>
+  </div>
 </form>
+</div>
+</details>
+
+<div id="div2">
+<label for="output">JSON-Resonse:</label><br>
+<textarea readonly id="output" cols="50" rows="5" style="resize: none; background-color: lightgrey;"></textarea><br><br>
+</div>
+
+</div>
+
 </body>
+
 <script>
 
-const bloom = async() => {
+const bloom = async(task) => {
   let myPromise = new Promise(function(resolve) {
     prompt=document.getElementById("prompt").value;
+    if(task==2) prompt="The following text can be summarized in one sentence.\n\nText: "+prompt+"\n\nSummary: ";
+    if(task==3) prompt="Explain the following text to a second-grade in simple language.\n\nText: "+prompt+"\n\nSimplified: ";
+    if(task==4) prompt="Fix typos in the following text.\n\nText: "+prompt+"\n\nFixed: ";
+
+    //if(task==5) prompt="Translate the following text to German.\n\nText: "+prompt+"\n\nTranslation: ";
+
+    alert(prompt);
     params=document.getElementById("params").value;
     if(params==="") params="{}";
+    //alert(params)
     params=JSON.parse(params);
     model=document.getElementById("model").value;
     if(model==="") model="bigscience/bloom";
