@@ -89,23 +89,21 @@
 <script>
 
 const bloom = async(task) => {
-  let myPromise = new Promise(function(resolve) {
-    prompt=document.getElementById("prompt").value;
-    if(task==2) prompt="The following text can be summarized in one sentence.\n\nText: "+prompt+"\n\nSummary: ";
-    if(task==3) prompt="Explain the following text to a second-grade in simple language.\n\nText: "+prompt+"\n\nSimplified: ";
-    if(task==4) prompt="Fix typos in the following text.\n\nText: "+prompt+"\n\nFixed: ";
-
-    //if(task==5) prompt="Translate the following text to German.\n\nText: "+prompt+"\n\nTranslation: ";
-
-    alert(prompt);
-    params=document.getElementById("params").value;
-    if(params==="") params="{}";
-    //alert(params)
-    params=JSON.parse(params);
-    model=document.getElementById("model").value;
-    if(model==="") model="bigscience/bloom";
+  prompt=document.getElementById("prompt").value;
+  if(task==2) prompt="The following text can be summarized in one sentence.\n\nText: "+prompt+"\n\nSummary: ";
+  if(task==3) prompt="Explain the following text to a second-grade in simple language.\n\nText: "+prompt+"\n\nSimplified: ";
+  if(task==4) prompt="Fix typos in the following text.\n\nText: "+prompt+"\n\nFixed: ";
+  //if(task==5) prompt="Translate the following text to German.\n\nText: "+prompt+"\n\nTranslation: ";
+  var conf=confirm(prompt);
+  params=document.getElementById("params").value;
+  if(params==="") params="{}";
+  params=JSON.parse(params);
+  model=document.getElementById("model").value;
+  if(model==="") model="bigscience/bloom";
+  if(conf==true){
     document.getElementById("output").innerHTML="[Wait a moment, AI's still thinking...]";
-    fetch("https://api-inference.huggingface.co/models/"+model, {
+    let myPromise = new Promise(function(resolve) {
+      fetch("https://api-inference.huggingface.co/models/"+model, {
     		method: "POST",
     		headers: {
         		"Accept": "application/json",
@@ -114,11 +112,12 @@ const bloom = async(task) => {
     		body: JSON.stringify({
 			inputs:prompt,
 			parameters:params})
-    })
-    .then(response => response.json()) //429? Too Many Requests
-    .then(response => resolve(JSON.stringify(response)))
-  }); 
-  document.getElementById("output").innerHTML = await myPromise;
+      })
+      .then(response => response.json()) //429? Too Many Requests
+      .then(response => resolve(JSON.stringify(response)))
+    }); 
+    document.getElementById("output").innerHTML = await myPromise;
+  }  
 }   
 
 </script>
