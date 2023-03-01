@@ -9,12 +9,12 @@
 <h1>AI-Interface</h1>
 <p>Send requests to AI-models from <a target="_blank" rel="noopener noreferrer" href="https://huggingface.co/models">huggingface.co</a></p>
 <label for="output">JSON-Resonse:</label><br>
-<textarea readonly id="output" cols="100" rows="5" style="background-color: lightgrey"></textarea><br><br>
+<textarea readonly id="output" cols="100" rows="5" style="resize: none; background-color: lightgrey"></textarea><br><br>
 <form>
   <label for="prompt">Prompt</label>
   <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Enter text. Some models are trained to complete text (e.g., bloom), others are trained to follow instructions (e.g., flan-t5).</span></span>
 <br>
-  <textarea id="prompt" cols="100" rows="3">The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
+  <textarea id="prompt" cols="100" rows="3" style="resize: none;">The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
 
 Human:</textarea><br>
   <button type='button' id="request" onclick="bloom();">Send</button>
@@ -25,9 +25,9 @@ Human:</textarea><br>
   <datalist id="parameters">
      <option value=''>
      <option value='{"max_length":200}'>
-     <option value='{"max_length":200, "num_beams"=16, "early_stopping":true}'>
-     <option value='{"max_length":200, "num_beams"=16, "early_stopping":true, "temperature":0.5}'>
-     <option value='{"max_length":200, "num_beams"=16, "early_stopping":true, "temperature":0.5, "length_penalty":2}'>
+     <option value='{"max_length":200, "num_beams":16, "early_stopping":true}'>
+     <option value='{"max_length":200, "num_beams":16, "early_stopping":true, "temperature":0.5}'>
+     <option value='{"max_length":200, "num_beams":16, "early_stopping":true, "temperature":0.5, "length_penalty":2}'>
      <option value='{"max_new_tokens":50, "return_full_text":false}'>
      <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true}'>
      <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams"=16, "early_stopping":true,"temperature":0.5}'>
@@ -76,7 +76,7 @@ const bloom = async() => {
 			inputs:prompt,
 			parameters:params})
     })
-    .then(response => response.json())
+    .then(response => response.json()) //429? Too Many Requests
     .then(response => resolve(JSON.stringify(response)))
   }); 
   document.getElementById("output").innerHTML = await myPromise;
