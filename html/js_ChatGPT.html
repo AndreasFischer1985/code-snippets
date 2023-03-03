@@ -1,4 +1,4 @@
-<html>
+﻿<html>
 <style>
 .extra-info { display: none; font-size: 12px; }
 .info:hover .extra-info { display: inline-block; }
@@ -17,8 +17,8 @@
 }
 </style>
 <body>
-<h1>Bloom-Interface</h1>
-<p>Request completions, summaries, simple explanations or corrections of texts from <a target="_blank" rel="noopener noreferrer" href="https://huggingface.co/bigscience/bloom">Bloom</a> via API of <a target="_blank" rel="noopener noreferrer" href="https://huggingface.co">huggingface.co</a> 🤗</p>
+<h1>ChatGPT-Interface</h1>
+<p>Request completions, summaries, simple explanations or corrections of texts via <a target="_blank" rel="noopener noreferrer" href="https://openai.com/blog/introducing-chatgpt-and-whisper-apis">ChatGPT-API</a></p>
 <div id="wrapper">
 
 <div id="div1">
@@ -32,51 +32,14 @@
   <button type='button' id="simplify" onclick="bloom(3);">Simplify</button>
   <button type='button' id="fix" onclick="bloom(4);">Correct</button>
   <button type="reset">Reset</button><br><br>
-<details>
-<summary>Details</summary>
-  <div>
-  <label for="params">JSON-Parameters</label>
-  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Tips? Click on emptied text field.</span></span>
+  <label for="apitoken">OPENAI API-Key</label>
+  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Enter a valid OPENAI API-Key.</span></span>
 <br>
-  <datalist id="parameters">
-     <option value=''>
-     <option value='{"max_length":200}'>
-     <option value='{"max_length":200, "num_beams":16, "early_stopping":true}'>
-     <option value='{"max_length":200, "num_beams":16, "early_stopping":true, "temperature":0.5}'>
-     <option value='{"max_length":200, "num_beams":16, "early_stopping":true, "temperature":0.5, "length_penalty":2}'>
-     <option value='{"max_new_tokens":50, "return_full_text":false}'>
-     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams":16, "early_stopping":true}'>
-     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams":16, "early_stopping":true,"temperature":0.5}'>
-     <option value='{"max_new_tokens":50, "return_full_text":false, "num_beams":16, "early_stopping":true,"temperature":0.5, "length_penalty":2}'>
-   </datalist>
-  <input type="search" list="parameters" id="params" size="55" 
-    value='{"max_new_tokens":100, "return_full_text":false, "num_beams":16, "early_stopping":true,"temperature":0.5}'><br><br>
-  </div>
-
-  <div>
-  <datalist id="models">
-     <option value="">
-     <option value="google/flan-t5-large">
-     <option value="google/flan-t5-xl">
-     <option value="google/flan-t5-xxl">
-     <option value="bigscience/bloom">
-     <option value="bigscience/bloomz-1b7">
-     <option value="bigscience/bloomz-1b1">
-     <option value="bigscience/T0_3B">
-     <option value="bigscience/mt0-base">
-     <option value="bigscience/mt0-xl">
-     <option value="EleutherAI/gpt-j-6B">
-   </datalist>
-  <label for="model">Huggingface model-id</label>
-  <span class="info" style="font-size: 20px; color:blue">&#9432;<span class="extra-info">Tips? Click on emptied text field.</span></span>
+  <input type="text" id="apitoken" minlength="40" maxlength="60" size="50">
 <br>
-  <input type="search" list="models" id="model" size="55" value="bigscience/bloom">
-  <br><br><br><br><br><br>
-  </div>
-</details>
+<br>
 </form>
 </div>
-
 
 <div id="div2">
 <label for="output">JSON-Resonse:</label><br>
@@ -95,26 +58,26 @@ const bloom = async(task) => {
   if(task==3) prompt="Rephrase the following text in simple language:\n\nText: "+prompt+"\n\nSummary: ";
   if(task==4) prompt="Fix typos in the following text.\n\nText: "+prompt+"\n\nFixed: ";
   //if(task==5) prompt="Translate the following text to German.\n\nText: "+prompt+"\n\nTranslation: ";
+  apitoken=document.getElementById("apitoken").value;
   var conf=confirm(prompt);
-  params=document.getElementById("params").value;
-  if(params==="") params="{}";
-  params=JSON.parse(params);
-  model=document.getElementById("model").value;
-  if(model==="") model="bigscience/bloom";
+  endpoint="https://api.openai.com/v1/chat/completions";
   if(conf==true){
     document.getElementById("output").innerHTML="[Wait a moment, AI's still thinking...]";
     let myPromise = new Promise(function(resolve) {
-      fetch("https://api-inference.huggingface.co/models/"+model, {
+      fetch(endpoint, {
     		method: "POST",
     		headers: {
         		"Accept": "application/json",
-        		"Content-Type": "application/json"
+        		"Content-Type": "application/json",
+			"Authorization": "Bearer "+apitoken
     		},
     		body: JSON.stringify({
-			inputs:prompt,
-			parameters:params})
+                  "model": "gpt-3.5-turbo",
+  		  "messages": [
+			//{"role": "system", "content": "You are Guybrush Threepwood, mighty pirate."},
+			{"role": "user", "content": prompt}]})
       })
-      .then(response => response.json()) //429? Too Many Requests
+      .then(response => response.json()) 
       .then(response => resolve(JSON.stringify(response)))
     }); 
     document.getElementById("output").innerHTML = await myPromise;
