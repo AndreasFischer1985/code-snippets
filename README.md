@@ -17,6 +17,7 @@ They can also be seen in action thanks to GitHub Pages:
 | Simple Switch | [html/switch.html](https://andreasfischer1985.github.io/code-snippets/html/switch.html) |
 | Eliza Demo | [html/eliza32.html](https://andreasfischer1985.github.io/code-snippets/html/eliza32.html) |
 | Bloom Demo | [html/js_bloom.html](https://andreasfischer1985.github.io/code-snippets/html/js_bloom.html) |
+| ChatGPT Demo | [html/js_ChatGPT.html](https://andreasfischer1985.github.io/code-snippets/html/js_ChatGPT.html) |
 | Huggingface AI Interface | [html/js_AIInterface.html](https://andreasfischer1985.github.io/code-snippets/html/js_AIInterface.html) |
 | Display JSON | [html/js_displayJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_displayJSON.html) |
 | Filter JSON | [html/js_filterJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_filterJSON.html) |
