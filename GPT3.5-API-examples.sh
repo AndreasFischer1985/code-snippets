@@ -2,6 +2,7 @@
 
 YOUR_API_KEY="sk-xxx"
 
+# Have a chat with Guybrush Threepwood, the mighty pirate!
 curl https://api.openai.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $YOUR_API_KEY" \
@@ -11,6 +12,19 @@ curl https://api.openai.com/v1/chat/completions \
 	{"role": "system", "content": "You are Guybrush Threepwood, mighty pirate."},
 	{"role": "user", "content": "Hello!"}]}'
 
+# Generate Magic Cards according to a specified schema in JSON format
+curl https://api.openai.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $YOUR_API_KEY" \
+  -d '{
+  "model": "gpt-3.5-turbo",
+  "messages": [
+	{"role": "system", "content": "You are an assistant who works as a Magic: The Gathering card designer. Create cards that are in the following card schema and JSON format. OUTPUT MUST FOLLOW THIS CARD SCHEMA AND JSON FORMAT. DO NOT EXPLAIN THE CARD. The output must also follow the Magic \"color pie\".\n\n{\"name\":\"Harbin, Vanguard Aviator\",\"manaCost\":\"{W}{U}\",\"type\":\"Legendary Creature — Human Soldier\",\"text\":\"Flying\nWhenever you attack with five or more Soldiers, creatures you control get +1/+1 and gain flying until end of turn.\",\"flavorText\":\"\\\"Yotia is my birthright, father. Let me fight for it.\\\"\",\"pt\":\"3/2\",\"rarity\":\"rare\"}"},
+	{"role": "user", "content": "Create a Magic Card on Pikachu!"}],
+  "temperature": 0
+}'
+
+# Use ChatGPT for sentiment analysis
 curl https://api.openai.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $YOUR_API_KEY" \
@@ -23,6 +37,7 @@ curl https://api.openai.com/v1/chat/completions \
   "max_tokens": 10
 }'
 
+# Use text-davinci-003 for text-completion
 curl https://api.openai.com/v1/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $YOUR_API_KEY" \
@@ -36,13 +51,15 @@ curl https://api.openai.com/v1/completions \
   "presence_penalty": 0
 }'
 
-curl https://api.openai.com/v1/models \
-  -H "Authorization: Bearer $YOUR_API_KEY"
+# Get text embedding
+curl https://api.openai.com/v1/embeddings \
+  -X POST \
+  -H "Authorization: Bearer $YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"input": "The food was delicious and the waiter...",
+       "model": "text-embedding-ada-002"}'
 
-curl https://api.openai.com/v1/models/text-davinci-003 \
-  -H "Authorization: Bearer $YOUR_API_KEY"
-
-
+# Generate image
 curl https://api.openai.com/v1/images/generations \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $YOUR_API_KEY" \
@@ -52,6 +69,7 @@ curl https://api.openai.com/v1/images/generations \
   "size": "1024x1024"
 }'
 
+# Edit image
 curl https://api.openai.com/v1/images/edits \
   -H 'Authorization: Bearer $YOUR_API_KEY' \
   -F image='@otter.png' \
@@ -60,18 +78,20 @@ curl https://api.openai.com/v1/images/edits \
   -F n=2 \
   -F size="1024x1024"
 
+# Vary image
 curl https://api.openai.com/v1/images/variations \
   -H 'Authorization: Bearer $YOUR_API_KEY' \
   -F image='@otter.png' \
   -F n=2 \
   -F size="1024x1024"
 
-curl https://api.openai.com/v1/embeddings \
-  -X POST \
-  -H "Authorization: Bearer $YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"input": "The food was delicious and the waiter...",
-       "model": "text-embedding-ada-002"}'
+# Get list of models
+curl https://api.openai.com/v1/models \
+  -H "Authorization: Bearer $YOUR_API_KEY"
+
+# Get info on specific model
+curl https://api.openai.com/v1/models/text-davinci-003 \
+  -H "Authorization: Bearer $YOUR_API_KEY"
 
 curl https://api.openai.com/v1/files \
   -H 'Authorization: Bearer YOUR_API_KEY'
