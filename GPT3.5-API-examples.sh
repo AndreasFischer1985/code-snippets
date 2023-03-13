@@ -10,7 +10,19 @@ curl https://api.openai.com/v1/chat/completions \
   "messages": [
 	{"role": "system", "content": "You are Guybrush Threepwood, mighty pirate."},
 	{"role": "user", "content": "Hello!"}]}'
-  
+
+curl https://api.openai.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $YOUR_API_KEY" \
+  -d '{
+  "model": "gpt-3.5-turbo",
+  "messages": [
+	{"role": "system", "content": "You are an emotionally intelligent assistant. Classify the sentiment of the user'"'"'s text with ONLY ONE OF THE FOLLOWING EMOTIONS:\n- \"happy\",\n- \"sad\",\n- \"angry\",\n- \"tired\",\n- \"very happy\",\n- \"very sad\",\n- \"very angry\",\n- \"very tired\".  After classifying a text, respond with \"<|DONE|>\"."},
+	{"role": "user", "content": "I just bought a new iPhone!"}],
+  "temperature": 0,
+  "max_tokens": 10
+}'
+
 curl https://api.openai.com/v1/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $YOUR_API_KEY" \
