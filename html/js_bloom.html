@@ -94,8 +94,8 @@ const bloom = async(task) => {
   prompt=document.getElementById("prompt").value;
   if(task==2) prompt="Q: Produce a short summary of the following text.\n\n"+prompt+"\n\nA: Summary: ";
   if(task==3) prompt="Q: Rephrase the following text in simple language:\n\n"+prompt+"\n\nA: Summary in simple language: ";
-  if(task==4) prompt="Fix typos in the following text.\n\nText: "+prompt+"\n\nFixed: ";
-  //if(task==5) prompt="Q: Translate the following text to German.\n\n"+prompt+"\n\nA: Translation: ";
+  if(task==4) prompt="Instruction: Fix typos in the following text.\n\nText: "+prompt+"\n\nFixed: ";
+  if(task==5) prompt="Instruction: Given an English input sentence translate it into German language. \nEnglish: "+prompt+" \nGerman: \" ";
   var conf=confirm(prompt);
   params=document.getElementById("params").value;
   if(params==="") params="{}";
