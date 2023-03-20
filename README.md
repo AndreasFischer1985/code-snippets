@@ -1,6 +1,6 @@
 # Miscellaneous code snippets
 
-Small code snippets in different languages (mostly R, PHP & HTML/JS/CSS). 
+Small code snippets in different languages (mostly R, Python, PHP & HTML/JS/CSS). 
 
 
 ## HTML section
