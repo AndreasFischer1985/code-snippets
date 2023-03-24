@@ -35,8 +35,14 @@ if(False):
 #embeddings_en=embedding(sentences,"/home/af/Dokumente/Py/Huggingface/all-MiniLM-L6-v2") 
 embedding_model="sentence-transformers/all-MiniLM-L6-v2" # load model for sentence embeddings
 
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0: 
+       return v
+    return list(v / norm)
+
 embeddings=embedding(sentences,embedding_model) # calculate embeddings
-embeddings = embeddings / np.linalg.norm(embeddings, axis = 1, keepdims = True)
+embeddings=np.array([normalize(embeddings[i]) for i in range(0,embeddings.shape[0])]) # normalize embeddings so that np.linalg.norm(v)==1
 np.savetxt("embeddings.txt", embeddings, fmt = '%g', delimiter = '\t') # save embeddings for future usage
 
 if(False): # Demo: for each sentence print similarity to first sentence
@@ -49,19 +55,19 @@ if(False): # Demo: for each sentence print similarity to first sentence
 # Phase 2: generate sentence embedding for a query and refine answer based on initial answer and most relevant chunk 
 #--------------------------------------------------------------------------------------------------------------------
 
-if(False)
+if(False):
   model="google/flan-t5-large"
   model="google/flan-t5-xl"  
   model="declare-lab/flan-alpaca-large"
   model="declare-lab/flan-alpaca-xl"
   model="google/flan-ul2"
-  
+
 model="google/flan-ul2"
 
 question="What is the meaning of life?"
 arr = np.loadtxt("embeddings.txt", delimiter = '\t')        # load sentence-embeddings
 emb = embedding(question,embedding_model)                   # encode new query
-#emb = emb / np.linalg.norm(emb, axis = 0, keepdims = True) 
+emb = np.array(normalize(emb))                              # normalize embeddings so that np.linalg.norm(v)==1
 sim = np.dot(emb, arr[:, :].T).flatten()                    # compute cosine similarity   
 ids = np.argsort(sim)[::-1]                                 # sort similarities in decreasing order
 dev = [sentences[i]+" sim:"+str(sim[i]) for i in ids][:10]  # return up to 10 most similar texts
@@ -109,6 +115,4 @@ refined_question=refine_tmpl.format(**components)
 print(refined_question)
 a2b=query(refined_question,model) # Query refined response (with irrelevant context) 
 print(a2b) # response: to be happy
-
-
 
