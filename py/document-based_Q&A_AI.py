@@ -36,6 +36,7 @@ if(False):
 embedding_model="sentence-transformers/all-MiniLM-L6-v2" # load model for sentence embeddings
 
 embeddings=embedding(sentences,embedding_model) # calculate embeddings
+embeddings = embeddings / np.linalg.norm(embeddings, axis = 1, keepdims = True)
 np.savetxt("embeddings.txt", embeddings, fmt = '%g', delimiter = '\t') # save embeddings for future usage
 
 if(False): # Demo: for each sentence print similarity to first sentence
@@ -50,14 +51,17 @@ if(False): # Demo: for each sentence print similarity to first sentence
 
 if(False)
   model="google/flan-t5-large"
-  model="google/flan-t5-xl"
+  model="google/flan-t5-xl"  
+  model="declare-lab/flan-alpaca-large"
+  model="declare-lab/flan-alpaca-xl"
   model="google/flan-ul2"
-
+  
 model="google/flan-ul2"
 
 question="What is the meaning of life?"
 arr = np.loadtxt("embeddings.txt", delimiter = '\t')        # load sentence-embeddings
 emb = embedding(question,embedding_model)                   # encode new query
+#emb = emb / np.linalg.norm(emb, axis = 0, keepdims = True) 
 sim = np.dot(emb, arr[:, :].T).flatten()                    # compute cosine similarity   
 ids = np.argsort(sim)[::-1]                                 # sort similarities in decreasing order
 dev = [sentences[i]+" sim:"+str(sim[i]) for i in ids][:10]  # return up to 10 most similar texts
