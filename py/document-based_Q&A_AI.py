@@ -37,7 +37,7 @@ embedding_model="sentence-transformers/all-MiniLM-L6-v2" # load model for senten
 
 def normalize(v):
     norm = np.linalg.norm(v)
-    if norm == 0: 
+    if norm <= 1E-8: 
        return v
     return list(v / norm)
 
