@@ -16,7 +16,7 @@ import requests
 sentences=["The meaning of life ist to love","The meaning of vacation is to relax","Roses are red.","Hack the planet!"] # sentences to embed
 
 def embedding(sentences,model):
-  if("sentence-transformers" in model or "all-MiniLM" in model or or "LaBSE" in model):
+  if("sentence-transformers" in model or "all-MiniLM" in model or "LaBSE" in model or "roberta-sentence" in model):
     bot = SentenceTransformer(model)
     embeddings=bot.encode(sentences)
   else:
