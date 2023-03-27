@@ -16,7 +16,7 @@ import requests
 sentences=["The meaning of life ist to love","The meaning of vacation is to relax","Roses are red.","Hack the planet!"] # sentences to embed
 
 def embedding(sentences,model):
-  if("sentence-transformers" in model or "all-MiniLM" in model):
+  if("sentence-transformers" in model or "all-MiniLM" in model or or "LaBSE" in model):
     bot = SentenceTransformer(model)
     embeddings=bot.encode(sentences)
   else:
@@ -27,10 +27,10 @@ def embedding(sentences,model):
 
 if(False):
   embedding_model="sentence-transformers/all-MiniLM-L6-v2" # English sentence embeddings
-  embedding_model="deepset/gbert-base-germandpr-question_encoder" # German sentence embeddings
+  embedding_model="T-Systems-onsite/cross-en-de-roberta-sentence-transformer" # English & German sentence embeddings
   embedding_model="sentence-transformers/LaBSE" # Multilingual sentence embeddings
   
-embedding_model="sentence-transformers/all-MiniLM-L6-v2" # load model for sentence embeddings
+embedding_model="sentence-transformers/LaBSE" # load model for sentence embeddings
 
 def normalize(v):
     norm = np.linalg.norm(v)
@@ -68,7 +68,7 @@ emb = np.array(normalize(emb))                              # normalize embeddin
 sim = np.dot(emb, arr[:, :].T).flatten()                    # compute cosine similarity   
 ids = np.argsort(sim)[::-1]                                 # sort similarities in decreasing order
 dev = [sentences[i]+" sim:"+str(sim[i]) for i in ids][:10]  # return up to 10 most similar texts
-res = [sentences[i] for i in ids][:10]  # return up to 10 most similar texts
+res = [sentences[i] for i in ids][:10]                      # return up to 10 most similar texts
 print(res)
 
 components={
