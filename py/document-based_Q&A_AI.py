@@ -28,11 +28,8 @@ def embedding(sentences,model):
 if(False):
   embedding_model="sentence-transformers/all-MiniLM-L6-v2" # English sentence embeddings
   embedding_model="deepset/gbert-base-germandpr-question_encoder" # German sentence embeddings
-  embedding_model="/home/af/Dokumente/Py/Huggingface/all-MiniLM-L6-v2" # English sentence embeddings
-  embedding_model="/home/af/Dokumente/Py/Huggingface/gbert-base-germandpr-question_encoder" # German sentence embeddings
-
-#embeddings_de=embedding(sentences,"/home/af/Dokumente/Py/Huggingface/gbert-base-germandpr-question_encoder")# calculate embeddings
-#embeddings_en=embedding(sentences,"/home/af/Dokumente/Py/Huggingface/all-MiniLM-L6-v2") 
+  embedding_model="sentence-transformers/LaBSE" # Multilingual sentence embeddings
+  
 embedding_model="sentence-transformers/all-MiniLM-L6-v2" # load model for sentence embeddings
 
 def normalize(v):
