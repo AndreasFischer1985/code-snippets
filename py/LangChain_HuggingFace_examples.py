@@ -24,8 +24,8 @@ chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
 chain("What is the meaning of life?")
 
 
-# Option 2: use local Huggingface-model
-#---------------------------------------
+# Option 2: use Huggingface Inference-API
+#-----------------------------------------
 
 import os
 os.environ["HUGGINGFACEHUB_API_TOKEN"]=hf_token # replace hf_token with your HuggingFace API-token 
