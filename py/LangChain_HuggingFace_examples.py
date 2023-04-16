@@ -41,6 +41,36 @@ chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
 chain("What is the meaning of life?")
 
 
+# Option 3: use custom model
+#----------------------------
+
+from langchain.llms.base import LLM
+from typing import Optional, List, Mapping, Any
+from langchain import PromptTemplate, LLMChain
+import requests
+class CustomLLM(LLM):  
+  def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+    prompt_length = len(prompt)
+    model_id = "google/flan-t5-xl" 
+    params={"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":True}
+    url = f"https://api-inference.huggingface.co/models/{model_id}"
+    post = requests.post(url, json={"inputs":prompt, "parameters":params})
+    return post.json()[0]["generated_text"]
+    #return response[prompt_length:] # only return newly generated tokens
+  @property
+  def _llm_type(self) -> str:
+    return "custom"
+
+llm=CustomLLM()
+
+template="""
+{input}
+"""
+prompt = PromptTemplate(input_variables=["input"], template=template)
+chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
+chain("What is the meaning of life?")
+
+
 # LangChain-Application: Q&A-Bot
 #----------------------------------
 
