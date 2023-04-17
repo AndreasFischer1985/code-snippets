@@ -7,7 +7,7 @@
 # Option 1: use local Huggingface-model
 #---------------------------------------
 
-if(False):
+if(False): # run the following code to download the model flan-t5-large from huggingface.co
   from transformers import pipeline
   model= pipeline(model="google/flan-t5-large") #'text2text-generation'
   model.save_pretrained("~/flan-t5-large")
@@ -41,8 +41,8 @@ chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
 chain("What is the meaning of life?")
 
 
-# Option 3: use custom model
-#----------------------------
+# Option 3: use custom model (via API without API-token)
+#--------------------------------------------------------
 
 from langchain.llms.base import LLM
 from typing import Optional, List, Mapping, Any
@@ -71,8 +71,39 @@ chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
 chain("What is the meaning of life?")
 
 
-# LangChain-Application: Q&A-Bot
-#----------------------------------
+# Option 4: use a model from the llama-family (ggml-version)
+#-----------------------------------------------------------
+
+if(False): # run the following code to download the model ggml-vicuna-7b-1.1-q4_0.bin from huggingface.co
+  v7b="https://huggingface.co/eachadea/ggml-vicuna-7b-1.1/resolve/main/ggml-vicuna-7b-1.1-q4_0.bin"
+  v13b="https://huggingface.co/eachadea/ggml-vicuna-13b-1.1/resolve/main/ggml-vicuna-13b-1.1-q4_0.bin"
+  weights=requests.get(v7b)
+  with open("weights.bin","wb") as out_file:
+    out_file.write(weights.content)
+  
+from llama_cpp import Llama
+llamallm = Llama(model_path="./weights.bin")
+output = llamallm("What is the meaning of life?", max_tokens=100, echo=True)
+print(output)
+
+from langchain.llms.base import LLM
+from typing import Optional, List, Mapping, Any
+from langchain import PromptTemplate, LLMChain
+import requests
+class CustomLLM(LLM):  
+  def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:    
+    print("***\n"+prompt+"\n***")
+    output = llamallm(prompt, echo=False) #, stop=["Q:", "\n"], max_tokens=100,     
+    return(output["choices"][0]["text"])
+  @property
+  def _llm_type(self) -> str:
+    return "custom"
+ 
+llm=CustomLLM()
+
+  
+# LangChain-Application: Simple Q&A-Bot
+#---------------------------------------
 
 from langchain import PromptTemplate, LLMChain
 template = """Question: {question}
@@ -83,7 +114,7 @@ chain("What is the meaning of life?")
 
 
 # LangChain-Application: Chatbot
-#----------------------------------
+#--------------------------------
 
 from langchain.chains import ConversationChain
 from langchain.chains.conversation.memory import ConversationBufferMemory, ConversationSummaryMemory, ConversationBufferWindowMemory, ConversationSummaryBufferMemory
@@ -98,3 +129,19 @@ conversation = ConversationChain(
 )
 conversation.predict(input="Hi there!")
 conversation.predict(input="Tell me about transformers!")
+
+
+# LangChain-Application: Wikipedia-Agent
+#---------------------------------------- 
+
+from langchain.agents import Tool, initialize_agent
+from langchain.utilities import WikipediaAPIWrapper #,TextRequestsWrapper,PythonREPL,BashProcess
+tools=[
+  Tool(
+    name="Search",
+    func=WikipediaAPIWrapper().run,
+    description="Run Wikipedia search and get page summaries"
+  )
+]
+agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
+agent("What is the meaning of life?")
