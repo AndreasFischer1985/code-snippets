@@ -145,3 +145,18 @@ tools=[
 ]
 agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
 agent("What is the meaning of life?")
+
+
+# LangChain-Application: Sentence Embeddings
+#--------------------------------------------
+
+from langchain.embeddings import HuggingFaceInstructEmbeddings #sentence_transformers and InstructorEmbedding   
+hf = HuggingFaceInstructEmbeddings(
+  model_name="hkunlp/instructor-xl", #"/home/af/Documents/Py/Huggingface/hkunlp_instructor-xl",
+  embed_instruction="Represent the document for retrieval: ",
+  query_instruction="Represent the query for retrieval: "
+)
+text = "This is a test document."
+text_result = hf.embed_query(text)
+texts = ["This is a test document.","this is a document too."]
+texts_result = hf.embed_documents(texts)
