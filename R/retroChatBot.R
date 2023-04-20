@@ -1,6 +1,6 @@
-#################################################################
-# Simple German-speaking chatbot (pre-Alpha stage of development)
-#################################################################
+##########################################################################
+# Simple German-speaking Eliza-Chatbot (pre-Alpha stage of development)
+##########################################################################
 
 chatBot=function(brain=NULL,data=data.frame(x=c(1,2,3),y=c(2,2,3))){
 	exit=F;focus=list();
