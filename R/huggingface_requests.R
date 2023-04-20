@@ -7,7 +7,7 @@
 
 #!/usr/bin/Rscript
 require("httr")
-model_id = "google/flan-t5-xl" 
+model_id = "google/flan-t5-xl" # cf. "google/flan-ul2", "akosal/LongForm-T5-xl" 
 payload = "Please write a step by step recipe to make bolognese pasta."
 params=list("max_length"=200, "length_penalty"=2, "num_beams"=16, "early_stopping"=TRUE)
 url=paste0("https://api-inference.huggingface.co/models/",model_id)
