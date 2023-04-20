@@ -26,10 +26,6 @@ They can also be seen in action thanks to GitHub Pages:
 
 | Snippet | Link | 
 |---|---|
-| Pyscript Demo | [html/demo_pyscript.html](https://andreasfischer1985.github.io/code-snippets/html/demo_pyscript.html) |
-| Particles Demo | [html/demo_particles.js.html](https://andreasfischer1985.github.io/code-snippets/html/demo_particles.js.html) |
-| Typewriter Demo | [html/demo_typewriter.html](https://andreasfischer1985.github.io/code-snippets/html/demo_typewriter.html) |
-| Simple Switch | [html/switch.html](https://andreasfischer1985.github.io/code-snippets/html/switch.html) |
 | Eliza Demo | [html/eliza32.html](https://andreasfischer1985.github.io/code-snippets/html/eliza32.html) |
 | Bloom Demo | [html/js_bloom.html](https://andreasfischer1985.github.io/code-snippets/html/js_bloom.html) |
 | ChatGPT Demo | [html/js_ChatGPT.html](https://andreasfischer1985.github.io/code-snippets/html/js_ChatGPT.html) |
@@ -40,6 +36,11 @@ They can also be seen in action thanks to GitHub Pages:
 | Profilbildung| [html/js_profilbildung.html](https://andreasfischer1985.github.io/code-snippets/html/js_profilbildung.html) |
 | Loading Animation | [html/css_loading_animation_atom.html](https://andreasfischer1985.github.io/code-snippets/html/css_loading_animation_atom.html) |
 | Smart City Dashboard | [html/mockup_SmartCityDashboard.html](https://andreasfischer1985.github.io/code-snippets/html/mockup_SmartCityDashboard.html) |
+| Pyscript Demo | [html/demo_pyscript.html](https://andreasfischer1985.github.io/code-snippets/html/demo_pyscript.html) |
+| Particles Demo | [html/demo_particles.js.html](https://andreasfischer1985.github.io/code-snippets/html/demo_particles.js.html) |
+| Typewriter Demo | [html/demo_typewriter.html](https://andreasfischer1985.github.io/code-snippets/html/demo_typewriter.html) |
+| Simple Switch | [html/switch.html](https://andreasfischer1985.github.io/code-snippets/html/switch.html) |
+
 
 
 ## [PHP section](https://github.com/AndreasFischer1985/code-snippets/tree/master/php)
