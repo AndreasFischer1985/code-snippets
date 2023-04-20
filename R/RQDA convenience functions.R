@@ -1,4 +1,4 @@
-﻿#add/delete codes (freecode-table) or files (source-table) case (cases), category (codecat), etc.
+#add/delete codes (freecode-table) or files (source-table) case (cases), category (codecat), etc.
 #------------------------------------------------------------------------------------------------
 
 deleteAllCodes<-function(){RQDAQuery("update freecode set status=0");RQDAQuery("update coding set status=0");CleanProject()};
