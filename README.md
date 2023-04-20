@@ -26,10 +26,10 @@ They can also be seen in action thanks to GitHub Pages:
 
 | Snippet | Link | 
 |---|---|
-| Eliza Demo | [html/eliza32.html](https://andreasfischer1985.github.io/code-snippets/html/eliza32.html) |
+| Huggingface AI Interface | [html/js_AIInterface.html](https://andreasfischer1985.github.io/code-snippets/html/js_AIInterface.html) |
 | Bloom Demo | [html/js_bloom.html](https://andreasfischer1985.github.io/code-snippets/html/js_bloom.html) |
 | ChatGPT Demo | [html/js_ChatGPT.html](https://andreasfischer1985.github.io/code-snippets/html/js_ChatGPT.html) |
-| Huggingface AI Interface | [html/js_AIInterface.html](https://andreasfischer1985.github.io/code-snippets/html/js_AIInterface.html) |
+| Eliza Demo | [html/eliza32.html](https://andreasfischer1985.github.io/code-snippets/html/eliza32.html) |
 | Display JSON | [html/js_displayJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_displayJSON.html) |
 | Filter JSON | [html/js_filterJSON.html](https://andreasfischer1985.github.io/code-snippets/html/js_filterJSON.html) |
 | API Collection | [html/js_apiCollection.html](https://andreasfischer1985.github.io/code-snippets/html/js_apiCollection.html) |
