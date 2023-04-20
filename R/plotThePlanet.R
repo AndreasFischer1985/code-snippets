@@ -137,7 +137,7 @@ centroids= t(sapply(sf::st_centroid(sf::st_geometry(obj)),function(x)c(x[1],x[2]
 
 
 if(F){
-obj=plotThePlanet(targetname=c("Bayern","Nordrhein-Westfalen","Niedersachsen","Bayern","Rheinland-Pfalz","Hessen","Saarland","Berlin","Brandenburg","Schleswig-Holstein","Mecklenburg-Vorpommern","Thüringen","Sachsen","Sachsen-Anhalt","Freie Hansestadt Bremen","Baden-Württemberg","Hamburg"),
+obj=plotThePlanet(targetname=c("Bayern","Nordrhein-Westfalen","Niedersachsen","Bayern","Rheinland-Pfalz","Hessen","Saarland","Berlin","Brandenburg","Schleswig-Holstein","Mecklenburg-Vorpommern","ThÃ¼ringen","Sachsen","Sachsen-Anhalt","Freie Hansestadt Bremen","Baden-WÃ¼rttemberg","Hamburg"),
 context=.05,
 label.id="name_de",
 source="https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_1_states_provinces.zip",
