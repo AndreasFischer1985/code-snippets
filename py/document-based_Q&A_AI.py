@@ -55,9 +55,12 @@ if(False): # Demo: for each sentence print similarity to first sentence
 if(False):
   model="google/flan-t5-large"
   model="google/flan-t5-xl"  
+  model="akosal/LongForm-T5-xl"	
   model="declare-lab/flan-alpaca-large"
   model="declare-lab/flan-alpaca-xl"
-  model="google/flan-ul2"
+  model="google/flan-ul2"      
+  model="stabilityai/stablelm-tuned-alpha-3b"
+  model="writer/camel-5b-hf"
 
 model="google/flan-ul2"
 
