@@ -13,7 +13,7 @@ The R-files are a mixed bag of interesting functions and applications, e.g.,
 ## [Python section](https://github.com/AndreasFischer1985/code-snippets/tree/master/py)
 
 py-Files contain 
-- working examples of basic AI applications (e.g. a free & open-source [document-based Q&A-bot](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/LangChain_HuggingFace_examples.py) or several [LangChain-Applications](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/LangChain_HuggingFace_examples.py) based on large language models from huggingface.co) and
+- working examples of basic AI applications (e.g. a free & open-source [document-based Q&A-bot](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/document-based_Q%26A_AI.py) or several [LangChain-Applications](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/LangChain_HuggingFace_examples.py) based on large language models from huggingface.co) and
 - code to interact with smart home devices (e.g., [switching a Lin2Home-socket on/off via WiFi](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/wifi_switching_Link2HomeSocket.py) or [reading BLE advertisements of Xiaomi Mi sensors](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/bluetooth_scanning_ATC_MiThermometer.py))
 
 
