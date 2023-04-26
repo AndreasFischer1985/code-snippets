@@ -6,7 +6,7 @@
 
 from transformers import pipeline
 from sentence_transformers import util
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer 
 import numpy as np
 import requests
 
@@ -16,9 +16,17 @@ import requests
 sentences=["The meaning of life ist to love","The meaning of vacation is to relax","Roses are red.","Hack the planet!"] # sentences to embed
 
 def embedding(sentences,model):
-  if("sentence-transformers" in model or "all-MiniLM" in model or "LaBSE" in model or "roberta-sentence" in model):
+  if("sentence-transformers" in model or "all-MiniLM" in model or "LaBSE" in model or "roberta-sentence" in model or "STS" in model):
     bot = SentenceTransformer(model)
     embeddings=bot.encode(sentences)
+  elif("instructor" in model):  
+    from langchain.embeddings import HuggingFaceInstructEmbeddings
+    bot = HuggingFaceInstructEmbeddings(
+      model_name=model,
+      embed_instruction="Represent the document for retrieval: ",
+      query_instruction="Represent the query for retrieval: " 
+    )
+    embeddings=bot.embed_documents(sentences) 
   else:
     bot = pipeline(task="feature-extraction", model=model)
     embeddings=bot(sentences)
