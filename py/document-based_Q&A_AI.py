@@ -1,7 +1,8 @@
 #############################################################################
 # Title: Document-based Q&A example with sentence-embeddings & Flan-UL2
 # Author: Andreas Fischer
-# Date: March 20, 2023
+# First published: March 20, 2023 
+# last update: April 27, 2023
 #############################################################################
 
 from transformers import pipeline
@@ -35,11 +36,13 @@ def embedding(sentences,model):
 
 if(False):
   embedding_model="sentence-transformers/all-MiniLM-L6-v2" # English sentence embeddings
+  embedding_model="aari1995/German_semantic_STS_V2" # German sentence embeddings
   embedding_model="T-Systems-onsite/cross-en-de-roberta-sentence-transformer" # English & German sentence embeddings
   embedding_model="sentence-transformers/LaBSE" # Multilingual sentence embeddings
-  
-embedding_model="sentence-transformers/LaBSE" # load model for sentence embeddings
+  embedding_model="hkunlp/instructor-xl" # English sentence embeddings 
 
+embedding_model="hkunlp/instructor-large" # English sentence embeddings 
+  
 def normalize(v):
     norm = np.linalg.norm(v)
     if norm <= 1E-8: 
