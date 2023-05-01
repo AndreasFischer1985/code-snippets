@@ -74,10 +74,18 @@ chain("What is the meaning of life?")
 # Option 4: use a model from the llama-family (ggml-version)
 #-----------------------------------------------------------
 
-if(False): # run the following code to download the model ggml-vicuna-7b-1.1-q4_0.bin from huggingface.co
+if(False): # run the following code to download a model like wizardLM-7B.ggml.q4_0.bin from huggingface.co
+  l7b="https://huggingface.co/hlhr202/llama-7B-ggml-int4/resolve/main/ggml-model-q4_0.bin"
+  l13b="https://huggingface.co/Drararara/llama-13B-ggml/resolve/main/ggml-model-q4_0.bin"   
+  a7b="https://huggingface.co/hlhr202/alpaca-7B-ggml-int4/resolve/main/ggml-alpaca-7b-q4.bin"
+  a13b="https://huggingface.co/Pi3141/alpaca-lora-13B-ggml/resolve/main/ggml-model-q4_0.bin"  
+  o13b="https://huggingface.co/Black-Engineer/oasst-llama13b-ggml-q4/resolve/main/qunt4_0.bin" 
+  g4a="https://huggingface.co/eachadea/ggml-gpt4all-7b-4bit/resolve/main/gpt4all-lora-quantized-ggml.bin" 
+  k7b="https://huggingface.co/TheBloke/koala-7B-GPTQ-4bit-128g-GGML/resolve/main/koala-7B-4bit-128g.GGML.bin" 
   v7b="https://huggingface.co/eachadea/ggml-vicuna-7b-1.1/resolve/main/ggml-vicuna-7b-1.1-q4_0.bin"
   v13b="https://huggingface.co/eachadea/ggml-vicuna-13b-1.1/resolve/main/ggml-vicuna-13b-1.1-q4_0.bin"
-  weights=requests.get(v7b)
+  wiz="https://huggingface.co/TheBloke/wizardLM-7B-GGML/resolve/main/wizardLM-7B.ggml.q4_0.bin"
+  weights=requests.get(wiz)
   with open("weights.bin","wb") as out_file:
     out_file.write(weights.content)
   
