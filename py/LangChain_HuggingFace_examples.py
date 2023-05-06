@@ -87,6 +87,9 @@ if(False): # run the following code to download a model like wizardLM-7B.ggml.q4
   v7b="https://huggingface.co/eachadea/ggml-vicuna-7b-1.1/resolve/main/ggml-vicuna-7b-1.1-q4_0.bin"
   v13b="https://huggingface.co/eachadea/ggml-vicuna-13b-1.1/resolve/main/ggml-vicuna-13b-1.1-q4_0.bin"
   wiz="https://huggingface.co/TheBloke/wizardLM-7B-GGML/resolve/main/wizardLM-7B.ggml.q4_0.bin"
+  wizVic="https://huggingface.co/TheBloke/wizard-vicuna-13B-GGML/resolve/main/wizard-vicuna-13B.ggml.q4_0.bin" 
+  gpt4snoozy="https://huggingface.co/TheBloke/GPT4All-13B-snoozy-GGML/resolve/main/GPT4All-13B-snoozy.ggml.q4_0.bin" 
+  gpt4Vicuna="https://huggingface.co/TheBloke/gpt4-x-vicuna-13B-GGML/resolve/main/gpt4-x-vicuna-13B.ggml.q4_0.bin" 
   weights=requests.get(wiz)
   with open("weights.bin","wb") as out_file:
     out_file.write(weights.content)
