@@ -55,10 +55,9 @@ class CustomLLM(LLM):
     params={"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":True}
     url = f"https://api-inference.huggingface.co/models/{model_id}"
     post = requests.post(url, json={"inputs":prompt, "parameters":params})
-    output = post.json()[0]["generated_text"]
-    output = output[0:output.rfind("Observation:")]
-    return output
-    #return response[prompt_length:] # only return newly generated tokens
+    output = post.json()[0]["generated_text"]    
+    if(output.rfind("\nAction:")>=0 and output.rfind("\nObservation:")>output.rfind("\nAction:")): return(output[0:output.rfind("\nObservation:")])
+    else: return(output)            
   @property
   def _llm_type(self) -> str:
     return "custom"
@@ -107,9 +106,9 @@ class CustomLLM(LLM):
   def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:    
     print("***\n"+prompt+"\n***")
     output = llamallm(prompt, echo=False) #, stop=["Q:", "\n"], max_tokens=100,     
-    output = output["choices"][0]["text"] 
-    output = output[0:output.rfind("Observation:")]
-    return output    
+    output = output["choices"][0]["text"]     
+    if(output.rfind("\nAction:")>=0 and output.rfind("\nObservation:")>output.rfind("\nAction:")): return(output[0:output.rfind("\nObservation:")])
+    else: return(output)
   @property
   def _llm_type(self) -> str:
     return "custom"
