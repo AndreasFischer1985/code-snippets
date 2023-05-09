@@ -55,7 +55,8 @@ class CustomLLM(LLM):
     params={"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":True}
     url = f"https://api-inference.huggingface.co/models/{model_id}"
     post = requests.post(url, json={"inputs":prompt, "parameters":params})
-    output = post.json()[0]["generated_text"]    
+    output = post.json()[0]["generated_text"]
+    output = re.sub("\nAction:(.*)Wikipedia(.*)","\nAction: Wikipedia",output)
     if(output.find("\nAction:")>=0 and output.find("\nObservation:")>output.find("\nAction:")): return(output[0:output.find("\nObservation:")])
     else: return(output)            
   @property
@@ -89,6 +90,7 @@ if(False): # run the following code to download a model like wizardLM-7B.ggml.q4
   wizVic="https://huggingface.co/TheBloke/wizard-vicuna-13B-GGML/resolve/main/wizard-vicuna-13B.ggml.q4_0.bin" 
   gpt4snoozy="https://huggingface.co/TheBloke/GPT4All-13B-snoozy-GGML/resolve/main/GPT4All-13B-snoozy.ggml.q4_0.bin" 
   gpt4Vicuna="https://huggingface.co/TheBloke/gpt4-x-vicuna-13B-GGML/resolve/main/gpt4-x-vicuna-13B.ggml.q4_0.bin" 
+  
   weights=requests.get(wiz)
   with open("weights.bin","wb") as out_file:
     out_file.write(weights.content)
@@ -106,7 +108,8 @@ class CustomLLM(LLM):
   def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:    
     print("***\n"+prompt+"\n***")
     output = llamallm(prompt, echo=False) #, stop=["Q:", "\n"], max_tokens=100,     
-    output = output["choices"][0]["text"]     
+    output = output["choices"][0]["text"]
+    output = re.sub("\nAction:(.*)Wikipedia(.*)","\nAction: Wikipedia",output)
     if(output.find("\nAction:")>=0 and output.find("\nObservation:")>output.find("\nAction:")): return(output[0:output.find("\nObservation:")])
     else: return(output)
   @property
@@ -165,13 +168,18 @@ texts_result = hf.embed_documents(texts)
 
 from langchain.agents import Tool, initialize_agent
 from langchain.utilities import WikipediaAPIWrapper #,TextRequestsWrapper,PythonREPL,BashProcess
-tools=[
-  Tool(
-    name="Search",
-    func=WikipediaAPIWrapper().run,
-    description="Run Wikipedia search and get page summaries"
-  )
-]
+import re
+def wiki(x):
+  x=re.sub("\"","",x)
+  print("+++\n"+x+"\n+++")
+  m1=WikipediaAPIWrapper().run(x).split("\n")
+  if(m1!=['']): m1=m1[1]
+  else: m1=m1[0]
+  
+  print("+++\n"+m1+"\n+++")
+  return(m1[0:min(500,len(m1))])
+tools=[Tool(name="Wikipedia",func=wiki, description="A wrapper around Wikipedia. Useful for when you need to answer general questions about people, places, companies, historical events, or other subjects. Input should be a search query.")] #WikipediaAPIWrapper(top_k_results=1).run
+#func=WikipediaAPIWrapper(top_k_results=1).run
 agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
 agent("What is the meaning of life?")
 
