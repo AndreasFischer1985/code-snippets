@@ -14,7 +14,7 @@ import requests
 # Phase 1: generate sentence embeddings for each chunk of information (sentence)
 #-------------------------------------------------------------------------------
 
-sentences=["The meaning of life ist to love","The meaning of vacation is to relax","Roses are red.","Hack the planet!"] # sentences to embed
+sentences=["The meaning of life is to love","The meaning of vacation is to relax","Roses are red.","Hack the planet!"] # sentences to embed
 
 def embedding(sentences,model):
   if("sentence-transformers" in model or "all-MiniLM" in model or "LaBSE" in model or "roberta-sentence" in model or "STS" in model):
