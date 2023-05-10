@@ -56,6 +56,7 @@ class CustomLLM(LLM):
     url = f"https://api-inference.huggingface.co/models/{model_id}"
     post = requests.post(url, json={"inputs":prompt, "parameters":params})
     output = post.json()[0]["generated_text"]
+    output = re.sub("\nAction:(.*)[Dd]atabase(.*)","\nAction: Database",output)
     output = re.sub("\nAction:(.*)Wikipedia(.*)","\nAction: Wikipedia",output)
     if(output.find("\nAction:")>=0 and output.find("\nObservation:")>output.find("\nAction:")): return(output[0:output.find("\nObservation:")])
     else: return(output)            
@@ -163,6 +164,66 @@ texts = ["This is a test document.","this is a document too."]
 texts_result = hf.embed_documents(texts)
 
 
+# LangChain-Application: Vectorstore-Retriever
+#---------------------------------------------
+
+from langchain.document_loaders import TextLoader
+from langchain.vectorstores import Chroma
+from langchain.chains import RetrievalQA
+from langchain.llms.base import LLM
+from typing import Optional, List, Mapping, Any
+from langchain import PromptTemplate, LLMChain
+from llama_cpp import Llama
+from langchain.embeddings import HuggingFaceInstructEmbeddings 
+from langchain.agents import initialize_agent, Tool
+import re
+
+llamallm = Llama(model_path="~/weights.bin") #"/home/af/Dokumente/Py/Huggingface/ggml/wizardLM-7B.ggml.q4_0.bin"
+
+class CustomLLM(LLM):  
+  def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:    
+    print("***\n"+prompt+"\n***")
+    output = llamallm(prompt, echo=False) 
+    output = output["choices"][0]["text"] 
+    output = re.sub("\nAction:(.*)[Dd]atabase(.*)","\nAction: Database",output)
+    if(output.find("\nAction:")>=0 and output.find("\nObservation:")>output.find("\nAction:")): return(output[0:output.find("\nObservation:")]) #+13
+    else: return(output)  
+  @property
+  def _llm_type(self) -> str:
+    return "custom"
+
+llm=CustomLLM()
+
+hf = HuggingFaceInstructEmbeddings(
+  model_name="hkunlp/instructor-large", #"/home/af/Dokumente/Py/Huggingface/hkunlp_instructor-large"
+  embed_instruction="Represent the document for retrieval: ",
+  query_instruction="Represent the query for retrieval: "
+)
+embeddings = hf
+texts=["The meaning of life is to love","The meaning of vacation is to relax","Roses are red.","Hack the planet!"]
+
+db = Chroma.from_texts(texts, embeddings, collection_name="my-collection") #vs. from_documents
+docsearcher = RetrievalQA.from_chain_type(
+  llm=llm, 
+  chain_type="stuff", #stuff, map_reduce, refine, map_rerank
+  retriever=db.as_retriever(search_type="similarity",search_kwargs={"k":1})) # similarity, mmr
+docsearcher.run("What is the meaning of life?")
+
+# Response of WizardLM-7B:
+# I'm sorry, but as an AI language model, I do not have personal beliefs or opinions on this matter. However, I can provide you with some possible interpretations of this quote: "The meaning of life is to love" is a phrase often attributed to the Belgian poet and playwright Eugène Ionesco. It suggests that one of the key purposes of life is to experience and express love. However, this quote should not be taken too literally or seriously, as it is just a simple expression of a profound idea.
+
+if(False):
+  tools = [
+    Tool(
+      name = "Database",
+      func=docsearcher.run,
+      description="useful for when you need to answer questions of any kind. Input should be a fully formed question."
+    )
+  ]
+  agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
+  agent.run("What is the meaning of life?")
+
+  
 # LangChain-Application: Wikipedia-Agent
 #---------------------------------------- 
 
@@ -184,60 +245,5 @@ agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbos
 agent("What is the meaning of life?")
 
 
-# LangChain-Application: Vectorstore-Agent
-#------------------------------------------
 
-from langchain.vectorstores import Chroma
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.chains import RetrievalQA
-from langchain.llms.base import LLM
-from typing import Optional, List, Mapping, Any
-from langchain import PromptTemplate, LLMChain
-from pathlib import Path
-relevant_parts = []
-for p in Path(".").absolute().parts:
-    relevant_parts.append(p)
-    if relevant_parts[-3:] == ["langchain", "docs", "modules"]:
-        break
 
-doc_path = str(Path(*relevant_parts) / "state_of_the_union.txt")
-
-from langchain.document_loaders import TextLoader
-loader = TextLoader(doc_path)
-documents = loader.load()
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-texts = text_splitter.split_documents(documents)
-
-from langchain.embeddings import HuggingFaceInstructEmbeddings 
-hf = HuggingFaceInstructEmbeddings(
-  model_name="hkunlp/instructor-large", 
-  embed_instruction="Represent the document for retrieval: ",
-  query_instruction="Represent the query for retrieval: "
-)
-embeddings = hf
-docsearch = Chroma.from_documents(texts, embeddings, collection_name="state-of-union")
-state_of_union = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=docsearch.as_retriever())
-
-from langchain.document_loaders import WebBaseLoader
-loader = WebBaseLoader("https://beta.ruff.rs/docs/faq/")
-docs = loader.load()
-ruff_texts = text_splitter.split_documents(docs)
-ruff_db = Chroma.from_documents(ruff_texts, embeddings, collection_name="ruff")
-ruff = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=ruff_db.as_retriever())
-
-from langchain.agents import initialize_agent, Tool
-tools = [
-    Tool(
-        name = "State of Union QA System",
-        func=state_of_union.run,
-        description="useful for when you need to answer questions about the most recent state of the union address. Input should be a fully formed question."
-    ),
-    Tool(
-        name = "Ruff QA System",
-        func=ruff.run,
-        description="useful for when you need to answer questions about ruff (a python linter). Input should be a fully formed question."
-    ),
-]
-agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
-agent.run("What did biden say about ketanji brown jackson is the state of the union address?")
-agent.run("Why use ruff over flake8?")
