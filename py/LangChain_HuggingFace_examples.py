@@ -223,9 +223,18 @@ if(False):
   agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
   agent.run("What is the meaning of life?")
 
-  
 # LangChain-Application: Wikipedia-Agent
 #---------------------------------------- 
+
+from langchain.agents import Tool, initialize_agent
+from langchain.utilities import WikipediaAPIWrapper #,TextRequestsWrapper,PythonREPL,BashProcess
+tools=[Tool(name="Wikipedia",func=WikipediaAPIWrapper(top_k_results=2).run, description="A wrapper around Wikipedia. Useful for when you need to answer general questions about people, places, companies, historical events, or other subjects. Input should be a search query.")] #WikipediaAPIWrapper(top_k_results=1).run
+agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
+agent("What is the meaning of life?")
+
+
+# LangChain-Application: Wikipedia-Agent2 (for LLM with smaller n_ctx)
+#---------------------------------------------------------------------
 
 from langchain.agents import Tool, initialize_agent
 from langchain.utilities import WikipediaAPIWrapper #,TextRequestsWrapper,PythonREPL,BashProcess
