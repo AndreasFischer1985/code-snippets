@@ -97,7 +97,7 @@ if(False): # run the following code to download a model like wizardLM-7B.ggml.q4
     out_file.write(weights.content)
   
 from llama_cpp import Llama
-llamallm = Llama(model_path="./weights.bin")
+llamallm = Llama(model_path="./weights.bin",n_ctx=2048)
 output = llamallm("What is the meaning of life?", max_tokens=100, echo=True)
 print(output)
 
@@ -178,7 +178,7 @@ from langchain.embeddings import HuggingFaceInstructEmbeddings
 from langchain.agents import initialize_agent, Tool
 import re
 
-llamallm = Llama(model_path="~/weights.bin") #"/home/af/Dokumente/Py/Huggingface/ggml/wizardLM-7B.ggml.q4_0.bin"
+llamallm = Llama(model_path="~/weights.bin",n_ctx=2048) #"/home/af/Dokumente/Py/Huggingface/ggml/wizardLM-7B.ggml.q4_0.bin"
 
 class CustomLLM(LLM):  
   def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:    
