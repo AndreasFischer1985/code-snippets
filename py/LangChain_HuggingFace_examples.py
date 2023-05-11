@@ -2,6 +2,7 @@
 # Title: LangChain-Applications based on free open source models from HuggingFace
 # Author: Andreas Fischer
 # Date: April 15, 2023
+# last update: May 11, 2023
 ##################################################################################
 
 # Option 1: use local Huggingface-model
@@ -116,7 +117,7 @@ class CustomLLM(LLM):
   @property
   def _llm_type(self) -> str:
     return "custom"
- 
+
 llm=CustomLLM()
 
   
