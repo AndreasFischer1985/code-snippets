@@ -105,7 +105,7 @@ print(output)
 from langchain.llms.base import LLM
 from typing import Optional, List, Mapping, Any
 from langchain import PromptTemplate, LLMChain
-import requests
+import re
 class CustomLLM(LLM):  
   def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:    
     print("***\n"+prompt+"\n***")
