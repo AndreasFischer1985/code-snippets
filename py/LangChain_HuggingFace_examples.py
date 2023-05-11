@@ -120,6 +120,31 @@ class CustomLLM(LLM):
 
 llm=CustomLLM()
 
+template="""
+Answer the following questions as best you can. You have access to the following tools:
+
+Wikipedia: A wrapper around Wikipedia. Useful for when you need to answer general questions about people, places, companies, historical events, or other subjects. Input should be a search query.
+
+Use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [Search]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Begin!
+
+Question: {input}
+Thought:
+"""
+prompt = PromptTemplate(input_variables=["input"], template=template)
+chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
+chain("What is the meaning of life?")
+
   
 # LangChain-Application: Simple Q&A-Bot
 #---------------------------------------
