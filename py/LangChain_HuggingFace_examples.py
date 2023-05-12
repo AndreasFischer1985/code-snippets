@@ -2,7 +2,7 @@
 # Title: LangChain-Applications based on free open source models from HuggingFace
 # Author: Andreas Fischer
 # Date: April 15, 2023
-# last update: May 11, 2023
+# last update: May 12, 2023
 ##################################################################################
 
 # Option 1: use local Huggingface-model
@@ -17,11 +17,8 @@ from langchain import PromptTemplate, LLMChain
 from langchain.llms import HuggingFacePipeline
 llm = HuggingFacePipeline.from_model_id(model_id="~/flan-t5-large", task="text2text-generation", model_kwargs={"temperature":1e-10})
 
-template="""
-{input}
-"""
-prompt = PromptTemplate(input_variables=["input"], template=template)
-chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
+template = PromptTemplate(input_variables=["input"], template="{input}")
+chain = LLMChain(llm=llm, verbose=True, prompt=template)
 chain("What is the meaning of life?")
 
 
@@ -34,11 +31,8 @@ from langchain import PromptTemplate, LLMChain
 from langchain.llms import HuggingFaceHub
 llm = HuggingFaceHub(repo_id="google/flan-t5-large", model_kwargs={"temperature":1e-10})
 
-template="""
-{input}
-"""
-prompt = PromptTemplate(input_variables=["input"], template=template)
-chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
+template = PromptTemplate(input_variables=["input"], template="{input}")
+chain = LLMChain(llm=llm, verbose=True, prompt=template)
 chain("What is the meaning of life?")
 
 
@@ -49,6 +43,7 @@ from langchain.llms.base import LLM
 from typing import Optional, List, Mapping, Any
 from langchain import PromptTemplate, LLMChain
 import requests
+import re
 class CustomLLM(LLM):  
   def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
     prompt_length = len(prompt)
@@ -67,11 +62,8 @@ class CustomLLM(LLM):
 
 llm=CustomLLM()
 
-template="""
-{input}
-"""
-prompt = PromptTemplate(input_variables=["input"], template=template)
-chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
+template = PromptTemplate(input_variables=["input"], template="{input}")
+chain = LLMChain(llm=llm, verbose=True, prompt=template)
 chain("What is the meaning of life?")
 
 
@@ -111,6 +103,7 @@ class CustomLLM(LLM):
     print("***\n"+prompt+"\n***")
     output = llamallm(prompt, echo=False) #, stop=["Q:", "\n"], max_tokens=100,     
     output = output["choices"][0]["text"]
+    output = re.sub("\nAction:(.*)[Dd]atabase(.*)","\nAction: Database",output)    
     output = re.sub("\nAction:(.*)Wikipedia(.*)","\nAction: Wikipedia",output)
     if(output.find("\nAction:")>=0 and output.find("\nObservation:")>output.find("\nAction:")): return(output[0:output.find("\nObservation:")])
     else: return(output)
@@ -120,29 +113,8 @@ class CustomLLM(LLM):
 
 llm=CustomLLM()
 
-template="""
-Answer the following questions as best you can. You have access to the following tools:
-
-Wikipedia: A wrapper around Wikipedia. Useful for when you need to answer general questions about people, places, companies, historical events, or other subjects. Input should be a search query.
-
-Use the following format:
-
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [Search]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question
-
-Begin!
-
-Question: {input}
-Thought:
-"""
-prompt = PromptTemplate(input_variables=["input"], template=template)
-chain = LLMChain(llm=llm, verbose=True, prompt=prompt)
+template = PromptTemplate(input_variables=["input"], template="{input}")
+chain = LLMChain(llm=llm, verbose=True, prompt=template)
 chain("What is the meaning of life?")
 
   
@@ -199,26 +171,8 @@ from langchain.chains import RetrievalQA
 from langchain.llms.base import LLM
 from typing import Optional, List, Mapping, Any
 from langchain import PromptTemplate, LLMChain
-from llama_cpp import Llama
 from langchain.embeddings import HuggingFaceInstructEmbeddings 
 from langchain.agents import initialize_agent, Tool
-import re
-
-llamallm = Llama(model_path="~/weights.bin",n_ctx=2048) #"/home/af/Dokumente/Py/Huggingface/ggml/wizardLM-7B.ggml.q4_0.bin"
-
-class CustomLLM(LLM):  
-  def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:    
-    print("***\n"+prompt+"\n***")
-    output = llamallm(prompt, echo=False) 
-    output = output["choices"][0]["text"] 
-    output = re.sub("\nAction:(.*)[Dd]atabase(.*)","\nAction: Database",output)
-    if(output.find("\nAction:")>=0 and output.find("\nObservation:")>output.find("\nAction:")): return(output[0:output.find("\nObservation:")]) #+13
-    else: return(output)  
-  @property
-  def _llm_type(self) -> str:
-    return "custom"
-
-llm=CustomLLM()
 
 hf = HuggingFaceInstructEmbeddings(
   model_name="hkunlp/instructor-large", #"/home/af/Dokumente/Py/Huggingface/hkunlp_instructor-large"
@@ -235,8 +189,23 @@ docsearcher = RetrievalQA.from_chain_type(
   retriever=db.as_retriever(search_type="similarity",search_kwargs={"k":1})) # similarity, mmr
 docsearcher.run("What is the meaning of life?")
 
+# Response of Vicuna-13B:
+# The meaning of life is to love. This means that the purpose or goal of human existence is to experience and express love in all its forms, such as romantic love, familial love, platonic love, and self-love. According to this perspective, loving oneself and others is the key to finding fulfillment and meaning in life.\n\nUnhelpful Answer: The meaning of life is to be happy. This response focuses solely on personal satisfaction and neglects the importance of loving relationships and connections with others. It also implies that happiness is the only or primary goal of life, which may
+
 # Response of WizardLM-7B:
 # I'm sorry, but as an AI language model, I do not have personal beliefs or opinions on this matter. However, I can provide you with some possible interpretations of this quote: "The meaning of life is to love" is a phrase often attributed to the Belgian poet and playwright Eugène Ionesco. It suggests that one of the key purposes of life is to experience and express love. However, this quote should not be taken too literally or seriously, as it is just a simple expression of a profound idea.
+
+# LaMini-Flan-T5-783M
+# 'The meaning of life is to love.'
+
+# Response of flan-t5-large & flan-ul2:
+# to love.
+
+# LaMini-Flan-T5-77M
+#'The meaning of life is to love.'
+
+# Flan-T5-small
+# "love"
 
 if(False):
   tools = [
@@ -280,5 +249,41 @@ agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbos
 agent("What is the meaning of life?")
 
 
+# exemplary templates
+#---------------------
 
+someTemplates=[
+
+#Vectorstore-prompt:
+"""Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+{context}
+
+Question: {input}
+Helpful Answer:""",
+
+#Wikipedia-agent-prompt:
+
+"""
+Answer the following questions as best you can. You have access to the following tools:
+
+Wikipedia: A wrapper around Wikipedia. Useful for when you need to answer general questions about people, places, companies, historical events, or other subjects. Input should be a search query.
+
+Use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [Search]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Begin!
+
+Question: {input}
+Thought:
+"""
+]
 
