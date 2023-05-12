@@ -141,7 +141,6 @@ conversation = ConversationChain(
   #memory=ConversationSummaryMemory(llm=llm)
   memory=ConversationBufferWindowMemory(k=1)
   #memory=ConversationSummaryBufferMemory(llm=llm,max_token_limit=100)
-
 )
 conversation.predict(input="Hi there!")
 conversation.predict(input="Tell me about transformers!")
@@ -218,6 +217,7 @@ if(False):
   agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
   agent.run("What is the meaning of life?")
 
+  
 # LangChain-Application: Wikipedia-Agent
 #---------------------------------------- 
 
@@ -243,6 +243,7 @@ def wiki(x):
   
   print("+++\n"+m1+"\n+++")
   return(m1[0:min(300,len(m1))])
+
 tools=[Tool(name="Wikipedia",func=wiki, description="A wrapper around Wikipedia. Useful for when you need to answer general questions about people, places, companies, historical events, or other subjects. Input should be a search query.")] #WikipediaAPIWrapper(top_k_results=1).run
 #func=WikipediaAPIWrapper(top_k_results=1).run
 agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
