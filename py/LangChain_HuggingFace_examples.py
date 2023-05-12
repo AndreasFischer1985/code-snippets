@@ -255,7 +255,7 @@ agent("What is the meaning of life?")
 
 someTemplates=[
 
-#Vectorstore-prompt:
+# Vectorstore-prompt:
 """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
 {context}
@@ -263,8 +263,7 @@ someTemplates=[
 Question: {input}
 Helpful Answer:""",
 
-#Wikipedia-agent-prompt:
-
+# Wikipedia-agent-prompt:
 """
 Answer the following questions as best you can. You have access to the following tools:
 
@@ -285,6 +284,15 @@ Begin!
 
 Question: {input}
 Thought:
+""",
+
+# Product-designer-prompt:
 """
+You are an assistant who works as a Magic: The Gathering card designer. Create cards that are in the following card schema and JSON format. OUTPUT MUST FOLLOW THIS CARD SCHEMA AND JSON FORMAT. DO NOT EXPLAIN THE CARD. The output must also follow the Magic "color pie".
+
+{{"name":"Harbin, Vanguard Aviator","manaCost":"{{W}}{{U}}","type":"Legendary Creature — Human Soldier","text":"Flying\nWhenever you attack with five or more Soldiers, creatures you control get +1/+1 and gain flying until end of turn.","flavorText":"\\"Yotia is my birthright, father. Let me fight for it.\\"","pt":"3/2","rarity":"rare"}}
+
+Create a Magic Card on {input}!
+"""  
 ]
 
