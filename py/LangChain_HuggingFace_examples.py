@@ -250,6 +250,19 @@ agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbos
 agent("What is the meaning of life?")
 
 
+# LangChain-Example: TextSplitter
+#--------------------------------
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+text="The meaning of life is to love.\n\nThe meaning of vacation is to relax.\n\nRoses are red.\n\nHack the planet!"
+text_splitter = RecursiveCharacterTextSplitter(
+  separators=[".","!","?"," ",""],
+  chunk_size=50,
+  chunk_overlap=0,
+  length_function=len)
+texts=text.split("\n\n") # definitely split text at each "\n\n"
+metas=[{"doc":j,"section":text} for j, text in enumerate(texts)]
+docs=text_splitter.create_documents(texts,metadatas=metas) # break texts into smaller chunks if necessary
+
 # exemplary templates
 #---------------------
 
