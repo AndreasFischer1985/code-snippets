@@ -185,6 +185,7 @@ db = Chroma.from_texts(texts, embeddings, collection_name="my-collection") #vs. 
 docsearcher = RetrievalQA.from_chain_type(
   llm=llm, 
   chain_type="stuff", #stuff, map_reduce, refine, map_rerank
+  return_source_documents=False,
   retriever=db.as_retriever(search_type="similarity",search_kwargs={"k":1})) # similarity, mmr
 docsearcher.run("What is the meaning of life?")
 
@@ -206,7 +207,7 @@ docsearcher.run("What is the meaning of life?")
 # Flan-T5-small
 # "love"
 
-if(False):
+if(False): # use docsearcher as agent-tool:
   tools = [
     Tool(
       name = "Database",
@@ -216,6 +217,17 @@ if(False):
   ]
   agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
   agent.run("What is the meaning of life?")
+
+if(False): # use docsearcher with custom prompt
+  template = "Cite one of the following pieces of context as an answer to the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.\n\n{context}Question: {question}\n\nAnswer:"
+  template = PromptTemplate(template=template, input_variables=["context", "question"])  
+  docsearcher = RetrievalQA.from_chain_type(
+    llm=llm, 
+    chain_type="stuff", #stuff, map_reduce, refine, map_rerank
+    chain_type_kwargs={"prompt": template},
+    return_source_documents=True,
+    retriever=db.as_retriever(search_type="similarity",search_kwargs={"k":1})) # similarity, mmr
+  docsearcher.run("What is the meaning of life?")
 
   
 # LangChain-Application: Wikipedia-Agent
