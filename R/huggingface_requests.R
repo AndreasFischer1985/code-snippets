@@ -7,7 +7,19 @@
 
 #!/usr/bin/Rscript
 require("httr")
-model_id = "google/flan-t5-xl" # cf. "google/flan-ul2", "akosal/LongForm-T5-xl" 
+model_id = "tiiuae/falcon-7b-instruct" #tiiuae/falcon-7b
+payload = "What is the definition of complex problem solving?"
+params=list("max_new_tokens"=300, return_full_text=F)
+url=paste0("https://api-inference.huggingface.co/models/",model_id)
+post=httr::POST(url=url, body=list("inputs"=payload, "parameters"=params),
+  #httr::add_headers(.headers=c("Authorization"=paste("Bearer",api_token))),
+  httr::add_headers(.headers=c("X-Wait-For-Model"="true","X-Use-Cache"="false")),	
+  encode="json")
+httr::content(post)
+
+#!/usr/bin/Rscript
+require("httr")
+model_id = "google/flan-t5-xl" # cf. "google/flan-ul2", "akosal/LongForm-T5-xl", MBZUAI/LaMini-Flan-T5-783M 
 payload = "Please write a step by step recipe to make bolognese pasta."
 params=list("max_length"=200, "length_penalty"=2, "num_beams"=16, "early_stopping"=TRUE)
 url=paste0("https://api-inference.huggingface.co/models/",model_id)
@@ -63,6 +75,10 @@ png::writePNG(img,paste0("image_",as.numeric(Sys.time()),".png"))
 #########################
 
 model_ids=c(
+  "tiiuae/falcon-7b-instruct",
+  "tiiuae/falcon-7b",	
+
+  "google/flan-ul2",
   "google/flan-t5-large", 
   "google/flan-t5-xl", 
 
