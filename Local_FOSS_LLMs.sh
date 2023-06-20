@@ -184,6 +184,7 @@ else:
   pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
   #pipe.save_pretrained("stabilityai_stable-diffusion-2-1_f16")
   pipe.to("cuda") 
+  #pipe.enable_xformers_memory_efficient_attention()
   #pipe.enable_attention_slicing()
   prompt = "a photograph of an astronaut riding a horse"
   then = datetime.now()
