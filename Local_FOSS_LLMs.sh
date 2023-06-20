@@ -20,7 +20,7 @@ nvidia-smi
 
 # install stuff via apt
 #----------------------.
-sudo apt install git rsync
+sudo apt install git rsync ffmpeg
 sudo apt install r-base r-base-dev r-cran-devtools
 sudo apt install python3 python3-pip python3-venv
 
@@ -37,7 +37,7 @@ echo "alias env='source .venv/ai/bin/activate'" >> ~/.bash_aliases
 
 # install python packages
 #-------------------------
-pip install torch sentence-transformers transformers ctransformers langchain diffusers llama-cpp-python accelerate protobuf pandas numpy
+pip install torch sentence-transformers transformers ctransformers langchain diffusers xformers llama-cpp-python accelerate protobuf pandas numpy
 #CT_CUBLAS=1 pip install ctransformers --no-binary ctransformers
 
 
@@ -192,5 +192,25 @@ else:
   print(now-then)
   image.save(f"astronaut_rides_horse_sd_f16.png") 
 
+'|python
+
+
+# Whisper - test audio-transcription
+#-----------------------------------
+echo '
+import torch
+from datetime import datetime
+from transformers import pipeline
+cuda = int(torch.cuda.is_available())-1
+print(cuda)
+model = "openai/whisper-large-v2"
+prompt = "https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/1.flac"
+bot = pipeline(model=model,device=cuda) # use GPU (0) if available, CPU (-1) otherwise
+bot.save_pretrained("openai_whisper")
+then = datetime.now()
+response = bot(prompt)
+now = datetime.now()
+print(now-then)
+print("Prompt:\n"+prompt+"\n\nResponse:\n"+response["text"]+"\n\nduration:"+str(now-then)) 
 '|python
 
