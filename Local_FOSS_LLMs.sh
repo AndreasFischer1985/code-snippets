@@ -164,9 +164,9 @@ import torch
 if(if torch.cuda.is_available()==False):
   
   from datetime import datetime
-  from diffusers import StableDiffusionPipeline
+  from diffusers import DiffusionPipeline
   model="stabilityai/stable-diffusion-2-1" #"prompthero/openjourney-v4"
-  pipe = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1")
+  pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1")
   #pipe.save_pretrained("stabilityai_stable-diffusion-2-1")
   #pipe.to("cuda") 
   prompt = "a photograph of an astronaut riding a horse"
@@ -180,10 +180,11 @@ else:
   
   import torch
   from datetime import datetime
-  from diffusers import StableDiffusionPipeline
-  pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4", revision="fp16", torch_dtype=torch.float16)
+  from diffusers import DiffusionPipeline
+  pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
   #pipe.save_pretrained("stabilityai_stable-diffusion-2-1_f16")
   pipe.to("cuda") 
+  #pipe.enable_attention_slicing()
   prompt = "a photograph of an astronaut riding a horse"
   then = datetime.now()
   image = pipe(prompt).images[0]
@@ -191,17 +192,5 @@ else:
   print(now-then)
   image.save(f"astronaut_rides_horse_sd_f16.png") 
 
-'|python
-
-
-# Hermes-OpenLlama
-#------------------ 
-
-echo '
-pip install protobuf==3.20.1 --ignore-installed
-from transformers import AutoTokenizer, AutoModelForCausalLM
-tokenizer = AutoTokenizer.from_pretrained("conceptofmind/Hermes-Open-Llama-7b-8k")
-model = AutoModelForCausalLM.from_pretrained("conceptofmind/Hermes-Open-Llama-7b-8k")
-model("What ist the meaning of life?")
 '|python
 
