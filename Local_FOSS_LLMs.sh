@@ -206,9 +206,10 @@ print(cuda)
 model = "openai/whisper-large-v2"
 prompt = "https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/1.flac"
 bot = pipeline(model=model,device=cuda) # use GPU (0) if available, CPU (-1) otherwise
+#bot.model.config.forced_decoder_ids = [[1,50261],[2,50359],[3,50363]] # uncomment for German transcripts
 bot.save_pretrained("openai_whisper")
 then = datetime.now()
-response = bot(prompt)
+response = bot(prompt, chunk_length_s=10) #batch_size=8, return_timestamps=True
 now = datetime.now()
 print(now-then)
 print("Prompt:\n"+prompt+"\n\nResponse:\n"+response["text"]+"\n\nduration:"+str(now-then)) 
