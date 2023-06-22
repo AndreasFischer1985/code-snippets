@@ -140,6 +140,16 @@ print(response)
 '|python
 
 
+# OpenLlama - start OpenLlama-server
+#-----------------------------------
+wget https://huggingface.co/TheBloke/open-llama-7b-open-instruct-GGML/resolve/main/open-llama-7B-open-instruct.ggmlv3.q4_0.bin -P ~/ggml/models
+pip install llama-cpp-python[server]
+export MODEL="~/ggml/models/open-llama-7B-open-instruct.ggmlv3.q4_0.bin" HOST=0.0.0.0 PORT=2600
+python3 -m llama_cpp.server
+
+  # curl http://localhost:2600/v1/completions -H "Content-Type: application/json" -d '{"prompt": "Im Folgenden findest du eine Instruktion, die eine Aufgabe bescheibt. Schreibe eine Antwort, um die Aufgabe zu lösen.\n\n### Instruktion:\nWas ist die Definition von komlpexem Problemlösen?\n\n### Antwort:","max_tokens":500, "echo":"False"}'
+
+
 # MPT-Storywriter - test ggml-weights in ctransformers
 #------------------------------------------------------
 wget https://huggingface.co/TheBloke/MPT-7B-Storywriter-GGML/resolve/main/mpt-7b-storywriter.ggmlv3.q4_0.bin -P ~/ggml/models
