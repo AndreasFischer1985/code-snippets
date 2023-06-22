@@ -38,6 +38,7 @@ echo "alias env='source .venv/ai/bin/activate'" >> ~/.bash_aliases
 # install python packages
 #-------------------------
 pip install torch sentence-transformers transformers ctransformers langchain diffusers xformers llama-cpp-python accelerate protobuf pandas numpy
+pip install llama-cpp-python[server] 
 #CT_CUBLAS=1 pip install ctransformers --no-binary ctransformers
 
 
