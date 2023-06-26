@@ -1,8 +1,8 @@
 #############################################################################
-# Title: Document-based Q&A example with sentence-embeddings & Flan-UL2
+# Title: Document-based Q&A example with sentence-embeddings & FOSS-AI
 # Author: Andreas Fischer
 # First published: March 20, 2023 
-# last update: April 27, 2023
+# last update: June 26, 2023
 #############################################################################
 
 from transformers import pipeline
@@ -72,8 +72,10 @@ if(False):
   model="google/flan-ul2"      
   model="stabilityai/stablelm-tuned-alpha-3b"
   model="writer/camel-5b-hf"
-
-model="google/flan-ul2"
+  model="tiiuae/falcon-7b"
+  model="tiiuae/falcon-7b-instruct"
+  
+model="tiiuae/falcon-7b-instruct"
 
 question="What is the meaning of life?"
 arr = np.loadtxt("embeddings.txt", delimiter = '\t')        # load sentence-embeddings
@@ -112,18 +114,18 @@ def query(payload,model_id="google/flan-ul2",params={"max_length":200, "num_beam
 
 print(question)
 a1=query(question,model) # Initial query
-print(a1) # response: to be happy
+print(a1) # Flan-UL2's response: to be happy
 components['question']=question
 components['existing_answer']=a1 
 components['context_msg']=res[0] 
 refined_question=refine_tmpl.format(**components)
 print(refined_question)
 a2=query(refined_question,model) # Query refined response (with relevant context)
-print(a2) # response: The meaning of life is to love 
+print(a2) # Flan-UL2's response: The meaning of life is to love 
 
 components['context_msg']=res[-1] 
 refined_question=refine_tmpl.format(**components)
 print(refined_question)
 a2b=query(refined_question,model) # Query refined response (with irrelevant context) 
-print(a2b) # response: to be happy
+print(a2b) # Flan-UL2's response: to be happy
 
