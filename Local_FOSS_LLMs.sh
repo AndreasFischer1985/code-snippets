@@ -102,7 +102,31 @@ bestSims=[np.sort(sim)[::-1].tolist()[0] for sim in cosines]
 df = pd.DataFrame(data={"text":strings,"best match":bestFits, "similarity":bestSims})
 df.to_csv("table.csv")
 '|python
+
  
+# Roberta - test Transformers for embeddings
+#-------------------------------------------
+echo '
+import torch
+import numpy as np
+from datetime import datetime
+from transformers import pipeline
+cuda = int(torch.cuda.is_available())-1
+print(cuda)
+model = "T-Systems-onsite/cross-en-de-roberta-sentence-transformer"
+text = "What is the meaning of my life?"
+bot = pipeline(model=model,device=cuda) # use GPU (0) if available, CPU (-1) otherwise
+#bot.save_pretrained("T-Systems-onsite_cross-en-de-roberta-sentence-transformer")
+then = datetime.now()
+embedding = bot(text)
+now = datetime.now()
+print(now-then)
+print("Text:\n"+text+"\n\nEmbedding:\n"+str(embedding)+"\n\nduration:"+str(now-then)) 
+embedding=np.mean(embedding,axis=1)[0]
+# embeddings = bot(texts)
+# embeddings=[np.mean(x,axis=1)[0] for x in embeddings]
+'|python
+
 
 # Flan-T5 - test Transformers
 #------------------------------
