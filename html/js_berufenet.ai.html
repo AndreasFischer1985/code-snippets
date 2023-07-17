@@ -1,0 +1,216 @@
+<html>
+<body>
+<h1>BERUFENET.AI</h1>
+<label>Was tust du leidenschaftlich gerne? </label><br><br>
+<input type="search" data-for="#table" autofocus="autofocus" id="searchtext" value="Ich analysiere gerne Daten!" size="50">
+<button onclick="semanticSearch()" id="searchbutton">Traumberuf finden...</button> 
+<br><br>
+<table id="table">
+<tbody id="data"></tbody>
+</table>
+
+<script>
+
+  // Function: calculate dot-product of two vectors
+  function dotp(x, y) {
+    function dotp_sum(a, b) {return a + b;}
+    function dotp_times(a, i) {return x[i] * y[i];}
+    return x.map(dotp_times).reduce(dotp_sum, 0);
+  }
+
+  // Function: calculate cosine-similarity of two vectors 
+  function cosSim(A,B){
+    var similarity = dotp(A, B) / (Math.sqrt(dotp(A,A)) * Math.sqrt(dotp(B,B)));
+    //alert(A);alert(A.length);alert(B);alert(B.length);alert(similarity);
+    return similarity;
+  } 
+
+  //round number
+  function round2(x,places=2){
+    return +(Math.round(x + "e+" + places)  + "e-" + places);
+  }
+
+  // Function: calculate row-means of 2d-array
+  function rowMeans(array) {
+        var rowMeans = [];  
+        for (var i = 0; i < array.length; i++) {
+          var row = array[i]; var sum = 0;    
+          for (var j = 0; j < row.length; j++) {sum += row[j];}
+          var mean = sum / row.length;
+          rowMeans.push(mean);
+        }
+        return rowMeans;
+  }
+
+  // Function: calculate row-means of 2d-array
+  function colMeans(array) {
+        var columnMeans = [];  
+        var columnSums = new Array(array[0].length).fill(0);  
+        for (var i = 0; i < array.length; i++) {
+          var row = array[i];    
+          for (var j = 0; j < row.length; j++) {
+            columnSums[j] += row[j];
+          }
+        }  
+        for (var k = 0; k < columnSums.length; k++) {
+          var mean = columnSums[k] / array.length;
+          columnMeans.push(mean);
+        } 
+        return columnMeans;
+  } 
+
+  // Function: sort table
+  function sortTable(index) {
+    const tableBody = document.getElementById("table").querySelector("tbody");
+    const rows1 = tableBody.querySelectorAll("tr");
+    const parse = function(index, content) {
+      if(index===0) return parseFloat(content);
+      return(content);
+    };
+    const direction = -1;
+    const rows2 = Array.from(rows1);
+    rows2.sort((rowA, rowB) => {
+      const a = parse(index,rowA.querySelectorAll("td")[index].textContent.toLowerCase());
+      const b = parse(index,rowB.querySelectorAll("td")[index].textContent.toLowerCase());
+      //alert(a+" vs "+b);
+      switch (true) {
+        case a > b: return 1 * direction; 
+        case a < b: return -1 * direction; 
+        case a === b: return 0;
+      }
+    });
+    [].forEach.call(rows1, function(row) { tableBody.removeChild(row); });
+    rows2.forEach(function(newRow) { tableBody.appendChild(newRow); });
+  };
+
+  // Function: Embed content of textbox "searchtext" and save "relevance" to table
+  function semanticSearch(){
+    prompt= document.getElementById("searchtext").value;
+    //alert("embed:\n"+prompt);
+    var embedding = async(task) => {
+      //prompt= document.getElementById("searchtext").value;
+      model="T-Systems-onsite/cross-en-de-roberta-sentence-transformer";
+      let myPromise = new Promise(function(resolve) {
+        fetch("https://api-inference.huggingface.co/models/"+model, {
+                method: "POST",
+                headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+			"X-Wait-For-Models": "True",
+			"X-Use-Cache": "False"
+                },
+                body: JSON.stringify({inputs:prompt}) //,parameters:params
+        }).then(response => resolve(response.json())) 
+      });
+      var e= await myPromise;
+      e=e[0] // first (and only) string to embed
+      var t=e.length; //alert(t); // number of tokens
+      var l=e[0].length; //alert(l); // dimension of embeddings
+      vec1=colMeans(e);
+      var table = document.getElementById("table");
+      var rows = table.querySelectorAll('tbody tr');
+      rows.forEach(function(tr) { 
+        var vec2=tr.cells[3].innerHTML.split(",");
+        tr.cells[2].innerHTML=round2(cosSim(vec1,vec2));
+      });
+      sortTable(2);
+    } // end of async task
+  var e = (embedding());
+  return(e);
+  } //end of semanticSearch-function
+
+  // Function: append JSON-content to table
+  function appendJSON(json,myContainer,level) {
+	const obj = JSON.parse(json);	
+        const regex = /((http|https|ftp):\/\/[\w?=&.,\(\)\{\}$!\/-;#~%-]+(?![\w\s?&.,\(\)\{\}$!\/;#~%"=-]*>))/g;   
+	var oc=0; 
+	var lastCategory="";         
+	for (var i = 0; i<Object.keys(obj).length; i++){
+		var tr = document.createElement("tr");		
+
+                //Column "title" 
+		var td = document.createElement("td");
+          	var ob = obj[[i]][[1]];   // extract "title"
+                if(ob == null) ob="n.a."; // set title to  "n.a." if title is missing
+		td.innerHTML="<strong>"+
+			ob+":</strong><br> "+obj[[i]][[2]]; //"description"
+		tr.appendChild(td);
+
+		//Column "ID"
+		var td = document.createElement("td");
+		td.innerHTML="<a href=\"https://web.arbeitsagentur.de/berufenet/beruf/"+obj[[i]][[0]]+"\">ID "+obj[[i]][[0]]+"</a>"; // extract "ID" 
+		tr.appendChild(td);
+
+		//Column "relevance"
+		var td = document.createElement("td");
+		td.innerHTML="1";
+		//td.setAttribute("class","hide");
+		tr.appendChild(td);
+
+		//Column "embedding"
+		var td = document.createElement("td");
+		td.innerHTML=obj[[i]][[3]]; //extract "embedding"
+		td.style.fontSize="0px";
+		td.setAttribute("class","hide");
+		tr.appendChild(td);
+
+		myContainer.appendChild(tr); 		
+	}
+  }
+
+
+  // fetch JSON-content and append it to table
+  const myContainer = document.getElementById("data");
+  fetch('http://85.214.77.179/berufenet2/data.json')
+		 .then(function (response) { return response.json();})
+		 .then(function (data) { 
+			appendJSON(JSON.stringify(data),myContainer,0);
+			document.querySelectorAll('.filter').forEach(function(input) {
+    				var table = document.querySelector(input.dataset.for);
+   			 	var rows = table.querySelectorAll('tbody tr');
+    				input.addEventListener('input', function(event) {
+        				rows.forEach(function(tr) {
+           					tr.hidden = !tr.textContent.includes(input.value);
+        				});
+    				});
+			});           
+		})
+		 .catch(function (err){});
+
+
+  // add event listener to each row of the table to hide irrelevant entries:
+  if(false)
+  document.querySelectorAll('.filter').forEach(function(input) {
+			var table = document.querySelector(input.dataset.for);
+		 	var rows = table.querySelectorAll('tbody tr');
+			input.addEventListener('input', function(event) {
+      				rows.forEach(function(tr) {
+       					tr.hidden = !tr.textContent.includes(input.value);
+      				});
+			});
+  });    
+
+</script>
+<style>
+
+table {
+  padding: 5px;
+  text-align: left;
+}
+th, td {
+  border: 1px solid;
+  padding: 5px;
+  text-align: left;
+}
+details {
+  width:800;
+}
+tr:nth-child(even) {background-color: #f2f2f2;}
+tr:hover {background-color: coral;}
+.hide{ visibility: hidden }
+
+
+</style>
+</body>
+</html>
+
