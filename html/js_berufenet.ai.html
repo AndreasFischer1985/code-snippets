@@ -3,7 +3,7 @@
 <h1>BERUFENET.AI</h1>
 <label>Was tust du leidenschaftlich gerne? </label><br><br>
 <input type="search" data-for="#table" autofocus="autofocus" id="searchtext" value="Ich analysiere gerne Daten!" size="50">
-<button onclick="semanticSearch()" id="searchbutton">Traumberuf finden...</button> 
+<button onclick="semanticSearch()" id="searchbutton" disabled=true>Traumberuf finden...</button> 
 <br><br>
 <table id="table">
 <tbody id="data"></tbody>
@@ -165,31 +165,9 @@
 		 .then(function (response) { return response.json();})
 		 .then(function (data) { 
 			appendJSON(JSON.stringify(data),myContainer,0);
-			document.querySelectorAll('.filter').forEach(function(input) {
-    				var table = document.querySelector(input.dataset.for);
-   			 	var rows = table.querySelectorAll('tbody tr');
-    				input.addEventListener('input', function(event) {
-        				rows.forEach(function(tr) {
-           					tr.hidden = !tr.textContent.includes(input.value);
-        				});
-    				});
-			});           
+			document.getElementById("searchbutton").disabled=false;        
 		})
 		 .catch(function (err){});
-
-
-  // add event listener to each row of the table to hide irrelevant entries:
-  if(false)
-  document.querySelectorAll('.filter').forEach(function(input) {
-			var table = document.querySelector(input.dataset.for);
-		 	var rows = table.querySelectorAll('tbody tr');
-			input.addEventListener('input', function(event) {
-      				rows.forEach(function(tr) {
-       					tr.hidden = !tr.textContent.includes(input.value);
-      				});
-			});
-  });    
-
 </script>
 <style>
 
