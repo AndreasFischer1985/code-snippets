@@ -96,8 +96,8 @@
                 headers: {
                         "Accept": "application/json",
                         "Content-Type": "application/json",
-			"X-Wait-For-Models": "True",
-			"X-Use-Cache": "False"
+			"X-Wait-For-Models": true,
+			"X-Use-Cache": false
                 },
                 body: JSON.stringify({inputs:prompt}) //,parameters:params
         }).then(response => resolve(response.json())) 
