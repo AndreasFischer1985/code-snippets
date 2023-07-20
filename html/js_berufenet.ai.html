@@ -84,40 +84,50 @@
   };
 
   // Function: Embed content of textbox "searchtext" and save "relevance" to table
-  function semanticSearch(){
-    prompt= document.getElementById("searchtext").value;
-    //alert("embed:\n"+prompt);
-    var embedding = async(task) => {
-      //prompt= document.getElementById("searchtext").value;
-      model="T-Systems-onsite/cross-en-de-roberta-sentence-transformer";
-      let myPromise = new Promise(function(resolve) {
-        fetch("https://api-inference.huggingface.co/models/"+model, {
-                method: "POST",
-                headers: {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
-			"X-Wait-For-Models": true,
-			"X-Use-Cache": false
-                },
-                body: JSON.stringify({inputs:prompt}) //,parameters:params
-        }).then(response => resolve(response.json())) 
-      });
-      var e= await myPromise;
-      e=e[0] // first (and only) string to embed
-      var t=e.length; //alert(t); // number of tokens
-      var l=e[0].length; //alert(l); // dimension of embeddings
-      vec1=colMeans(e);
-      var table = document.getElementById("table");
-      var rows = table.querySelectorAll('tbody tr');
-      rows.forEach(function(tr) { 
-        var vec2=tr.cells[3].innerHTML.split(",");
-        tr.cells[2].innerHTML=round2(cosSim(vec1,vec2));
-      });
-      sortTable(2);
-    } // end of async task
-  var e = (embedding());
-  return(e);
-  } //end of semanticSearch-function
+  async function semanticSearch() {
+    const prompt = document.getElementById("searchtext").value;
+    const model = "T-Systems-onsite/cross-en-de-roberta-sentence-transformer";
+    const maxRetries = 5;
+    const retryDelay = 1000; // 1 second delay
+    for (let retry = 0; retry < maxRetries; retry++) {
+      try {
+        const response = await fetch(
+          "https://api-inference.huggingface.co/models/" + model,
+          {
+            method: "POST",
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+              "X-Wait-For-Models": true,
+              "X-Use-Cache": false,
+            },
+            body: JSON.stringify({ inputs: prompt }),
+          }
+        );
+        if (response.status === 503) { // Model is unavailable, retry after delay
+          await new Promise((resolve) => setTimeout(resolve, retry*retryDelay));
+        } else {
+          const result = await response.json();
+          e=result[0] // first (and only) string to embed
+          var t=e.length; //alert(t); // number of tokens
+          var l=e[0].length; //alert(l); // dimension of embeddings
+          vec1=colMeans(e);
+          var table = document.getElementById("table");
+          var rows = table.querySelectorAll('tbody tr');
+          rows.forEach(function(tr) { 
+            var vec2=tr.cells[3].innerHTML.split(",");
+            tr.cells[2].innerHTML=round2(cosSim(vec1,vec2));
+          });
+          sortTable(2);
+          return(e);
+        }
+      } catch (error) {
+        console.error("Error during fetch:", error);
+        // Handle other errors here, if necessary
+      }
+    } 
+    console.error("Model is still unavailable after retries.");
+  }
 
   // Function: append JSON-content to table
   function appendJSON(json,myContainer,level) {
@@ -161,13 +171,14 @@
 
   // fetch JSON-content and append it to table
   const myContainer = document.getElementById("data");
-  fetch('http://85.214.77.179/berufenet2/data.json')
+  fetch('http://85.214.77.179/berufenet2/data2.json')
 		 .then(function (response) { return response.json();})
 		 .then(function (data) { 
 			appendJSON(JSON.stringify(data),myContainer,0);
-			document.getElementById("searchbutton").disabled=false;        
+			document.getElementById("searchbutton").disabled=false;     
 		})
 		 .catch(function (err){});
+
 </script>
 <style>
 
