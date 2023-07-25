@@ -149,19 +149,25 @@ print("Prompt:\n"+prompt+"\n\nResponse:\n"+response[0]["generated_text"]+"\n\ndu
 '|python
 
 
-# WizardLM - test ggml-weights in llama.cpp
-#------------------------------------------
-wget https://huggingface.co/TheBloke/wizardLM-7B-GGML/resolve/main/wizardLM-7B.ggmlv3.q4_0.bin -P ~/ggml/models
+# Nous-Hermes-Llama2-13b - test ggml-weights in llama.cpp
+#---------------------------------------------------------
+wget https://huggingface.co/TheBloke/Nous-Hermes-Llama2-GGML/resolve/main/nous-hermes-llama2-13b.ggmlv3.q4_0.bin -P ~/ggml/models
 echo '
+
 from datetime import datetime
 from llama_cpp import Llama
-model="~/ggml/models/wizardLM-7B.ggmlv3.q4_0.bin"
-llamallm = Llama(model_path=model,n_ctx=2048)
+model="/home/af/ggml/models/nous-hermes-llama2-13b.ggmlv3.q4_0.bin"
+llamallm = Llama(model_path=model,n_ctx=4096)
 then = datetime.now()
-response = llamallm("What is the meaning of life?", max_tokens=100, echo=True)
+template="""### Instruction:
+{prompt}
+
+### Response:
+"""
+response = llamallm(template.format(prompt="Was ist die Definition von komplexem Problemlösen?"), max_tokens=100, echo=False)
 now = datetime.now()
 print(now-then) 
-print(response)
+print(response) 
 '|python
 
 
