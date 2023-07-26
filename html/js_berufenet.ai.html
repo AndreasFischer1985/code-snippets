@@ -98,14 +98,15 @@
             headers: {
               "Accept": "application/json",
               "Content-Type": "application/json",
-              "X-Wait-For-Models": true,
+              "X-Wait-For-Model": true,
               "X-Use-Cache": false,
             },
             body: JSON.stringify({ inputs: prompt }),
           }
         );
         if (response.status === 503) { // Model is unavailable, retry after delay
-          await new Promise((resolve) => setTimeout(resolve, retry*retryDelay));
+          var a=0; if(retry==1)a=5000; 
+          await new Promise((resolve) => setTimeout(resolve, a+retry*retryDelay));
         } else {
           const result = await response.json();
           e=result[0] // first (and only) string to embed
