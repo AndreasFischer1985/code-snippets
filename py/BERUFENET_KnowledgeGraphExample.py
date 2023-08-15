@@ -24,7 +24,7 @@ berufe=[]
 for i in range(0,len(responses)):
   berufe=berufe+responses[i]['_embedded']['berufSucheList']
 
-len(berufe) #3571 at Aug 12th
+len(berufe) #3571 on Aug 12th
 ids=[berufe[i]['id'] for i in range(0,len(berufe))]
 shortTitles=[berufe[i]['kurzBezeichnungNeutral'] for i in range(0,len(berufe))]
 
@@ -130,7 +130,7 @@ zugangsberufeIDs=[[re.sub('(data-idref=|")','',x) for x in re.findall('data-idre
 
 relations1csv=[] 
 for i in range(0,len(details)):
-  if (len(zugangsberufeIDs[i])>0): relations1csv=relations1csv+[(str(z)," qualifiesFor ",str(ids[i][-1])) for z in zugangsberufeIDs[i]]
+  if (len(zugangsberufeIDs[i])>0): relations1csv=relations1csv+[(str(z)," ZugangsberufZu ",str(ids[i][-1])) for z in zugangsberufeIDs[i]]
 
 len(relations1csv)
 
@@ -139,10 +139,13 @@ aufstiegsweiterbildungenIDs=[[x['id'] for x in a] for a in aufstiegsweiterbildun
 
 relations2csv=[] 
 for i in range(0,len(details)):
-  if (len(aufstiegsweiterbildungenIDs[i])>0): relations2csv=relations2csv+[(str(ids[i][-1])," qualifiesFor ",str(a)) for a in aufstiegsweiterbildungenIDs[i]]
+  if (len(aufstiegsweiterbildungenIDs[i])>0): relations2csv=relations2csv+[(str(ids[i][-1])," AufstiegsmöglichkeitZu ",str(a)) for a in aufstiegsweiterbildungenIDs[i]]
 
 len(relations2csv)
 
+relations=relations1csv+relations2csv
+
+                                                                          
 with open(path+'relations1.csv', 'w', newline='') as f:
   writer = csv.writer(f)
   writer.writerow(['node1', 'relation', 'node2'])    
@@ -170,6 +173,18 @@ with open(path+'berufeInfos.csv', 'w', newline='') as f:
   for r in [x for x in z]:
     writer.writerow(r)
 
+with open(path+"ids.json", "w") as f:
+  json.dump(ids, f)
+
+with open(path+"kldb2010.json", "w") as f:
+  json.dump(kldb2010, f)
+
+with open(path+"codenr.json", "w") as f:
+  json.dump(codenr, f)
+
+with open(path+"kurzbezeichnung.json", "w") as f:
+  json.dump(kurzbezeichnung, f)
+
 
 #***********************
 # Variant 1: Graphviz
@@ -183,6 +198,18 @@ with open(path+'relations.csv', newline='') as csvfile:
     for row in doc:
         relations.append(row)
 
+with open(path+"ids.json", "r") as f: 
+   ids = json.load(f)
+
+with open(path+"kldb2010.json", "r") as f: 
+   kldb2010 = json.load(f)
+
+with open(path+"codenr.json", "r") as f: 
+   codenr = json.load(f)
+  
+with open(path+"kurzbezeichnung.json", "r") as f: 
+   kurzbezeichnung = json.load(f)
+
 myRelations=[]
 for r in relations: # select all relations of "IT-economist" (id 15322 & 15323)
   if(r[0]=="15323" or r[2]=="15323" or r[0]=="15322" or r[2]=="15322"): myRelations.append(r)
@@ -191,8 +218,21 @@ for r in relations: # select all relations of "IT-economist" (id 15322 & 15323)
 
 f = graphviz.Digraph(filename = path+"graphviz_graph.gv")
 names = list(set([r[0] for r in myRelations]+[r[2] for r in myRelations]))
-labels = names
 colors = ["white" for n in names]
+labels=[]
+for i in range(0,len(names)):
+  for j in range(0,len(ids)):
+    if(str(ids[j][0])==str(names[i])): 
+      labels.append(kurzbezeichnung[j][0]+"\n"+codenr[j][0]+"\nID "+str(ids[j][0]))
+      break
+    else:
+      if(len(ids[j])==2): 
+        if(str(ids[j][1])==str(names[i])): 
+          labels.append(kurzbezeichnung[j][1]+"\n"+codenr[j][1]+"\nID "+str(ids[j][1]))
+          break
+
+len(names)
+len(labels)
 
 #names = ["A","B","C","D","E","F","G","H"]
 #labels = ['IT-Ökonom/in\nAusbildung','IT-Ökonom/in', 'Informatiker/in\n(Weiterbildung)', 'Wirtschafts-\ninformatiker/in\n- IT-Systeme','Wirtschafts-\ninformatik\n(grundständig)', 'Informatik\n(grundständig)' ]
