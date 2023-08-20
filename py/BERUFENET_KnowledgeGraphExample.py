@@ -210,12 +210,28 @@ with open(path+"codenr.json", "r") as f:
 with open(path+"kurzbezeichnung.json", "r") as f: 
    kurzbezeichnung = json.load(f)
 
+# gather all relations from and to ID 15322:
+queryNodes=["15322"] 
 myRelations=[]
-for r in relations: # select all relations of "IT-economist" (id 15322 & 15323)
-  if(r[0]=="15323" or r[2]=="15323" or r[0]=="15322" or r[2]=="15322"): myRelations.append(r)
+for r in relations: 
+  if(r[0] in queryNodes or r[2] in queryNodes): myRelations.append(r)
 
-#myRelations=relations[1:500]
+len(myRelations) #5
 
+# gather all relations from and to ID 15323 and add relations from (but not to) the IDs above (15322,93916,93944,15325 & 7846):
+queryNodes=["15323"]
+myRelations=[]
+for r in relations: 
+  if(r[0] in queryNodes or r[2] in queryNodes): myRelations.append(r)
+
+len(myRelations) #34
+selectiveQueryNodes=["15322","93916","93944","15325","7846"]
+for r in relations: 
+  if(r[0] in selectiveQueryNodes): myRelations.append(r)
+
+len(myRelations) #56
+
+# Plot myRelations:
 f = graphviz.Digraph(filename = path+"graphviz_graph.gv")
 names = list(set([r[0] for r in myRelations]+[r[2] for r in myRelations]))
 colors = ["white" for n in names]
@@ -233,11 +249,6 @@ for i in range(0,len(names)):
 
 len(names)
 len(labels)
-
-#names = ["A","B","C","D","E","F","G","H"]
-#labels = ['IT-Ökonom/in\nAusbildung','IT-Ökonom/in', 'Informatiker/in\n(Weiterbildung)', 'Wirtschafts-\ninformatiker/in\n- IT-Systeme','Wirtschafts-\ninformatik\n(grundständig)', 'Informatik\n(grundständig)' ]
-#colors = ['red','green','red','red','blue','blue']
-#f.edge("A","B",label=" QualifiesFor",fontsize="8"); f.edge("B","C",label=" QualifiesFor",fontsize="8"); f.edge("B","D",label=" QualifiesFor",fontsize="8"); f.edge("B","E",label=" QualifiesFor",fontsize="8"); f.edge("B","F",label=" QualifiesFor",fontsize="8")
 
 for relation in myRelations:
   f.edge(relation[0],relation[2],label=relation[1],fontsize="8");
