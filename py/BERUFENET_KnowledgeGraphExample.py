@@ -128,9 +128,31 @@ for i in range(0,len(details)):
 #for each entry in zugangsberufe extract IDs from formulations such as 'ba-berufepool-extsysref data-idref="14217"':
 zugangsberufeIDs=[[re.sub('(data-idref=|")','',x) for x in re.findall('data-idref="[0-9]*"',z)] for z in zugangsberufe] 
 
+zugangsstudienfächer=[] # prerequisite occupations for occupation/work
+for i in range(0,len(details)):
+  if(len(details[i])==1): 
+    check=False
+    for j in range(0,len(details[i][0]['infofelder'])):
+      if(details[i][0]['infofelder'][j]['id']=='b30-2'): 
+        zugangsstudienfächer=zugangsstudienfächer+[details[i][0]['infofelder'][j]['content']]
+        check=True
+    if(check==False): zugangsstudienfächer=zugangsstudienfächer+[""]
+  if(len(details[i])==2): 
+    check=False
+    for j in range(0,len(details[i][1]['infofelder'])):
+      if(details[i][1]['infofelder'][j]['id']=='b30-1'): 
+        zugangsstudienfächer=zugangsstudienfächer+[details[i][1]['infofelder'][j]['content']]
+        check=True
+    if(check==False): zugangsstudienfächer=zugangsstudienfächer+[""]
+
+#for each entry in zugangsstudienfächer extract IDs from formulations such as 'ba-berufepool-extsysref data-idref="14217"':
+zugangsstudienfächerIDs=[[re.sub('(data-idref=|")','',x) for x in re.findall('data-idref="[0-9]*"',z)] for z in zugangsstudienfächer]
+
+zugangsIDs=[list(set(zugangsberufeIDs[i]+zugangsstudienfächerIDs[i])) for i in range(0,len(details))]
+
 relations1csv=[] 
 for i in range(0,len(details)):
-  if (len(zugangsberufeIDs[i])>0): relations1csv=relations1csv+[(str(z)," ZugangsberufZu ",str(ids[i][-1])) for z in zugangsberufeIDs[i]]
+  if (len(zugangsIDs[i])>0): relations1csv=relations1csv+[(str(z)," ZugangZu ",str(ids[i][-1])) for z in zugangsIDs[i]]
 
 len(relations1csv)
 
@@ -166,10 +188,10 @@ with open(path+'relations.csv', 'w', newline='') as f:
   for r in relations2csv:
     writer.writerow(r)
     
-z=zip(l,ids,codenr,kldb2010,kurzbezeichnung,aufstiegsweiterbildungen,zugangsberufe,aufstiegsweiterbildungenIDs,zugangsberufeIDs)
+z=zip(l,ids,codenr,kldb2010,kurzbezeichnung,aufstiegsweiterbildungen,zugangsberufe,aufstiegsweiterbildungenIDs,zugangsberufeIDs,zugangsstudienfächerIDs,zugangsIDs)
 with open(path+'berufeInfos.csv', 'w', newline='') as f:
   writer = csv.writer(f)
-  writer.writerow(['l','ids','codenr','kldb2010','kurzbezeichnung','aufstiegsweiterbildungen','zugangsberufe','aufstiegsweiterbildungenIDs','zugangsberufeIDs'])    
+  writer.writerow(['l','ids','codenr','kldb2010','kurzbezeichnung','aufstiegsweiterbildungen','zugangsberufe','aufstiegsweiterbildungenIDs','zugangsberufeIDs','zugangsstudienfächerIDs','zugangsIDs'])    
   for r in [x for x in z]:
     writer.writerow(r)
 
