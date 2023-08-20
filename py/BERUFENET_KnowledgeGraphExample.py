@@ -246,12 +246,12 @@ myRelations=[]
 for r in relations: 
   if(r[0] in queryNodes or r[2] in queryNodes): myRelations.append(r)
 
-len(myRelations) #34
+len(myRelations) #32
 selectiveQueryNodes=["15322","93916","93944","15325","7846"]
 for r in relations: 
   if(r[0] in selectiveQueryNodes): myRelations.append(r)
 
-len(myRelations) #56
+len(myRelations) #136
 
 # Plot myRelations:
 f = graphviz.Digraph(filename = path+"graphviz_graph.gv")
