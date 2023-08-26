@@ -7,7 +7,6 @@
 
 path="/home/af/Dokumente/Py/knowledgeGraph/"
 
-
 #*******************************************************************************
 # Get list of occupations on BERUFENET (id & title) and save it to a csv-file 
 #********************************************************************************
@@ -65,6 +64,7 @@ with open(path+"details.json", "w") as f:
 # Extract relevant information on occupations and their relations
 #*****************************************************************
 
+
 import re
 import csv
 import json
@@ -72,78 +72,55 @@ import json
 with open(path+"details.json", "r") as f: 
    details = json.load(f)
 
-#details[0][0]['aufstiegsweiterbildungen']
-#details[0][0]['infofelder'][0] #'id': 'b30-1'
+from itertools import chain 
+details = list(chain(*details)) #simplify structure of details
+len(details) #5728
+
+#details[0]['aufstiegsweiterbildungen']
+#details[0]['infofelder'][0] #'id': 'b30-1'
 
 l=[len(details[i]) for i in range(0,len(details))]
 
 ids=[]
 for i in range(0,len(details)):
-  if(len(details[i])==1): ids.append([details[i][0]['id']])
-  if(len(details[i])==2): ids.append([details[i][0]['id'],details[i][1]['id']])
-
-if(False): # check if every entry has at least one valid id
-  min([len(i) for i in ids])
-  x=[len(str(i[0])) for i in ids]
-  x.index(min(x))
-  ids[x.index(min(x))]
+  ids.append([details[i]['id']])
 
 codenr=[]
 for i in range(0,len(details)):
-  if(len(details[i])==1): codenr.append([details[i][0]['codenr']])
-  if(len(details[i])==2): codenr.append([details[i][0]['codenr'],details[i][1]['codenr']])
+  codenr.append([details[i]['codenr']])
 
 kldb2010=[]
 for i in range(0,len(details)):
-  if(len(details[i])==1): kldb2010.append([details[i][0]['kldb2010']])
-  if(len(details[i])==2): kldb2010.append([details[i][0]['kldb2010'],details[i][1]['kldb2010']])
+  kldb2010.append([details[i]['kldb2010']])
 
 kurzbezeichnung=[]
 for i in range(0,len(details)):
-  if(len(details[i])==1): kurzbezeichnung.append([details[i][0]['kurzBezeichnungNeutral']])
-  if(len(details[i])==2): kurzbezeichnung.append([details[i][0]['kurzBezeichnungNeutral'],details[i][1]['kurzBezeichnungNeutral']])
+  kurzbezeichnung.append([details[i]['kurzBezeichnungNeutral']])
 
 aufstiegsweiterbildungen=[] # CVET for occupation/work
 for i in range(0,len(details)):
-  if(len(details[i])==1): aufstiegsweiterbildungen.append(details[i][0]['aufstiegsweiterbildungen'])
-  if(len(details[i])==2): aufstiegsweiterbildungen.append(details[i][1]['aufstiegsweiterbildungen'])
+  aufstiegsweiterbildungen.append(details[i]['aufstiegsweiterbildungen'])
 
 zugangsberufe=[] # prerequisite occupations for occupation/work
 for i in range(0,len(details)):
-  if(len(details[i])==1): 
-    check=False
-    for j in range(0,len(details[i][0]['infofelder'])):
-      if(details[i][0]['infofelder'][j]['id']=='b30-1'): 
-        zugangsberufe=zugangsberufe+[details[i][0]['infofelder'][j]['content']]
-        check=True
-    if(check==False): zugangsberufe=zugangsberufe+[""]
-  if(len(details[i])==2): 
-    check=False
-    for j in range(0,len(details[i][1]['infofelder'])):
-      if(details[i][1]['infofelder'][j]['id']=='b30-1'): 
-        zugangsberufe=zugangsberufe+[details[i][1]['infofelder'][j]['content']]
-        check=True
-    if(check==False): zugangsberufe=zugangsberufe+[""]
+  check=False
+  for j in range(0,len(details[i]['infofelder'])):
+    if(details[i]['infofelder'][j]['id']=='b30-1'): 
+      zugangsberufe=zugangsberufe+[details[i]['infofelder'][j]['content']]
+      check=True
+  if(check==False): zugangsberufe=zugangsberufe+[""]
 
 #for each entry in zugangsberufe extract IDs from formulations such as 'ba-berufepool-extsysref data-idref="14217"':
 zugangsberufeIDs=[[re.sub('(data-idref=|")','',x) for x in re.findall('data-idref="[0-9]*"',z)] for z in zugangsberufe] 
 
 zugangsstudienfächer=[] # prerequisite occupations for occupation/work
 for i in range(0,len(details)):
-  if(len(details[i])==1): 
-    check=False
-    for j in range(0,len(details[i][0]['infofelder'])):
-      if(details[i][0]['infofelder'][j]['id']=='b30-2'): 
-        zugangsstudienfächer=zugangsstudienfächer+[details[i][0]['infofelder'][j]['content']]
-        check=True
-    if(check==False): zugangsstudienfächer=zugangsstudienfächer+[""]
-  if(len(details[i])==2): 
-    check=False
-    for j in range(0,len(details[i][1]['infofelder'])):
-      if(details[i][1]['infofelder'][j]['id']=='b30-1'): 
-        zugangsstudienfächer=zugangsstudienfächer+[details[i][1]['infofelder'][j]['content']]
-        check=True
-    if(check==False): zugangsstudienfächer=zugangsstudienfächer+[""]
+  check=False
+  for j in range(0,len(details[i]['infofelder'])):
+    if(details[i]['infofelder'][j]['id']=='b30-2'): 
+      zugangsstudienfächer=zugangsstudienfächer+[details[i]['infofelder'][j]['content']]
+      check=True
+  if(check==False): zugangsstudienfächer=zugangsstudienfächer+[""]
 
 #for each entry in zugangsstudienfächer extract IDs from formulations such as 'ba-berufepool-extsysref data-idref="14217"':
 zugangsstudienfächerIDs=[[re.sub('(data-idref=|")','',x) for x in re.findall('data-idref="[0-9]*"',z)] for z in zugangsstudienfächer]
@@ -155,6 +132,8 @@ for i in range(0,len(details)):
   if (len(zugangsIDs[i])>0): relations1csv=relations1csv+[(str(z)," ZugangZu ",str(ids[i][-1])) for z in zugangsIDs[i]]
 
 len(relations1csv)
+relations1csv=list(set(relations1csv))
+len(relations1csv)
 
 #for each entry in aufstiegsweiterbildungen extract IDs such as aufstiegsweiterbildungen[0][0]['id']:
 aufstiegsweiterbildungenIDs=[[x['id'] for x in a] for a in aufstiegsweiterbildungen]
@@ -164,10 +143,11 @@ for i in range(0,len(details)):
   if (len(aufstiegsweiterbildungenIDs[i])>0): relations2csv=relations2csv+[(str(ids[i][-1])," AufstiegsmöglichkeitZu ",str(a)) for a in aufstiegsweiterbildungenIDs[i]]
 
 len(relations2csv)
+relations2csv=list(set(relations2csv))
+len(relations2csv)
 
 relations=relations1csv+relations2csv
 
-                                                                          
 with open(path+'relations1.csv', 'w', newline='') as f:
   writer = csv.writer(f)
   writer.writerow(['node1', 'relation', 'node2'])    
@@ -187,7 +167,7 @@ with open(path+'relations.csv', 'w', newline='') as f:
     writer.writerow(r)
   for r in relations2csv:
     writer.writerow(r)
-    
+
 z=zip(l,ids,codenr,kldb2010,kurzbezeichnung,aufstiegsweiterbildungen,zugangsberufe,aufstiegsweiterbildungenIDs,zugangsberufeIDs,zugangsstudienfächerIDs,zugangsIDs)
 with open(path+'berufeInfos.csv', 'w', newline='') as f:
   writer = csv.writer(f)
@@ -214,6 +194,8 @@ with open(path+"kurzbezeichnung.json", "w") as f:
 
 import graphviz
 import csv
+import json
+
 relations=[]
 with open(path+'relations.csv', newline='') as csvfile:
     doc = csv.reader(csvfile, delimiter=',', quotechar=' ')
@@ -228,17 +210,10 @@ with open(path+"kldb2010.json", "r") as f:
 
 with open(path+"codenr.json", "r") as f: 
    codenr = json.load(f)
-  
+
 with open(path+"kurzbezeichnung.json", "r") as f: 
    kurzbezeichnung = json.load(f)
 
-# gather all relations from and to ID 15322:
-queryNodes=["15322"] 
-myRelations=[]
-for r in relations: 
-  if(r[0] in queryNodes or r[2] in queryNodes): myRelations.append(r)
-
-len(myRelations) #5
 
 # gather all relations from and to ID 15323 and add relations from (but not to) the IDs above (15322,93916,93944,15325 & 7846):
 queryNodes=["15323"]
@@ -246,31 +221,37 @@ myRelations=[]
 for r in relations: 
   if(r[0] in queryNodes or r[2] in queryNodes): myRelations.append(r)
 
-len(myRelations) #32
+len(myRelations) #26
 selectiveQueryNodes=["15322","93916","93944","15325","7846"]
 for r in relations: 
   if(r[0] in selectiveQueryNodes): myRelations.append(r)
 
-len(myRelations) #136
+len(myRelations) #199
 
-# Plot myRelations:
+
+# gather only relations from and to ID 15322:
+queryNodes=["15322"] 
+myRelations=[]
+for r in relations: 
+  if(r[0] in queryNodes or r[2] in queryNodes): myRelations.append(r)
+
+len(myRelations) #5
+
+
 f = graphviz.Digraph(filename = path+"graphviz_graph.gv")
 names = list(set([r[0] for r in myRelations]+[r[2] for r in myRelations]))
-colors = ["white" for n in names]
+
 labels=[]
 for i in range(0,len(names)):
   for j in range(0,len(ids)):
     if(str(ids[j][0])==str(names[i])): 
       labels.append(kurzbezeichnung[j][0]+"\n"+codenr[j][0]+"\nID "+str(ids[j][0]))
       break
-    else:
-      if(len(ids[j])==2): 
-        if(str(ids[j][1])==str(names[i])): 
-          labels.append(kurzbezeichnung[j][1]+"\n"+codenr[j][1]+"\nID "+str(ids[j][1]))
-          break
 
 len(names)
 len(labels)
+
+colors = ["white" for n in names]
 
 for relation in myRelations:
   f.edge(relation[0],relation[2],label=relation[1],fontsize="8");
