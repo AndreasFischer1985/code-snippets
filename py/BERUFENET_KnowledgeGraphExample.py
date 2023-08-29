@@ -2,7 +2,7 @@
 # Title:  Scrape data and plot a directed knowledge graph based on BERUFENET
 # Author: Andreas Fischer
 # Date:   August 12th, 2023
-# Last update: August 15h, 2023
+# Last update: August 29th, 2023
 #############################################################################
 
 path="/home/af/Dokumente/Py/knowledgeGraph/"
@@ -41,20 +41,28 @@ with open(path+'berufe.csv', 'w', newline='') as f:
 
 import time
 
+
 def getDetails(url):
   tries = 0
   while True:
     try:
-      response = requests.get(url,  headers={"X-API-Key":"d672172b-f3ef-4746-b659-227c39d95acf"})
-      print(url)
+      response = ""
+      while(len(response)<=100):
+        print("url = "+url)
+        response = requests.get(url,  headers={"X-API-Key":"d672172b-f3ef-4746-b659-227c39d95acf"}).content
+      print("valid response")
       return response
     except Exception as e:
       print("Error:", e)
       time.sleep(2 ** tries) # Wait for two times longer each time we fail
       tries += 1 
 
-details=[json.loads(getDetails("https://rest.arbeitsagentur.de/infosysbub/bnet/pc/v1/berufe/"+str(i)).content) 
-  for i in ids]
+details=[]
+for i in ids:
+  x=getDetails("https://rest.arbeitsagentur.de/infosysbub/bnet/pc/v1/berufe/"+str(i))
+  print("length = "+str(len(x)))
+  x=json.loads(x)
+  details=details+[x]
 
 with open(path+"details.json", "w") as f:
   json.dump(details, f)
@@ -168,12 +176,13 @@ with open(path+'relations.csv', 'w', newline='') as f:
   for r in relations2csv:
     writer.writerow(r)
 
-z=zip(l,ids,codenr,kldb2010,kurzbezeichnung,aufstiegsweiterbildungen,zugangsberufe,aufstiegsweiterbildungenIDs,zugangsberufeIDs,zugangsstudienfächerIDs,zugangsIDs)
-with open(path+'berufeInfos.csv', 'w', newline='') as f:
+z=zip(ids,codenr,kldb2010,kurzbezeichnung) # l,aufstiegsweiterbildungen,zugangsberufe,aufstiegsweiterbildungenIDs,zugangsberufeIDs,zugangsstudienfächerIDs,zugangsIDs)
+with open(path+'lookup-table.csv', 'w', newline='') as f:
   writer = csv.writer(f)
-  writer.writerow(['l','ids','codenr','kldb2010','kurzbezeichnung','aufstiegsweiterbildungen','zugangsberufe','aufstiegsweiterbildungenIDs','zugangsberufeIDs','zugangsstudienfächerIDs','zugangsIDs'])    
+  writer.writerow(['ids','codenr','kldb2010','kurzbezeichnung']) # 'l','aufstiegsweiterbildungen','zugangsberufe','aufstiegsweiterbildungenIDs','zugangsberufeIDs','zugangsstudienfächerIDs','zugangsIDs'])    
   for r in [x for x in z]:
     writer.writerow(r)
+
 
 with open(path+"ids.json", "w") as f:
   json.dump(ids, f)
