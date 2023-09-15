@@ -2,7 +2,7 @@
 # Title: How to use Free & Open Source Large Language Models locally on Debian 12 via Python
 # Author: Andreas Fischer
 # Date: June 19th, 2023
-# last update: June 19th, 2023
+# last update: September 15th, 2023
 #############################################################################################
 
 
