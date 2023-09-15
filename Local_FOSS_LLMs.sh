@@ -14,6 +14,7 @@ lspci
 nano /etc/apt/sources.list # manually add bookworm main contrib non-free non-free-firmware
 sudo apt update && sudo apt full upgrade -y
 sudo apt install nvidia-driver firmware-misc-nonfree
+sudo apt -y install nvidia-cuda-toolkit nvidia-cuda-dev 
 systemctl reboot
 nvidia-smi
 
@@ -37,7 +38,7 @@ echo "alias env='source .venv/ai/bin/activate'" >> ~/.bash_aliases
 
 # install python packages
 #-------------------------
-pip install torch sentence-transformers transformers ctransformers langchain diffusers xformers llama-cpp-python accelerate protobuf pandas numpy
+pip install torch sentence-transformers transformers ctransformers bitsandbytes langchain diffusers xformers llama-cpp-python accelerate protobuf pandas numpy
 pip install llama-cpp-python[server] 
 #CT_CUBLAS=1 pip install ctransformers --no-binary ctransformers
 
@@ -72,6 +73,7 @@ np.save("embeddings_categories",embeddings)
 
 # Instructor-xl test embeddings (2)
 #-----------------------------------
+
 echo '
 import numpy as np
 import pandas as pd
@@ -106,6 +108,7 @@ df.to_csv("table.csv")
  
 # Roberta - test Transformers for embeddings
 #-------------------------------------------
+
 echo '
 import torch
 import numpy as np
@@ -130,6 +133,7 @@ embedding=np.mean(embedding,axis=1)[0]
 
 # Flan-T5 - test Transformers
 #------------------------------
+
 echo '
 import torch
 from datetime import datetime
@@ -151,6 +155,7 @@ print("Prompt:\n"+prompt+"\n\nResponse:\n"+response[0]["generated_text"]+"\n\ndu
 
 # Nous-Hermes-Llama2-13b - test ggml-weights in llama.cpp
 #---------------------------------------------------------
+
 wget https://huggingface.co/TheBloke/Nous-Hermes-Llama2-GGML/resolve/main/nous-hermes-llama2-13b.ggmlv3.q4_0.bin -P ~/ggml/models
 echo '
 
@@ -173,6 +178,7 @@ print(response)
 
 # OpenLlama - start OpenLlama-server
 #-----------------------------------
+
 wget https://huggingface.co/TheBloke/open-llama-7b-open-instruct-GGML/resolve/main/open-llama-7B-open-instruct.ggmlv3.q4_0.bin -P ~/ggml/models
 pip install llama-cpp-python[server]
 export MODEL="~/ggml/models/open-llama-7B-open-instruct.ggmlv3.q4_0.bin" HOST=0.0.0.0 PORT=2600
@@ -183,6 +189,7 @@ python3 -m llama_cpp.server
 
 # MPT-Storywriter - test ggml-weights in ctransformers
 #------------------------------------------------------
+
 wget https://huggingface.co/TheBloke/MPT-7B-Storywriter-GGML/resolve/main/mpt-7b-storywriter.ggmlv3.q4_0.bin -P ~/ggml/models
 echo '
 from datetime import datetime
@@ -200,6 +207,7 @@ print(response)
 
 # StableDiffusion - test Diffusers
 #---------------------------------
+
 echo '
 import torch
 if(if torch.cuda.is_available()==False):
@@ -233,6 +241,61 @@ else:
   now = datetime.now()
   print(now-then)
   image.save(f"astronaut_rides_horse_sd_f16.png") 
+
+'|python
+
+
+# Würstchen v2
+#--------------
+
+echo '
+import torch
+if(if torch.cuda.is_available()==False):
+
+  import torch
+  from diffusers import AutoPipelineForText2Image
+  from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS
+  import gc
+  pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen") 
+  #pipe.save_pretrained("warp-ai_wuerstchen")
+  prompt = "Anthropomorphic cat dressed as a fire fighter"
+  images = pipe(
+    prompt, 
+    width=1024,
+    height=1536,
+    prior_timesteps=DEFAULT_STAGE_C_TIMESTEPS,
+    prior_guidance_scale=4.0,
+    num_images_per_prompt=2,
+  ).images
+  for i in range(1): 
+    images[i].save(f"wuerstchen-v2-pic"+str(i)+".png")
+
+else:
+  
+  import torch
+  import gc
+  from datetime import datetime
+  from diffusers import AutoPipelineForText2Image
+  from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS
+  torch.cuda.empty_cache()
+  gc.collect()
+  pipe = AutoPipelineForText2Image.from_pretrained("warp-ai/wuerstchen") #, torch_dtype=torch.float16)
+  #pipe.save_pretrained("warp-ai_wuerstchen")
+  pipe.to("cuda") 
+  prompt = "Anthropomorphic cat dressed as a fire fighter"
+  then = datetime.now()
+  images = pipe(
+    prompt, 
+    width=1024,
+    height=1536,
+    prior_timesteps=DEFAULT_STAGE_C_TIMESTEPS,
+    prior_guidance_scale=4.0,
+    num_images_per_prompt=2,
+  ).images
+  now = datetime.now()
+  print(now-then)
+  for i in range(1): 
+    images[i].save(f"wuerstchen-v2-cuda-pic"+str(i)+".png")
 
 '|python
 
