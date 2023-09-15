@@ -24,7 +24,8 @@ nvidia-smi
 sudo apt install git rsync ffmpeg
 sudo apt install r-base r-base-dev r-cran-devtools
 sudo apt install python3 python3-pip python3-venv
-
+mkdir ggml
+mkdir gguf
 
 # prepare python env
 #--------------------
@@ -153,15 +154,15 @@ print("Prompt:\n"+prompt+"\n\nResponse:\n"+response[0]["generated_text"]+"\n\ndu
 '|python
 
 
-# Nous-Hermes-Llama2-13b - test ggml-weights in llama.cpp
+# WizradLM-1.0-unvensored-llama2-13b - test ggml-weights in llama.cpp
 #---------------------------------------------------------
 
-wget https://huggingface.co/TheBloke/Nous-Hermes-Llama2-GGML/resolve/main/nous-hermes-llama2-13b.ggmlv3.q4_0.bin -P ~/ggml/models
+wget https://huggingface.co/TheBloke/WizardLM-1.0-Uncensored-Llama2-13B-GGUF/resolve/main/wizardlm-1.0-uncensored-llama2-13b.Q4_0.gguf -P ~/gguf/models
 echo '
 
 from datetime import datetime
 from llama_cpp import Llama
-model="/home/af/ggml/models/nous-hermes-llama2-13b.ggmlv3.q4_0.bin"
+model="/home/af/ggml/models/wizardlm-1.0-uncensored-llama2-13b.Q4_0.gguf"
 llamallm = Llama(model_path=model,n_ctx=4096)
 then = datetime.now()
 template="""### Instruction:
@@ -179,9 +180,9 @@ print(response)
 # OpenLlama - start OpenLlama-server
 #-----------------------------------
 
-wget https://huggingface.co/TheBloke/open-llama-7b-open-instruct-GGML/resolve/main/open-llama-7B-open-instruct.ggmlv3.q4_0.bin -P ~/ggml/models
+wget https://huggingface.co/SlyEcho/open_llama_7b_v2_gguf/resolve/main/open-llama-7b-v2-q4_0.gguf -P ~/gguf/models
 pip install llama-cpp-python[server]
-export MODEL="~/ggml/models/open-llama-7B-open-instruct.ggmlv3.q4_0.bin" HOST=0.0.0.0 PORT=2600
+export MODEL="~/ggml/models/open-llama-7b-v2-q4_0.gguf" HOST=0.0.0.0 PORT=2600
 python3 -m llama_cpp.server
 
   # curl http://localhost:2600/v1/completions -H "Content-Type: application/json" -d '{"prompt": "Im Folgenden findest du eine Instruktion, die eine Aufgabe bescheibt. Schreibe eine Antwort, um die Aufgabe zu lösen.\n\n### Instruktion:\nWas ist die Definition von komlpexem Problemlösen?\n\n### Antwort:","max_tokens":500, "echo":"False"}'
