@@ -2,7 +2,7 @@
 # Title: How to use Free & Open Source Large Language Models locally on Debian 12 via Python
 # Author: Andreas Fischer
 # Date: June 19th, 2023
-# last update: September 15th, 2023
+# last update: September 23rd, 2023
 #############################################################################################
 
 
@@ -21,14 +21,17 @@ nvidia-smi
 
 # install stuff via apt
 #----------------------.
+
 sudo apt install git rsync ffmpeg
 sudo apt install r-base r-base-dev r-cran-devtools
 sudo apt install python3 python3-pip python3-venv
 mkdir ggml
 mkdir gguf
 
+
 # prepare python env
 #--------------------
+
 python3 -m venv .venv/ai
 #.venv/ai/bin/pip install torch  
 #.venv/ai/bin/python3
@@ -39,9 +42,114 @@ echo "alias env='source .venv/ai/bin/activate'" >> ~/.bash_aliases
 
 # install python packages
 #-------------------------
-pip install torch sentence-transformers transformers ctransformers bitsandbytes langchain diffusers xformers llama-cpp-python accelerate protobuf pandas numpy
-pip install llama-cpp-python[server] 
-#CT_CUBLAS=1 pip install ctransformers --no-binary ctransformers
+
+pip install torch sentence-transformers transformers ctransformers gradio langchain diffusers xformers llama-cpp-python accelerate protobuf pandas numpy
+pip install llama-cpp-python[server] ctransformers[cuda] bitsandbytes 
+
+
+# Gradio-app based on gguf-model via ctransformers
+#-------------------------------------------------
+
+wget https://huggingface.co/NikolayKozloff/Marx-3B-V2-GGUF/resolve/main/Marx-3B-V2-Q4_1-GGUF.gguf -P ~/gguf/models
+echo '
+import torch
+model="~/gguf/models/Marx-3B-V2-Q4_1-GGUF.gguf"
+if(torch.cuda.is_available()==False):
+  import time
+  import gradio as gr
+  from datetime import datetime
+  from ctransformers import AutoModelForCausalLM
+  llm = AutoModelForCausalLM.from_pretrained(model, model_type="llama") #,gpu_layers=40)
+  then = datetime.now()
+  def slow_echo(message, history):
+    response=""
+    for text in llm(message,stream=True):
+      response=response+text
+      print(text, end="", flush=True)
+      yield response
+
+  gr.ChatInterface(slow_echo).queue().launch(share=True)
+
+else:
+
+  import time
+  import gradio as gr
+  from datetime import datetime
+  from ctransformers import AutoModelForCausalLM
+  import torch
+  import gc
+  with torch.no_grad():
+    torch.cuda.empty_cache()
+
+  gc.collect()
+  llm = AutoModelForCausalLM.from_pretrained(model, model_type="llama",gpu_layers=40)
+  then = datetime.now()
+  def slow_echo(message, history):
+    response=""
+    for text in llm(message,stream=True):
+      response=response+text
+      print(text, end="", flush=True)
+      yield response
+
+  gr.ChatInterface(slow_echo).queue().launch(share=True)
+'|python
+
+
+# MPT-Storywriter - test ggml-weights in ctransformers
+#------------------------------------------------------
+
+wget https://huggingface.co/TheBloke/MPT-7B-Storywriter-GGML/resolve/main/mpt-7b-storywriter.ggmlv3.q4_0.bin -P ~/ggml/models
+echo '
+from datetime import datetime
+from ctransformers import AutoModelForCausalLM
+#model="~/ggml/models/wizardLM-7B.ggmlv3.q4_0.bin" #model_type="llama"
+model="~/ggml/models/mpt-7b-storywriter.ggmlv3.q4_0.bin"
+llm = AutoModelForCausalLM.from_pretrained(model, model_type="mpt")
+then = datetime.now()
+
+#response = llm("What is the meaning of life?")
+response=""
+for text in llm("Wie lautet die Definition von komplexem Problemlösen?",stream=True):
+  response=response+text
+  print(text, end="", flush=True)
+
+now = datetime.now()
+print(now-then)
+print(response) 
+'|python
+
+# WizradLM-1.0-uncensored-llama2-13b - test gguf-weights in llama.cpp
+#---------------------------------------------------------------------
+
+wget https://huggingface.co/TheBloke/WizardLM-1.0-Uncensored-Llama2-13B-GGUF/resolve/main/wizardlm-1.0-uncensored-llama2-13b.Q4_0.gguf -P ~/gguf/models
+echo '
+
+from datetime import datetime
+from llama_cpp import Llama
+model="/home/af/ggml/models/wizardlm-1.0-uncensored-llama2-13b.Q4_0.gguf"
+llamallm = Llama(model_path=model,n_ctx=4096)
+then = datetime.now()
+template="""### Instruction:
+{prompt}
+
+### Response:
+"""
+response = llamallm(template.format(prompt="Was ist die Definition von komplexem Problemlösen?"), max_tokens=100, echo=False)
+now = datetime.now()
+print(now-then) 
+print(response) 
+'|python
+
+
+# OpenLlama - start OpenLlama-server
+#-----------------------------------
+
+wget https://huggingface.co/SlyEcho/open_llama_7b_v2_gguf/resolve/main/open-llama-7b-v2-q4_0.gguf -P ~/gguf/models
+pip install llama-cpp-python[server]
+export MODEL="~/ggml/models/open-llama-7b-v2-q4_0.gguf" HOST=0.0.0.0 PORT=2600
+python3 -m llama_cpp.server
+
+  # curl http://localhost:2600/v1/completions -H "Content-Type: application/json" -d '{"prompt": "Im Folgenden findest du eine Instruktion, die eine Aufgabe bescheibt. Schreibe eine Antwort, um die Aufgabe zu lösen.\n\n### Instruktion:\nWas ist die Definition von komlpexem Problemlösen?\n\n### Antwort:","max_tokens":500, "echo":"False"}'
 
 
 # Instructor-xl test embeddings (1)
@@ -71,6 +179,7 @@ print(now-then)
 print(embeddings)
 np.save("embeddings_categories",embeddings)
 '|python
+
 
 # Instructor-xl test embeddings (2)
 #-----------------------------------
@@ -151,58 +260,6 @@ now = datetime.now()
 print(now-then)
 print("Prompt:\n"+prompt+"\n\nResponse:\n"+response[0]["generated_text"]+"\n\nduration:"+str(now-then)) 
 # to be a good person
-'|python
-
-
-# WizradLM-1.0-unvensored-llama2-13b - test ggml-weights in llama.cpp
-#---------------------------------------------------------
-
-wget https://huggingface.co/TheBloke/WizardLM-1.0-Uncensored-Llama2-13B-GGUF/resolve/main/wizardlm-1.0-uncensored-llama2-13b.Q4_0.gguf -P ~/gguf/models
-echo '
-
-from datetime import datetime
-from llama_cpp import Llama
-model="/home/af/ggml/models/wizardlm-1.0-uncensored-llama2-13b.Q4_0.gguf"
-llamallm = Llama(model_path=model,n_ctx=4096)
-then = datetime.now()
-template="""### Instruction:
-{prompt}
-
-### Response:
-"""
-response = llamallm(template.format(prompt="Was ist die Definition von komplexem Problemlösen?"), max_tokens=100, echo=False)
-now = datetime.now()
-print(now-then) 
-print(response) 
-'|python
-
-
-# OpenLlama - start OpenLlama-server
-#-----------------------------------
-
-wget https://huggingface.co/SlyEcho/open_llama_7b_v2_gguf/resolve/main/open-llama-7b-v2-q4_0.gguf -P ~/gguf/models
-pip install llama-cpp-python[server]
-export MODEL="~/ggml/models/open-llama-7b-v2-q4_0.gguf" HOST=0.0.0.0 PORT=2600
-python3 -m llama_cpp.server
-
-  # curl http://localhost:2600/v1/completions -H "Content-Type: application/json" -d '{"prompt": "Im Folgenden findest du eine Instruktion, die eine Aufgabe bescheibt. Schreibe eine Antwort, um die Aufgabe zu lösen.\n\n### Instruktion:\nWas ist die Definition von komlpexem Problemlösen?\n\n### Antwort:","max_tokens":500, "echo":"False"}'
-
-
-# MPT-Storywriter - test ggml-weights in ctransformers
-#------------------------------------------------------
-
-wget https://huggingface.co/TheBloke/MPT-7B-Storywriter-GGML/resolve/main/mpt-7b-storywriter.ggmlv3.q4_0.bin -P ~/ggml/models
-echo '
-from datetime import datetime
-from ctransformers import AutoModelForCausalLM
-#model="~/ggml/models/wizardLM-7B.ggmlv3.q4_0.bin" #model_type="llama"
-model="~/ggml/models/mpt-7b-storywriter.ggmlv3.q4_0.bin"
-llm = AutoModelForCausalLM.from_pretrained(model, model_type="mpt")
-then = datetime.now()
-response = llm("What is the meaning of life?")
-now = datetime.now()
-print(now-then)
-print(response) 
 '|python
 
 
