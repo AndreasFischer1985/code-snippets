@@ -2,7 +2,7 @@
 # Title: LangChain-Applications based on free open source models from HuggingFace
 # Author: Andreas Fischer
 # Date: April 15, 2023
-# last update: May 12, 2023
+# last update: Oct 20, 2023
 ##################################################################################
 
 # Option 1: use local Huggingface-model
@@ -47,7 +47,7 @@ import re
 class CustomLLM(LLM):  
   def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
     prompt_length = len(prompt)
-    model_id = "google/flan-t5-xl" 
+    model_id = "google/flan-t5-large" 
     params={"max_length":200, "length_penalty":2, "num_beams":16, "early_stopping":True}
     url = f"https://api-inference.huggingface.co/models/{model_id}"
     post = requests.post(url, json={"inputs":prompt, "parameters":params})
@@ -67,25 +67,11 @@ chain = LLMChain(llm=llm, verbose=True, prompt=template)
 chain("What is the meaning of life?")
 
 
-# Option 4: use a model from the llama-family (ggml-version)
+# Option 4: use a model from the llama2-family (gguf-version)
 #-----------------------------------------------------------
 
-if(False): # run the following code to download a model like wizardLM-7B.ggml.q4_0.bin from huggingface.co
-  l7b="https://huggingface.co/hlhr202/llama-7B-ggml-int4/resolve/main/ggml-model-q4_0.bin"
-  l13b="https://huggingface.co/Drararara/llama-13B-ggml/resolve/main/ggml-model-q4_0.bin"   
-  a7b="https://huggingface.co/hlhr202/alpaca-7B-ggml-int4/resolve/main/ggml-alpaca-7b-q4.bin"
-  a13b="https://huggingface.co/Pi3141/alpaca-lora-13B-ggml/resolve/main/ggml-model-q4_0.bin"  
-  o13b="https://huggingface.co/Black-Engineer/oasst-llama13b-ggml-q4/resolve/main/qunt4_0.bin" 
-  g4a="https://huggingface.co/eachadea/ggml-gpt4all-7b-4bit/resolve/main/gpt4all-lora-quantized-ggml.bin" 
-  k7b="https://huggingface.co/TheBloke/koala-7B-GPTQ-4bit-128g-GGML/resolve/main/koala-7B-4bit-128g.GGML.bin" 
-  v7b="https://huggingface.co/eachadea/ggml-vicuna-7b-1.1/resolve/main/ggml-vicuna-7b-1.1-q4_0.bin"
-  v13b="https://huggingface.co/eachadea/ggml-vicuna-13b-1.1/resolve/main/ggml-vicuna-13b-1.1-q4_0.bin"
-  wiz="https://huggingface.co/TheBloke/wizardLM-7B-GGML/resolve/main/wizardLM-7B.ggml.q4_0.bin"
-  wizVic="https://huggingface.co/TheBloke/wizard-vicuna-13B-GGML/resolve/main/wizard-vicuna-13B.ggml.q4_0.bin" 
-  gpt4snoozy="https://huggingface.co/TheBloke/GPT4All-13B-snoozy-GGML/resolve/main/GPT4All-13B-snoozy.ggml.q4_0.bin" 
-  gpt4Vicuna="https://huggingface.co/TheBloke/gpt4-x-vicuna-13B-GGML/resolve/main/gpt4-x-vicuna-13B.ggml.q4_0.bin" 
-  
-  weights=requests.get(wiz)
+if(False): # run the following code or manually download a gguf-model your find at https://huggingface.co/models?search=gguf
+  weights=requests.get("https://huggingface.co/TheBloke/WizardLM-13B-V1.2-GGUF/blob/main/wizardlm-13b-v1.2.Q4_0.gguf")
   with open("weights.bin","wb") as out_file:
     out_file.write(weights.content)
   
