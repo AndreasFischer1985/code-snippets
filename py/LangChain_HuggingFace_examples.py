@@ -2,7 +2,7 @@
 # Title: LangChain-Applications based on free open source models from HuggingFace
 # Author: Andreas Fischer
 # Date: April 15, 2023
-# last update: Oct 20, 2023
+# last update: Oct 21, 2023
 ##################################################################################
 
 # Option 1: use local Huggingface-model
