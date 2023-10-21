@@ -70,13 +70,13 @@ chain("What is the meaning of life?")
 # Option 4: use a model from the llama2-family (gguf-version)
 #-----------------------------------------------------------
 
-if(False): # run the following code or manually download a gguf-model your find at https://huggingface.co/models?search=gguf
-  weights=requests.get("https://huggingface.co/TheBloke/WizardLM-13B-V1.2-GGUF/blob/main/wizardlm-13b-v1.2.Q4_0.gguf")
-  with open("weights.bin","wb") as out_file:
-    out_file.write(weights.content)
-  
+import requests # run the following code or manually download a gguf-model your find at https://huggingface.co/models?search=gguf
+weights=requests.get("https://huggingface.co/TheBloke/WizardLM-13B-V1.2-GGUF/resolve/main/wizardlm-13b-v1.2.Q4_0.gguf")
+with open("weights.gguf","wb") as out_file: 
+  out_file.write(weights.content)
+
 from llama_cpp import Llama
-llamallm = Llama(model_path="./weights.bin",n_ctx=2048)
+llamallm = Llama(model_path="./weights.gguf",n_ctx=2048)
 output = llamallm("What is the meaning of life?", max_tokens=100, echo=True)
 print(output)
 
