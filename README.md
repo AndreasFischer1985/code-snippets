@@ -53,7 +53,7 @@ Php files mostly demonstrate basic backend functionalities:
 
 | Snippet | Link | 
 |---|---|
-| Login Example | [php/sql_login_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_login_example.php) | 
+| Login Example | [php/login_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/login_example.php) | 
 | Search Example | [php/sql_search_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_search_example.php) | 
 | Chat Example | [php/sql_chat_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/sql_chat_example.php) | 
 | API Example |  [php/ausbildungssuche_api_example.php](https://github.com/AndreasFischer1985/code-snippets/blob/master/php/ausbildungssuche_api_example.php) | 
