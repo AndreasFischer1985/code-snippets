@@ -216,7 +216,7 @@ df.to_csv("table.csv")
 '|python
 
  
-# Roberta - test Transformers for embeddings
+# Roberta - test transformers for embeddings
 #-------------------------------------------
 
 echo '
@@ -241,7 +241,7 @@ embedding=np.mean(embedding,axis=1)[0]
 '|python
 
 
-# Flan-T5 - test Transformers
+# Flan-T5 - test transformers
 #------------------------------
 
 echo '
@@ -418,15 +418,60 @@ from datetime import datetime
 from transformers import pipeline
 cuda = int(torch.cuda.is_available())-1
 print(cuda)
-model = "openai/whisper-large-v2"
+model = "openai/whisper-large-v3"
 prompt = "https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/1.flac"
 bot = pipeline(model=model,device=cuda) # use GPU (0) if available, CPU (-1) otherwise
 #bot.model.config.forced_decoder_ids = [[1,50261],[2,50359],[3,50363]] # uncomment for German transcripts
-bot.save_pretrained("openai_whisper")
 then = datetime.now()
 response = bot(prompt, chunk_length_s=10) #batch_size=8, return_timestamps=True
 now = datetime.now()
 print(now-then)
 print("Prompt:\n"+prompt+"\n\nResponse:\n"+response["text"]+"\n\nduration:"+str(now-then)) 
+
+import torch
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from datasets import load_dataset
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+model_id = "openai/whisper-large-v3"
+bot = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
+)
+bot.to(device)
+bot.save_pretrained("openai_whisper-large-v3")
 '|python
 
+# Bark - test audio-generation
+#------------------------------
+
+echo '
+from transformers import AutoProcessor, AutoModel
+processor = AutoProcessor.from_pretrained("suno/bark")
+model = AutoModel.from_pretrained("suno/bark")
+#model.enable_cpu_offload()
+#model.save_pretrained("/home/af/suno_bark")
+# model = model.to_bettertransformer()
+# model = BarkModel.from_pretrained("suno/bark-small", torch_dtype=torch.float16, use_flash_attention_2=True).to(device)
+inputs = processor(
+    text=["Hello, my name is Suno. And, uh — and I like pizza. [laughs] But I also have other interests such as playing tic tac toe."],
+    return_tensors="pt",
+)
+speech_values = model.generate(**inputs, do_sample=True) #tensor([[ 1.2337e-03,  6.6125e-04,  1.0219e-03,  ..., -5.1628e-05, -1.1722e-04, -7.7545e-05]])
+import scipy
+sampling_rate = model.generation_config.sample_rate
+scipy.io.wavfile.write("bark_out.wav", rate=sampling_rate, data=speech_values.cpu().numpy().squeeze())
+'|python
+
+
+# xTTS - test voice-cloning
+#---------------------------
+python3 -m pip install TTS
+echo '
+from TTS.api import TTS
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
+#tts.to(device)
+tts.tts_to_file(text="Es hat viel Zeit gekostet, eine Stimme zu entwickeln und nun, da ich sie habe, werde ich nicht länger schweigen.",
+                file_path="output_de.wav",
+                speaker_wav="/home/af/Musik/speech_sample.wav",
+                language="de")
+'|python
