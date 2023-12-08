@@ -10,6 +10,7 @@ import requests
 import random
 import json
 def response(message, history):
+  #url="http://localhost:2600/v1/completions"
   url="https://afischer1985-wizardlm-13b-v1-2-q4-0-gguf.hf.space/v1/completions"
   body={"prompt":"###Frage: "+message+" ###Antwort:","max_tokens":1000,"stop":"###","stream":True} #128
   response=""
@@ -21,13 +22,13 @@ def response(message, history):
     if(text.startswith(": ping -")==False):buffer=str(buffer)+str(text)
     #if(text.startswith(": ping -")): print("\n*** PING!\n***\n")
     #print("\n*** Buffer: "+str(buffer)+"\n***\n") 
-    buffer=buffer.split('"finish_reason"')
+    buffer=buffer.split('"finish_reason: null}]}"')
     if(len(buffer)==1):
       buffer="".join(buffer)
       pass
     if(len(buffer)==2):
       part=buffer[0]+'"finish_reason": null}]}'  
-      if(part.startswith("data: ")):part=part.replace("data: ", "")
+      if(part.lstrip('\n\r').startswith("data: ")): part=part.lstrip('\n\r').replace("data: ", "")
       try: 
         part = str(json.loads(part)["choices"][0]["text"])
         print(part, end="", flush=True)
@@ -37,4 +38,4 @@ def response(message, history):
         pass
     yield response 
 
-gr.ChatInterface(response).queue().launch(share=True)
+gr.ChatInterface(response).queue().launch(share=False, server_name="0.0.0.0", server_port=7864)
