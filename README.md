@@ -12,7 +12,8 @@ The py-Files contain
 ## [R section](https://github.com/AndreasFischer1985/code-snippets/tree/master/R)
 
 The R-files are a mixed bag of interesting functions and applications, e.g., 
-- examples of how to [interact with AI-models on huggingface.co via API](https://github.com/AndreasFischer1985/code-snippets/blob/master/R/huggingface_requests.R) from within R, 
+- examples of how to [interact with AI-models on huggingface.co via API](https://github.com/AndreasFischer1985/code-snippets/blob/master/R/huggingface_requests.R) from within R or how to [request sentence embeddings](https://github.com/AndreasFischer1985/code-snippets/blob/master/R/huggingface_SentenceEmbeddingsTest.R),
+- exemplary [gradio-interface to a FOSS Large Language Model](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/AI_Gradio_Interface.py),
 - code for [generating](https://github.com/AndreasFischer1985/code-snippets/blob/master/R/qqBaseX-package.R) the complete [qqBaseX-package](https://github.com/AndreasFischer1985/qqBaseX) from within R 
 - code for plotting several kinds of 3D-graphs and objects in R without any dependencies on additional packages 
 
