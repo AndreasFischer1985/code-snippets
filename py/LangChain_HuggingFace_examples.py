@@ -2,7 +2,7 @@
 # Title: LangChain-Applications based on free open source models from HuggingFace
 # Author: Andreas Fischer
 # Date: April 15, 2023
-# last update: Oct 21, 2023
+# last update: Dec 09, 2023
 ##################################################################################
 
 # Option 1: use local Huggingface-model
@@ -167,7 +167,16 @@ hf = HuggingFaceInstructEmbeddings(
 embeddings = hf
 texts=["The meaning of life is to love","The meaning of vacation is to relax","Roses are red.","Hack the planet!"]
 
-db = Chroma.from_texts(texts, embeddings, collection_name="my-collection") #vs. from_documents
+#db = Chroma.from_texts(texts, embeddings, collection_name="my-collection") #vs. from_documents
+
+dbExists=False
+if(dbExists==False):
+  db = Chroma.from_texts(texts, embeddings, collection_name="my-collection", persist_directory="my_collection") #vs. from_documents
+  db.persist()
+
+if(dbExists==True):
+  db=Chroma(collection_name="my-collection",persist_directory="my_collection",embedding_function=embeddings)
+
 docsearcher = RetrievalQA.from_chain_type(
   llm=llm, 
   chain_type="stuff", #stuff, map_reduce, refine, map_rerank
