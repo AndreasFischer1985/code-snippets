@@ -5,6 +5,7 @@ Small code snippets in different languages (mostly R, Python, Bash, PHP & HTML/J
 ## [Python section](https://github.com/AndreasFischer1985/code-snippets/tree/master/py)
 
 The py-Files contain 
+- examples of gradio [interfaces to Large Language Models (LLMs)](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/AI_Gradio_Interface.py), and to [LLMs with Retrieval-Augmented Generation on premises](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/AI_Gradio_Interface_RAG.py).
 - working examples of basic AI applications (e.g. a free & open-source [document-based Q&A-bot](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/document-based_Q%26A_AI.py) or several [LangChain-Applications](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/LangChain_HuggingFace_examples.py) based on large language models from huggingface.co) and
 - code to interact with smart home devices (e.g., [switching a Link2Home-socket on/off via WiFi](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/wifi_switching_Link2HomeSocket.py) or [reading BLE advertisements of Xiaomi Mi sensors](https://github.com/AndreasFischer1985/code-snippets/blob/master/py/bluetooth_scanning_ATC_MiThermometer.py))
 
