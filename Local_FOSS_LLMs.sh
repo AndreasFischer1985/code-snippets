@@ -303,6 +303,59 @@ else:
 '|python
 
 
+# StableDiffusion + Dreambooth
+#------------------------------
+
+pip install -U autotrain-advanced
+autotrain setup --update-torch
+autotrain dreambooth --help
+autotrain dreambooth \
+  --model /home/af/stable-diffusion-2-1_float16/ \
+  --project-name /home/af/customSD/ \
+  --image-path /home/af/Bilder/AFischer1985/ \
+  --prompt "photo of AFischer1985" \
+  --resolution 512 \
+  --batch-size 1 \
+  --num-steps 1000 \
+  --fp16 \
+  --gradient-accumulation 4 \
+  --lr 1e-4
+
+echo '  
+    
+  from diffusers import DiffusionPipeline, StableDiffusionXLImg2ImgPipeline
+  import torch
+
+  model = "/home/af/stable-diffusion-2-1_float16/" #"stabilityai/stable-diffusion-xl-base-1.0"
+  pipe = DiffusionPipeline.from_pretrained(
+    model,
+    torch_dtype=torch.float16,
+  )
+  pipe.to("cuda")
+  pipe.load_lora_weights("/home/af/customSD/", weight_name="pytorch_lora_weights.safetensors")
+    
+  #refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+  #  "stabilityai/stable-diffusion-xl-refiner-1.0",
+  #  torch_dtype=torch.float16,
+  #)
+  #refiner.to("cuda")
+    
+  prompt = "a close front shot of an AFischer1985 image standing at train station.Vintage-style travel photography of a train station in Europe, with passengers and old luggage. Ensure that his face is clear and expressive. ultra, 4k, HD"  
+  prompt = "generate an image of a confident and professional-looking AFischer1985 standing in an office setting. Ensure that his face is clear and expressive, exuding a sense of competence and determination. ultra fine details."
+  negative_prompt=""
+
+  for seed in range(100):
+    generator = torch.Generator("cuda").manual_seed(seed)
+    image = pipe(prompt=prompt,negative_prompt=negative_prompt,guidance_scale=15, generator=generator, num_inference_steps=100)
+    image = image.images[0]
+    image.save(f"/home/af/customSD/images/{seed}.png")
+    #image = refiner(prompt=prompt, generator=generator, image=image)
+    #image = image.images[0]
+    #image.save(f"images_refined/{seed}.png")
+
+'|python
+
+
 # Würstchen v2
 #--------------
 
