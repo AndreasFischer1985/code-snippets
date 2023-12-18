@@ -313,7 +313,7 @@ autotrain dreambooth \
   --model /home/af/stable-diffusion-2-1_float16/ \
   --project-name /home/af/customSD/ \
   --image-path /home/af/Bilder/AFischer1985/ \
-  --prompt "photo of AFischer1985" \
+  --prompt "AFischer1985" \
   --resolution 512 \
   --batch-size 1 \
   --num-steps 1000 \
@@ -418,7 +418,7 @@ from diffusers import StableDiffusionXLPipeline
 import torch
 import gc
 pipe = StableDiffusionXLPipeline.from_pretrained(
-    "stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True
+    "stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16, variant="fp16", # use_safetensors=True
 )
 #pipe.save_pretrained("stabilityai_stable-diffusion-xl-base-1.0")
 torch.cuda.empty_cache()
