@@ -2,16 +2,44 @@
 # Title:  Gradio Interface to LLM-chatbot with RAG-funcionality and ChromaDB on premises 
 # Author: Andreas Fischer
 # Date:   October 15th, 2023
-# Last update: December 15th, 2023
+# Last update: December 21th, 2023
 ##########################################################################################
 
 
-# Set paths
+# Get model 
 #-----------
 
-dbPath="/home/af/Schreibtisch/gradio/Chroma/db" #"/home/user/app/db"
+import os
+import requests
+
+dbPath="/home/af/Schreibtisch/gradio/Chroma/db" 
+if(os.path.exists(dbPath)==False): 
+  dbPath="/home/user/app/db"
+
+print(dbPath)
+
 #modelPath="/home/af/gguf/models/SauerkrautLM-7b-HerO-q8_0.gguf"
 modelPath="/home/af/gguf/models/mixtral-8x7b-instruct-v0.1.Q4_0.gguf"
+if(os.path.exists(modelPath)==False):
+  #url="https://huggingface.co/TheBloke/WizardLM-13B-V1.2-GGUF/resolve/main/wizardlm-13b-v1.2.Q4_0.gguf"
+  #url="https://huggingface.co/TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF/resolve/main/mixtral-8x7b-instruct-v0.1.Q4_0.gguf?download=true"
+  url="https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_0.gguf?download=true"
+  response = requests.get(url)
+  with open("./model.gguf", mode="wb") as file:
+    file.write(response.content)
+  print("Model downloaded")  
+  modelPath="./model.gguf"
+
+print(modelPath)
+
+
+# Llama-cpp-Server
+#------------------
+
+import subprocess
+command = ["python3", "-m", "llama_cpp.server", "--model", modelPath, "--host", "0.0.0.0", "--port", "2600"]
+subprocess.Popen(command)
+print("Server ready!")
 
 
 # Chroma-DB
@@ -47,6 +75,7 @@ else:
     ids=["doc1", "doc2", "doc3"], 
   )
 
+print("Database ready!")
 print(collection.count()) 
 
 
@@ -55,7 +84,6 @@ print(collection.count())
 
 import gradio as gr
 import requests
-import random
 import json
 def response(message, history):
   addon=""
@@ -73,17 +101,19 @@ def response(message, history):
   url="http://localhost:2600/v1/completions"
   system="Du bist ein KI-basiertes Assistenzsystem."+addon+"\n\n"  
   #body={"prompt":system+"### Instruktion:\n"+message+"\n\n### Antwort:","max_tokens":500, "echo":"False","stream":"True"} #e.g. SauerkrautLM
-  body={"prompt":"<s>[INST]"+system+"\n"+message+"[/INST]### Antwort:","max_tokens":500, "echo":"False","stream":"True"} #e.g. Mixtral-Instruct
+  body={"prompt":"[INST]"+system+"\n"+message+"[/INST]","max_tokens":500, "echo":"False","stream":"True"} #e.g. Mixtral-Instruct
   response=""
   buffer=""
   print("URL: "+url)
   print(str(body))
   print("User: "+message+"\nAI: ")
   for text in requests.post(url, json=body, stream=True):  #-H 'accept: application/json' -H 'Content-Type: application/json'
-    print("*** Raw String: "+str(text)+"\n***\n")
+    if buffer is None: buffer=""
+    buffer=str("".join(buffer))
+    #print("*** Raw String: "+str(text)+"\n***\n")
     text=text.decode('utf-8')
-    if(text.startswith(": ping -")==False):buffer=str(buffer)+str(text)
-    print("\n*** Buffer: "+str(buffer)+"\n***\n") 
+    if((text.startswith(": ping -")==False) & (len(text.strip("\n\r"))>0)): buffer=buffer+str(text)
+    #print("\n*** Buffer: "+str(buffer)+"\n***\n") 
     buffer=buffer.split('"finish_reason": null}]}')
     if(len(buffer)==1):
       buffer="".join(buffer)
@@ -96,16 +126,10 @@ def response(message, history):
         print(part, end="", flush=True)
         response=response+part
         buffer="" # reset buffer
-      except:
+      except Exception as e:
+        print("Exception:"+str(e))
         pass
     yield response 
 
-gr.ChatInterface(response).queue().launch(share=False, server_name="0.0.0.0", server_port=7864)
-
-
-# Llama-cpp-Server
-#------------------
-
-import subprocess
-command = ["python3", "-m", "llama_cpp.server", "--model", modelPath, "--host", "0.0.0.0", "--port", "2600"]
-subprocess.run(command)
+gr.ChatInterface(response).queue().launch(share=True) #False, server_name="0.0.0.0", server_port=7864)
+print("Interface up and running!")
