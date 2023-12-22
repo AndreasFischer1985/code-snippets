@@ -96,12 +96,12 @@ def response(message, history):
   results=results['documents'][0]
   print(results)
   if(len(results)>1):
-    addon=" Bitte berücksichtige bei deiner Antwort ggf. folgende Auszüge aus unserer Datenbank, sofern sie für die Antwort erforderlich sind. Beantworte die Frage knapp und präzise. Ignoriere unpassende Datenbank-Auszüge OHNE sie zu kommentieren:\n"+"\n".join(results)+"\n\n"
+    addon=" Bitte berücksichtige bei deiner Antwort ggf. folgende Auszüge aus unserer Datenbank, sofern sie für die Antwort erforderlich sind. Beantworte die Frage knapp und präzise. Ignoriere unpassende Datenbank-Auszüge OHNE sie zu kommentieren:\n"+"\n".join(results)
   #url="https://afischer1985-wizardlm-13b-v1-2-q4-0-gguf.hf.space/v1/completions"
   url="http://localhost:2600/v1/completions"
-  system="Du bist ein KI-basiertes Assistenzsystem."+addon  
+  system="Du bist ein KI-basiertes Assistenzsystem."+addon+"\n\nUser-Anliegen:"   
   #body={"prompt":system+"### Instruktion:\n"+message+"\n\n### Antwort:","max_tokens":500, "echo":"False","stream":"True"} #e.g. SauerkrautLM
-  body={"prompt":"[INST]"+system+"\n\nUser-Anliegen:\n"+message+"[/INST]","max_tokens":500, "echo":"False","stream":"True"} #e.g. Mixtral-Instruct
+  body={"prompt":"[INST]"+system+"\n"+message+"[/INST]","max_tokens":500, "echo":"False","stream":"True"} #e.g. Mixtral-Instruct
   response=""
   buffer=""
   print("URL: "+url)
