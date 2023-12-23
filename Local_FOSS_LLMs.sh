@@ -272,12 +272,12 @@ if(if torch.cuda.is_available()==False):
   
   from datetime import datetime
   from diffusers import DiffusionPipeline
-  model="stabilityai/stable-diffusion-2-1" #"prompthero/openjourney-v4"
-  pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1")
+  model="stabilityai/stable-diffusion-2-1" # "stabilityai/sdxl-turbo", "prompthero/openjourney-v4"
+  pipe = DiffusionPipeline.from_pretrained(model)
   #pipe.save_pretrained("stabilityai_stable-diffusion-2-1")
   #pipe.to("cuda") 
   prompt = "a photograph of an astronaut riding a horse"
-  then = datetime.datetime.now()
+  then = datetime.now()
   image = pipe(prompt).images[0]
   now = datetime.now()
   print(now-then) 
@@ -288,7 +288,8 @@ else:
   import torch
   from datetime import datetime
   from diffusers import DiffusionPipeline
-  pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
+  model="stabilityai/stable-diffusion-2-1" # "stabilityai/sdxl-turbo", "prompthero/openjourney-v4"
+  pipe = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float16)
   #pipe.save_pretrained("stabilityai_stable-diffusion-2-1_f16")
   pipe.to("cuda") 
   #pipe.enable_xformers_memory_efficient_attention()
