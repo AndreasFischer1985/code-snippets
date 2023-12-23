@@ -118,7 +118,7 @@ print(now-then)
 print(response) 
 '|python
 
-# WizradLM-1.0-uncensored-llama2-13b - test gguf-weights in llama.cpp
+# WizardLM-1.0-uncensored-llama2-13b - test gguf-weights in llama.cpp
 #---------------------------------------------------------------------
 
 wget https://huggingface.co/TheBloke/WizardLM-1.0-Uncensored-Llama2-13B-GGUF/resolve/main/wizardlm-1.0-uncensored-llama2-13b.Q4_0.gguf -P ~/gguf/models
