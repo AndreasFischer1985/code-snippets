@@ -2,7 +2,7 @@
 # Title: How to use Free & Open Source Large Language Models locally on Debian 12 via Python
 # Author: Andreas Fischer
 # Date: June 19th, 2023
-# last update: September 23rd, 2023
+# last update: December 23rd, 2023
 #############################################################################################
 
 
@@ -461,6 +461,28 @@ image = refiner(
     image=image,
 ).images[0]
 image.save(f"astronaut_in_a_jungle2.png")
+'|python
+
+
+# SDXL-turbo
+#------------
+echo '
+from diffusers import StableDiffusionXLPipeline
+pipe = StableDiffusionXLPipeline.from_pretrained("stabilityai/sdxl-turbo") #, torch_dtype=torch.float16, variant="fp16")
+#pipe.save_pretrained("stabilityai_sdxl-turbo")
+#pipe.to("cuda")
+prompt = "Astronaut in a jungle, cold color palette, muted colors, detailed, 8k"
+image = pipe(prompt=prompt, num_inference_steps=1, guidance_scale=0.0).images[0]
+image.save(f"astronaut_in_a_jungle_turbo.png")
+
+from diffusers import StableDiffusionXLImg2ImgPipeline
+from diffusers.utils import load_image
+pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained("stabilityai/sdxl-turbo") #"/home/af/stabilityai_sdxl-turbo"
+init_image = load_image("https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/cat.png").resize((512, 512))
+prompt = "cat wizard, gandalf, lord of the rings, detailed, fantasy, cute, adorable, Pixar, Disney, 8k"
+strength=0.4 # make sure num_inference_steps * strength is larger or equal to 1
+image = pipe(prompt, image=init_image, num_inference_steps=round(1/strength+0.5)*1, strength=strength, guidance_scale=0.0).images[0]
+image.save(f"cat_wizard_turbo.png")
 '|python
 
 
