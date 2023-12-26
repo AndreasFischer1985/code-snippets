@@ -2,7 +2,7 @@
 # Title:  Gradio Interface to LLM-chatbot with RAG-funcionality and ChromaDB on premises 
 # Author: Andreas Fischer
 # Date:   October 15th, 2023
-# Last update: December 22th, 2023
+# Last update: December 26th, 2023
 ##########################################################################################
 
 
@@ -96,7 +96,7 @@ def response(message, history):
   results=results['documents'][0]
   print(results)
   if(len(results)>1):
-    addon=" Bitte berücksichtige bei deiner Antwort ggf. folgende Auszüge aus unserer Datenbank, sofern sie für die Antwort erforderlich sind. Beantworte die Frage knapp und präzise. Ignoriere unpassende Datenbank-Auszüge OHNE sie zu kommentieren:\n"+"\n".join(results)
+    addon=" Bitte berücksichtige bei deiner Antwort ggf. folgende Auszüge aus unserer Datenbank, sofern sie für die Antwort erforderlich sind. Beantworte die Frage knapp und präzise. Ignoriere unpassende Datenbank-Auszüge OHNE sie zu kommentieren, zu erwähnen oder aufzulisten:\n"+"\n".join(results)
   #url="https://afischer1985-wizardlm-13b-v1-2-q4-0-gguf.hf.space/v1/completions"
   url="http://localhost:2600/v1/completions"
   system="Du bist ein KI-basiertes Assistenzsystem."+addon+"\n\nUser-Anliegen:"   
