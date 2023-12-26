@@ -130,6 +130,7 @@ def response(message, history):
         print("Exception:"+str(e))
         pass
     yield response 
+  yield response+"\n\n<br><strong>Sources:</strong><br><ul>"+ "".join(["<li>" + s + "</li>" for s in results])+"</ul>"
 
-gr.ChatInterface(response).queue().launch(share=True) #False, server_name="0.0.0.0", server_port=7864)
+gr.ChatInterface(response, chatbot=gr.Chatbot(render_markdown=True)).queue().launch(share=True) #False, server_name="0.0.0.0", server_port=7864)
 print("Interface up and running!")
