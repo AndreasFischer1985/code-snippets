@@ -93,7 +93,7 @@ def response(message, history):
     #where={"source": "google-docs"}
     #where_document={"$contains":"search_string"}
   )
-  dists=["<small>(relevance: "+str(round(d*100)/100)+";" for d in results['distances'][0]]
+  dists=["<small>(relevance: "+str(round((1-d)*100/100))+";" for d in results['distances'][0]]
   sources=["source: "+s["source"]+")</small>" for s in results['metadatas'][0]]
   results=results['documents'][0]
   combination = zip(results,dists,sources)
