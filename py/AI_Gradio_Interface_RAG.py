@@ -93,8 +93,12 @@ def response(message, history):
     #where={"source": "google-docs"}
     #where_document={"$contains":"search_string"}
   )
+  dists=["<small>(relevance: "+str(round(d*100)/100)+";" for d in results['distances'][0]]
+  sources=["source: "+s["source"]+")</small>" for s in results['metadatas'][0]]
   results=results['documents'][0]
-  print(results)
+  combination = zip(results,dists,sources)
+  combination = [' '.join(triplets) for triplets in combination]
+  print(combination)
   if(len(results)>1):
     addon=" Bitte berücksichtige bei deiner Antwort ggf. folgende Auszüge aus unserer Datenbank, sofern sie für die Antwort erforderlich sind. Beantworte die Frage knapp und präzise. Ignoriere unpassende Datenbank-Auszüge OHNE sie zu kommentieren, zu erwähnen oder aufzulisten:\n"+"\n".join(results)
   #url="https://afischer1985-wizardlm-13b-v1-2-q4-0-gguf.hf.space/v1/completions"
@@ -130,7 +134,7 @@ def response(message, history):
         print("Exception:"+str(e))
         pass
     yield response 
-  yield response+"\n\n<br><strong>Sources:</strong><br><ul>"+ "".join(["<li>" + s + "</li>" for s in results])+"</ul>"
+  yield response+"\n\n<br><details open><summary><strong>Sources</strong></summary><br><ul>"+ "".join(["<li>" + s + "</li>" for s in combination])+"</ul></details>"
 
 gr.ChatInterface(response, chatbot=gr.Chatbot(render_markdown=True)).queue().launch(share=True) #False, server_name="0.0.0.0", server_port=7864)
 print("Interface up and running!")
