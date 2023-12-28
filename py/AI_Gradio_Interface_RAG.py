@@ -2,7 +2,7 @@
 # Title:  Gradio Interface to LLM-chatbot with RAG-funcionality and ChromaDB on premises 
 # Author: Andreas Fischer
 # Date:   October 15th, 2023
-# Last update: December 26th, 2023
+# Last update: December 28th, 2023
 ##########################################################################################
 
 
