@@ -2,7 +2,7 @@
 # Title:  Gradio Interface to LLM-chatbot with RAG-funcionality and ChromaDB on premises 
 # Author: Andreas Fischer
 # Date:   October 15th, 2023
-# Last update: December 28th, 2023
+# Last update: December 29th, 2023
 ##########################################################################################
 
 
@@ -37,7 +37,7 @@ print(modelPath)
 #------------------
 
 import subprocess
-command = ["python3", "-m", "llama_cpp.server", "--model", modelPath, "--host", "0.0.0.0", "--port", "2600"]
+command = ["python3", "-m", "llama_cpp.server", "--model", modelPath, "--host", "0.0.0.0", "--port", "2600", "--n_threads", "2"]
 subprocess.Popen(command)
 print("Server ready!")
 
