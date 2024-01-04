@@ -2,16 +2,19 @@
 # Title:  Scrape data and plot a directed knowledge graph based on BERUFENET
 # Author: Andreas Fischer
 # Date:   August 12th, 2023
-# Last update: August 29th, 2023
+# Last update: January 4th, 2024
 #############################################################################
 
 path="/home/af/Dokumente/Py/knowledgeGraph/"
 
+
 #*******************************************************************************
 # Get list of occupations on BERUFENET (id & title) and save it to a csv-file 
 #********************************************************************************
+
 import requests
 import json
+import csv
 
 response0=json.loads(requests.get("https://rest.arbeitsagentur.de/infosysbub/bnet/pc/v1/berufe?page=0&suchwoerter=*",  headers={"X-API-Key":"d672172b-f3ef-4746-b659-227c39d95acf"}).content)
 totalPages=response0['page']['totalPages']
@@ -40,7 +43,6 @@ with open(path+'berufe.csv', 'w', newline='') as f:
 #********************************************************************************
 
 import time
-
 
 def getDetails(url):
   tries = 0
@@ -71,7 +73,6 @@ with open(path+"details.json", "w") as f:
 #*****************************************************************
 # Extract relevant information on occupations and their relations
 #*****************************************************************
-
 
 import re
 import csv
@@ -183,7 +184,6 @@ with open(path+'lookup-table.csv', 'w', newline='') as f:
   for r in [x for x in z]:
     writer.writerow(r)
 
-
 with open(path+"ids.json", "w") as f:
   json.dump(ids, f)
 
@@ -223,7 +223,6 @@ with open(path+"codenr.json", "r") as f:
 with open(path+"kurzbezeichnung.json", "r") as f: 
    kurzbezeichnung = json.load(f)
 
-
 # gather all relations from and to ID 15323 and add relations from (but not to) the IDs above (15322,93916,93944,15325 & 7846):
 queryNodes=["15323"]
 myRelations=[]
@@ -237,7 +236,6 @@ for r in relations:
 
 len(myRelations) #199
 
-
 # gather only relations from and to ID 15322:
 queryNodes=["15322"] 
 myRelations=[]
@@ -245,7 +243,6 @@ for r in relations:
   if(r[0] in queryNodes or r[2] in queryNodes): myRelations.append(r)
 
 len(myRelations) #5
-
 
 f = graphviz.Digraph(filename = path+"graphviz_graph.gv")
 names = list(set([r[0] for r in myRelations]+[r[2] for r in myRelations]))
