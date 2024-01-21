@@ -46,6 +46,10 @@ echo "alias env='source .venv/ai/bin/activate'" >> ~/.bash_aliases
 pip install torch sentence-transformers transformers ctransformers gradio langchain diffusers xformers llama-cpp-python accelerate protobuf pandas numpy
 pip install llama-cpp-python[server] ctransformers[cuda] bitsandbytes 
 
+#https://github.com/abetlen/llama-cpp-python/issues/306
+#sudo apt install libclblast-dev
+#CMAKE_ARGS="-DLLAMA_CLBLAST=on" FORCE_CMAKE=1 pip install llama-cpp-python --force-reinstall --upgrade --no-cache-dir -v
+
 
 # Gradio-app based on gguf-model via ctransformers
 #-------------------------------------------------
