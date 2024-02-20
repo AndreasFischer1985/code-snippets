@@ -494,31 +494,56 @@ image.save(f"cat_wizard_turbo.png")
 #-----------------------------------
 echo '
 import torch
-from datetime import datetime
-from transformers import pipeline
-cuda = int(torch.cuda.is_available())-1
-print(cuda)
-model = "openai/whisper-large-v3"
-prompt = "https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/1.flac"
-bot = pipeline(model=model,device=cuda) # use GPU (0) if available, CPU (-1) otherwise
-#bot.model.config.forced_decoder_ids = [[1,50261],[2,50359],[3,50363]] # uncomment for German transcripts
-then = datetime.now()
-response = bot(prompt, chunk_length_s=10) #batch_size=8, return_timestamps=True
-now = datetime.now()
-print(now-then)
-print("Prompt:\n"+prompt+"\n\nResponse:\n"+response["text"]+"\n\nduration:"+str(now-then)) 
-
-import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-from datasets import load_dataset
+#from datasets import load_dataset
+from datetime import datetime
+
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+
 model_id = "openai/whisper-large-v3"
-bot = AutoModelForSpeechSeq2Seq.from_pretrained(
+
+model = AutoModelForSpeechSeq2Seq.from_pretrained(
     model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
 )
-bot.to(device)
-bot.save_pretrained("openai_whisper-large-v3")
+model.to(device)
+
+processor = AutoProcessor.from_pretrained(model_id)
+
+pipe = pipeline(
+    "automatic-speech-recognition",
+    model=model,
+    tokenizer=processor.tokenizer,
+    feature_extractor=processor.feature_extractor,
+    max_new_tokens=128,
+    chunk_length_s=30,
+    batch_size=8, #16
+    return_timestamps=True,
+    torch_dtype=torch_dtype,
+    device=device,
+)
+
+#dataset = load_dataset("distil-whisper/librispeech_long", "clean", split="validation")
+#sample = dataset[0]["audio"]
+then = datetime.now()
+result = pipe("/home/af/Musik/Interviews/Interview.mp3", generate_kwargs={"language": "german"})
+now = datetime.now()
+print(now-then)
+print(result["text"])
+
+result["text"]
+result["chunks"]
+
+with open("/home/af/Musik/Interviews/transkript.txt", mode="w", encoding="utf-8") as file:
+    # Write the string to the file
+    file.write(result["text"])
+    
+import csv
+keys = result["chunks"][0].keys()
+with open("/home/af/Musik/Interviews/transkript.csv", "w", newline="", encoding="utf-8") as output_file:
+    dict_writer = csv.DictWriter(output_file, keys)
+    dict_writer.writeheader()
+    dict_writer.writerows(result["chunks"])
 '|python
 
 # Bark - test audio-generation
