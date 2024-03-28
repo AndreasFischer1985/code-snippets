@@ -550,21 +550,22 @@ with open("/home/af/Musik/Interviews/transkript.csv", "w", newline="", encoding=
 #------------------------------
 
 echo '
-from transformers import AutoProcessor, AutoModel
+from transformers import AutoProcessor, AutoModel, BarkModel
 processor = AutoProcessor.from_pretrained("suno/bark")
-model = AutoModel.from_pretrained("suno/bark")
-#model.enable_cpu_offload()
-#model.save_pretrained("/home/af/suno_bark")
-# model = model.to_bettertransformer()
-# model = BarkModel.from_pretrained("suno/bark-small", torch_dtype=torch.float16, use_flash_attention_2=True).to(device)
+#model = AutoModel.from_pretrained("suno/bark")
+model = BarkModel.from_pretrained("suno/bark", torch_dtype=torch.float16).to("cuda")
+# model.save_pretrained("/home/af/suno_bark")
 inputs = processor(
-    text=["Hello, my name is Suno. And, uh — and I like pizza. [laughs] But I also have other interests such as playing tic tac toe."],
+    text=["Hallo Welt."],
     return_tensors="pt",
+    voice_preset="v2/de_speaker_8"
 )
+inputs = inputs.to("cuda")
 speech_values = model.generate(**inputs, do_sample=True) #tensor([[ 1.2337e-03,  6.6125e-04,  1.0219e-03,  ..., -5.1628e-05, -1.1722e-04, -7.7545e-05]])
-import scipy
-sampling_rate = model.generation_config.sample_rate
-scipy.io.wavfile.write("bark_out.wav", rate=sampling_rate, data=speech_values.cpu().numpy().squeeze())
+import torchaudio
+audio_tensor = speech_values.to("cpu") 
+audio_tensor = audio_tensor .to(torch.float32)
+torchaudio.save("output.wav", audio_tensor, sample_rate=model.generation_config.sample_rate)
 '|python
 
 
@@ -574,7 +575,6 @@ python3 -m pip install TTS
 echo '
 from TTS.api import TTS
 tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
-#tts.to(device)
 tts.tts_to_file(text="Es hat viel Zeit gekostet, eine Stimme zu entwickeln und nun, da ich sie habe, werde ich nicht länger schweigen.",
                 file_path="output_de.wav",
                 speaker_wav="/home/af/Musik/speech_sample.wav",
