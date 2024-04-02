@@ -131,54 +131,55 @@
   }
 
   // Function: append JSON-content to table
-  function appendJSON(json,myContainer,level) {
-	const obj = JSON.parse(json);	
-        const regex = /((http|https|ftp):\/\/[\w?=&.,\(\)\{\}$!\/-;#~%-]+(?![\w\s?&.,\(\)\{\}$!\/;#~%"=-]*>))/g;   
-	var oc=0; 
-	var lastCategory="";         
-	for (var i = 0; i<Object.keys(obj).length; i++){
-		var tr = document.createElement("tr");		
-
-                //Column "title" 
-		var td = document.createElement("td");
-          	var ob = obj[[i]][[1]];   // extract "title"
-                if(ob == null) ob="n.a."; // set title to  "n.a." if title is missing
-		td.innerHTML="<strong>"+
-			ob+":</strong><br> "+obj[[i]][[2]]; //"description"
-		tr.appendChild(td);
-
-		//Column "ID"
-		var td = document.createElement("td");
-		td.innerHTML="<a href=\"https://web.arbeitsagentur.de/berufenet/beruf/"+obj[[i]][[0]]+"\">ID "+obj[[i]][[0]]+"</a>"; // extract "ID" 
-		tr.appendChild(td);
-
-		//Column "relevance"
-		var td = document.createElement("td");
-		td.innerHTML="1";
-		//td.setAttribute("class","hide");
-		tr.appendChild(td);
-
-		//Column "embedding"
-		var td = document.createElement("td");
-		td.innerHTML=obj[[i]][[3]]; //extract "embedding"
-		td.style.fontSize="0px";
-		td.setAttribute("class","hide");
-		tr.appendChild(td);
-
-		myContainer.appendChild(tr); 		
-	}
+  function appendJSON(json, myContainer, level) {
+    const obj = JSON.parse(json);
+    if (!obj || !obj.data) { alert('Fehler beim Parsen des JSON-Strings oder das Array "data" existiert nicht.'); return;}
+    const dataArray = obj.data; // Zugriff auf das Array innerhalb des JSON-Objekts
+    var oc = 0;
+    var lastCategory = "";
+    for (var i = 0; i < dataArray.length; i++) {
+        var tr = document.createElement("tr");
+        // Spalte "title"
+        var td = document.createElement("td");
+        var title = dataArray[i].title; // Zugriff auf "title"
+        if (title == null) title = "n.a."; // Setze Titel auf "n.a." wenn Titel fehlt
+        td.innerHTML = "<strong>" + title + ":</strong><br> " + dataArray[i].description; // Zugriff auf "description"
+        tr.appendChild(td);
+        // Spalte "ID"
+        var td = document.createElement("td");
+        td.innerHTML = "<a href=\"https://web.arbeitsagentur.de/berufenet/beruf/" + dataArray[i].id + "\">ID " + dataArray[i].id + "</a>"; // Zugriff auf "id"
+        tr.appendChild(td);
+        // Spalte "relevance"
+        var td = document.createElement("td");
+        td.innerHTML = "1";
+        // td.setAttribute("class", "hide");
+        tr.appendChild(td);
+        // Spalte "embedding"
+        var td = document.createElement("td");
+        td.innerHTML = JSON.stringify(dataArray[i].embedding); // Zugriff auf "embedding"
+        td.style.fontSize = "0px";
+        td.setAttribute("class", "hide");
+        tr.appendChild(td);
+        myContainer.appendChild(tr);
+    }
   }
 
-
+	
   // fetch JSON-content and append it to table
   const myContainer = document.getElementById("data");
-  fetch('http://85.214.77.179/berufenet2/data2.json')
+  if(false){
+        fetch('http://85.214.77.179/berufenet2/data2.json')
 		 .then(function (response) { return response.json();})
 		 .then(function (data) { 
 			appendJSON(JSON.stringify(data),myContainer,0);
 			document.getElementById("searchbutton").disabled=false;     
-		})
-		 .catch(function (err){});
+		}).catch(function (err){});
+  } else if(true){
+         let data= {"data":[{"id": 1,"title": "Beruf1","description": "Description1","embedding": [1, 2, 3]},{"id": 2,"title": "Berufs2","description": "Description2","embedding": [1, 2, 3]} ]}'; 
+         appendJSON(data,myContainer,0);
+         document.getElementById("searchbutton").disabled=false;     
+  }
+  
 
 </script>
 <style>
