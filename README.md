@@ -32,7 +32,7 @@ They can also be seen in action thanks to GitHub Pages:
 
 | Snippet | Link | 
 |---|---|
-| BERUFENET.AI Application | [html/js_berufenet.ai.html](http://85.214.77.179/berufenet2/) |
+| BERUFENET.AI Application | [html/js_berufenet.ai.html](https://andreasfischer1985.github.io/code-snippets/html/js_berufenet.ai.html) |
 | Huggingface AI Interface | [html/js_AIInterface.html](https://andreasfischer1985.github.io/code-snippets/html/js_AIInterface.html) |
 | Bloom Demo | [html/js_bloom.html](https://andreasfischer1985.github.io/code-snippets/html/js_bloom.html) |
 | ChatGPT Demo | [html/js_ChatGPT.html](https://andreasfischer1985.github.io/code-snippets/html/js_ChatGPT.html) |
