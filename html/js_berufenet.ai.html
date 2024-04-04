@@ -25,6 +25,18 @@
     return similarity;
   } 
 
+  // Function: calculate cosine-similarities for each combination of vectors based on two arrays
+  function maxCosSim(array1, array2) {
+    var results = [];
+    for (var i = 0; i < array1.length; i++) {
+        for (var j = 0; j < array2.length; j++) {
+            results.push(cosSim(array1[i], array2[j]));
+        }
+    }
+    var maxSim = Math.max(...results);
+    return maxSim;
+  }
+	
   //round number
   function round2(x,places=2){
     return +(Math.round(x + "e+" + places)  + "e-" + places);
