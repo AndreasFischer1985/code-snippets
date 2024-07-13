@@ -1,8 +1,9 @@
 #############################################################################
-# Title:  Scrape data and plot a directed knowledge graph based on BERUFENET
+# Title:  Scrape data and plot a directed knowledge graph based on BERUFENET (cf. Fischer & Dörpinghaus, 2024)
+# Reference: Fischer, A., & Dörpinghaus, J. (2024). Web Mining of Online Resources for German Labor Market Research and Education: Finding the Ground Truth?  Knowledge, 4(1), 51-67. https://doi.org/10.3390/knowledge4010003 
 # Author: Andreas Fischer
 # Date:   August 12th, 2023
-# Last update: January 4th, 2024
+# Last update: July 13th, 2024
 #############################################################################
 
 path="/home/af/Dokumente/Py/knowledgeGraph/"
