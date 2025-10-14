@@ -33,6 +33,7 @@ They can also be seen in action thanks to GitHub Pages:
 
 | Snippet | Link | 
 |---|---|
+| MyQDA Text Annotation Tool | [html/MyQDA.html](https://andreasfischer1985.github.io/code-snippets/html/MyQDA.html) |
 | BERUFENET.AI Application | [html/js_berufenet.ai.html](https://andreasfischer1985.github.io/code-snippets/html/js_berufenet.ai.html) |
 | Huggingface AI Interface | [html/js_AIInterface.html](https://andreasfischer1985.github.io/code-snippets/html/js_AIInterface.html) |
 | Bloom Demo | [html/js_bloom.html](https://andreasfischer1985.github.io/code-snippets/html/js_bloom.html) |
