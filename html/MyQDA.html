@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Dr. Andreas Fischer">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyQDA - Text-Annotation-Tool</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div>
+    <nav>
+      <ul>
+        <li><a id="export">Save Project</a></li>
+        <li><a id="import">Load Project</a></li>
+      </ul>
+    </nav>
+</div>
+    <a id="downloadAnchorElem" style="display:none"></a>
+    <div id="app-container">
+        
+        <div id="left-sidebar">
+            
+            <div id="document-panel" class="panel">
+                <h3 id="document-header">Dokumente 📑</h3>
+                <div class="panel-controls">
+                    <button onclick="addListItem('document-list', 'Neues Dokument')">➕ Hinzufügen</button>
+                    <button onclick="deleteSelected('document-list')">🗑️ Löschen</button>
+                </div>
+                <ul id="document-list" class="list-container">
+                    </ul>
+            </div>
+
+            <div id="code-panel" class="panel">
+                <h3 id="code-header">Codes 🏷️</h3>
+                <div class="panel-controls">
+                    <button onclick="addListItem('code-list', 'Neuer Code')">➕ Hinzufügen</button>
+                    <button onclick="deleteSelected('code-list')">🗑️ Löschen</button>
+                </div>
+                <ul id="code-list" class="list-container">
+                    </ul>
+            </div>
+            
+        </div>
+
+        <div id="main-content">
+            <div class="panel-controls">
+                <span id="selected-code-display">Aktueller Code: <i>Kein Code gewählt</i></span><br><br>
+                <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
+                <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
+                <button id="show-annotations-button" onclick="showAnnotations()">🔍 Annotationen</button> 
+                <button id="count-annotations-button" onclick="countAnnotations()">📈 Zahlen</button> 
+            </div>
+            
+            <div id="text-display" contenteditable="true" spellcheck="false">
+                Wählen Sie ein Dokument aus der Liste links, um den Text hier anzuzeigen.
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+
+<script>
+
+let DOCUMENTS = [
+    { id: 1, name: "Text_A_Protokoll", content: "Der erste Satz ist unproblematisch. Hier beginnt der spannende Teil, der kommentiert werden sollte. Das ist der dritte Satz.", color: "#e74c3c" },
+    { id: 2, name: "Text_B_Interview", content: "Die Befragten äußerten sich durchwegs positiv zur KI-basierten Inhaltsanalyse von Dr. Andreas Fischer.", color: "#3498db" }
+];
+
+let CODES = [
+    { id: 1, name: "Positive Äußerung", color: "#2ecc71" },
+    { id: 2, name: "Negative Äußerung", color: "#e74c3c" },
+    { id: 3, name: "Neutrale Beobachtung", color: "#f1c40f" }
+];
+
+let selectedCode = null;
+let selectedDocument = null;
+const documentList = document.getElementById('document-list');
+const codeList = document.getElementById('code-list');
+const textDisplay = document.getElementById('text-display');
+const selectedCodeDisplay = document.getElementById('selected-code-display');
+
+document.getElementById('import').addEventListener('click', () => {
+  handleFileSelection(); //Updates DOCUMENT & CODE
+});
+
+document.getElementById('export').addEventListener('click', () => {
+           var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
+		JSON.stringify([{"CODES":CODES,"DOCUMENTS":DOCUMENTS}]));	
+           var dlAnchorElem = document.getElementById('downloadAnchorElem');
+           dlAnchorElem.setAttribute("href",     dataStr     );
+           dlAnchorElem.setAttribute("download", "project_"+Date.now()+".json");
+           dlAnchorElem.click();
+
+        }); 
+
+textDisplay.addEventListener('input', () => {
+          if(selectedDocument !== null){ 
+            DOCUMENTS[selectedDocument["id"]-1].content=textDisplay.getHTML();
+            //loadDocumentText(selectedDocument);
+          }
+        }); 
+
+document.getElementById('document-header').addEventListener('click', () => {
+          var json=prompt("Dokumente:",JSON.stringify(DOCUMENTS));
+          if(json !== null){
+            DOCUMENTS=JSON.parse(json);
+            updateInterface();
+          }
+        }); 
+
+document.getElementById('code-header').addEventListener('click', () => {
+          var json=prompt("Codes:",JSON.stringify(CODES));
+          if(json !== null){
+            alert(json);
+            updateChangedCodes(CODES, JSON.parse(json), updateAnnotationLabels, DOCUMENTS); //update Annotation for changes in known ids
+            CODES=JSON.parse(json); //update CODES afterwards       
+            updateInterface();
+          }
+        }); 
+
+function updateInterface(){
+            documentList.innerHTML = '';
+            DOCUMENTS.forEach(document => {
+               documentList.appendChild(createListItem(document, 'document-list'));
+            });
+
+            if(selectedDocument == null) {
+		selectListItem(document.getElementById('document-'+DOCUMENTS[0].id), 'documents-list');
+                selectedDocument=DOCUMENTS[0];
+	    }
+
+            if(selectedDocument !== null){ 
+              selectedDocument = DOCUMENTS.find(doc => doc.id == selectedDocument.id);
+              selectListItem(document.getElementById('document-'+selectedDocument.id), 'documents-list');
+              loadDocumentText(selectedDocument);
+            }
+
+            codeList.innerHTML = '';
+            CODES.forEach(code => {
+               codeList.appendChild(createListItem(code, 'code-list'));
+            });
+             
+            if(selectedCode == null){
+		selectListItem(document.getElementById('code-'+CODES[0].id), 'codes-list');
+		selectedCode=CODES[0];
+	    }
+
+            if(selectedCode !== null){
+              selectedCode = CODES.find(doc => doc.id == selectedCode.id);
+              selectListItem(document.getElementById('code-'+selectedCode.id), 'codes-list');
+            }
+            updateSelectedCodeDisplay();
+}
+
+// =====================================
+// LISTEN-VERWALTUNG (Dokumente & Codes)
+// =====================================
+
+
+/** Erstellt und rendert einen Listeneintrag (li) **/
+
+function createListItem(item, containerId) {
+    const li = document.createElement('li');
+    li.id = `${containerId.replace('-list', '')}-${item.id || item.name.replace(/\s/g, '_')}`;
+    li.setAttribute('data-id', item.id || item.name);
+    
+    // Ermöglicht die Bearbeitung des Listeneintrags (Anforderung: editierbar)
+    li.contentEditable = true; 
+    li.textContent = item.name;
+
+    // Auswahl-Logik
+    li.addEventListener('click', () => {
+        selectListItem(li, containerId);
+    });
+
+    // Change-Logik
+    if (containerId === 'document-list'){
+       li.addEventListener('input', () => {        
+          const index = DOCUMENTS.findIndex(el => "document-"+el.id === li.id);
+          if(index !== -1) {
+            DOCUMENTS[index].name=li.textContent;            
+          }
+        }); 
+    } else if (containerId === 'code-list') {
+       li.addEventListener('input', () => {        
+          const index = CODES.findIndex(el => "code-"+el.id === li.id);
+          if(index !== -1) {
+            updateAnnotationLabels(CODES[index].id, li.textContent, CODES[index].color, DOCUMENTS); // update annotations in DOCUMENTS
+            CODES[index].name=li.textContent; //update CODES afterwards
+            updateInterface();
+          }
+          //alert("Updated Code "+(index+1)+" in\n\n"+JSON.stringify(CODES)); 
+        });        
+    }
+
+    return li;
+}
+
+
+/** Behandelt die Auswahl eines Listeneintrags **/
+
+function selectListItem(element, containerId) {
+    // Entfernt die 'selected'-Klasse von allen Elementen im Container
+    document.querySelectorAll(`#${containerId} li`).forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    // Fügt die 'selected'-Klasse zum ausgewählten Element hinzu
+    element.classList.add('selected');
+    
+    const itemId = element.getAttribute('data-id');
+
+    if (containerId === 'document-list') {
+        selectedDocument = DOCUMENTS.find(doc => doc.id == itemId || doc.name === itemId);
+        loadDocumentText(selectedDocument);
+    } else if (containerId === 'code-list') {        
+        selectedCode = CODES.find(code => code.id.toString() === itemId.toString() || code.name.toString() === itemId.toString());
+	updateSelectedCodeDisplay();
+    }
+}
+
+
+/** Rendert die Initial-Listen **/
+
+function renderLists() {
+    DOCUMENTS.forEach(doc => {
+        documentList.appendChild(createListItem(doc, 'document-list'));
+    });
+    CODES.forEach(code => {
+        codeList.appendChild(createListItem(code, 'code-list'));
+    });
+}
+
+
+/** Lädt den Text des ausgewählten Dokuments **/
+
+function loadDocumentText(doc) {
+    if (doc) {
+        // Der Text wird in den 'text-display' Container geladen. 
+        // WICHTIG: Er muss **HTML** enthalten, wenn bereits annotiert wurde.
+        textDisplay.innerHTML = doc.content; 
+        document.getElementById('text-display').style.backgroundColor = 'white';
+        textDisplay.focus();
+    }
+}
+
+
+/** Aktualisiert die Anzeige des aktuell gewählten Codes **/
+
+function updateSelectedCodeDisplay() {
+    if (selectedCode) {
+        selectedCodeDisplay.innerHTML = `Aktueller Code: <strong style="color: ${selectedCode.color};">${selectedCode.name}</strong>`;
+    } else {
+        selectedCodeDisplay.innerHTML = `Aktueller Code: **Kein Code gewählt**`;
+    }
+}
+
+// ============================================
+// BUTTON-FUNKTIONALITÄTEN (Hinzufügen/Löschen)
+// ============================================
+
+
+/** Fügt einen neuen Eintrag zu einer Liste hinzu (für alle Listen) **/
+
+function addListItem(containerId, defaultName) {
+    const container = document.getElementById(containerId);
+    var newItem = null;
+
+    if (containerId === 'document-list') {
+        newItem = { id: (DOCUMENTS.length+1), name: defaultName }; // Eindeutige ID wäre Date.now() für das neue Element
+        DOCUMENTS.push({ ...newItem, content: "Bitte hier den Text für das neue Dokument einfügen." });
+    } else if (containerId === 'code-list') {
+        newItem = { id: (CODES.length+1), name: defaultName }; // Eindeutige ID wäre Date.now() für das neue Element
+        CODES.push({ ...newItem, color: "#95a5a6" });
+    }
+
+    const li = createListItem(newItem, containerId);
+    container.appendChild(li);
+    li.focus(); // Setzt Fokus auf das neue editierbare Element
+    selectListItem(li, containerId); // Wählt das neue Element aus
+}
+
+/** Löscht den aktuell ausgewählten Eintrag */
+function deleteSelected(containerId) {
+    const selectedItem = document.querySelector(`#${containerId} li.selected`);
+    if (!selectedItem) {
+        alert("Bitte wählen Sie zuerst einen Eintrag zum Löschen aus.");
+        return;
+    }
+
+    if (confirm(`Soll der Eintrag "${selectedItem.textContent}" wirklich gelöscht werden?`)) {
+        selectedItem.remove();
+
+        // Interne Datenstrukturen aktualisieren (simplifiziert)
+        const itemId = selectedItem.getAttribute('data-id');
+        if (containerId === 'document-list') {
+            const index = DOCUMENTS.findIndex(doc => doc.id == itemId || doc.name === itemId);
+            if (index > -1) DOCUMENTS.splice(index, 1);
+            textDisplay.innerHTML = "Wählen Sie ein Dokument aus der Liste links...";
+            selectedDocument = null;
+        } else if (containerId === 'code-list') {
+            const index = CODES.findIndex(code => code.id == itemId || code.name === itemId);
+            if (index > -1) CODES.splice(index, 1);
+            selectedCode = null;
+            updateSelectedCodeDisplay();
+        }
+    }
+}
+
+// ===================================
+// ANNOTATIONS-FUNKTIONALITÄT
+// ===================================
+
+/** Umschließt den ausgewählten Text mit einem Annotation-Span */
+function annotateSelectedText() {
+
+    // 0. Prüfen, welcher DOCUMENTS-Eintrag gerade angezeigt wird
+    const index = DOCUMENTS.findIndex(el => el.content === textDisplay.getHTML());
+
+    // 1. Prüfen, ob ein Code ausgewählt ist
+    if (!selectedCode) {
+        alert("Bitte wählen Sie zuerst einen Code (links unten) aus.");
+        return;
+    }
+
+    // 2. Auswahl (Selection) abrufen
+    const selection = window.getSelection();
+    if (!selection.rangeCount) {
+        alert("Bitte markieren Sie zuerst einen Textabschnitt im rechten Panel.");
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+
+    // 3. Prüfen, ob die Auswahl im Text-Panel liegt
+    if (!textDisplay.contains(range.commonAncestorContainer)) {
+         alert("Bitte markieren Sie einen Textabschnitt **innerhalb** des Dokumenten-Panels.");
+         return;
+    }
+
+    // 4. Annotation-Element erstellen
+    const span = document.createElement('span');
+    span.classList.add('annotation');
+    // Code als Attribut speichern
+    span.setAttribute('data-code', selectedCode.id); 
+    span.title = `Code: ${selectedCode.name}`;
+    // Style für bessere Visualisierung
+    span.style.backgroundColor = selectedCode.color + '33'; // 33 für Transparenz
+    span.style.border = `1px solid ${selectedCode.color}`; 
+
+    // 5. Den ausgewählten Text mit dem Span umschließen (Range API)
+    try {
+        // surroundContents funktioniert nur, wenn die Auswahl sauber in TextNodes ist.
+        // Bei komplexen verschachtelten Elementen muss man kompliziertere Logik verwenden.
+        range.surroundContents(span);       
+    } catch (e) {
+        // Fallback: Manchmal ist surroundContents nicht möglich (z.B. wenn Start/Ende nicht im selben Node sind)
+        // Bei contenteditable ist dies meistens kein Problem, aber es ist gut, dies zu beachten.
+        console.error("Fehler beim Umschließen der Auswahl:", e);
+        alert("Die Markierung konnte nicht sauber annotiert werden. Bitte wählen Sie einen ununterbrochenen Textbereich.");
+        return;
+    }
+
+    // 6. Ergebnis festhalten 
+    if(index !== -1) DOCUMENTS[index].content=textDisplay.getHTML();
+    //alert("Document "+(index+1)+":\n\n"+textDisplay.getHTML());
+
+    // 7. Auswahl aufheben
+    selection.removeAllRanges(); 
+}
+
+
+/** ENTFERNT DIE ANNOTATION EINER MARKIERTE(N) STELLE */
+
+function removeAnnotation() {
+    const selection = window.getSelection();
+
+    if (!selection.rangeCount) {
+        alert("Bitte markieren Sie die zu entfernende Annotation oder platzieren Sie den Cursor darin.");
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+    let commonNode = range.commonAncestorContainer;
+
+    // 1. Suche das umschließende Annotation-Span
+    // Wenn die Auswahl in einem Text-Node ist, prüfen wir den Parent-Node
+    if (commonNode.nodeType === 3) { // 3 ist ein Text-Node
+        commonNode = commonNode.parentNode;
+    }
+
+    // Finde den nächsten Elternelement mit der Klasse 'annotation'
+    const annotationSpan = commonNode.closest('.annotation');
+
+    if (annotationSpan) {
+        // 2. Den Inhalt des Span-Elements "auspacken"
+        // fragment enthält alle Kinder (den Text) des Span
+        const fragment = document.createDocumentFragment();
+        while (annotationSpan.firstChild) {
+            fragment.appendChild(annotationSpan.firstChild);
+        }
+        
+        // 3. Das Span durch seinen Inhalt ersetzen
+        annotationSpan.parentNode.replaceChild(fragment, annotationSpan);
+
+        // 4. Auswahl aufheben
+        selection.removeAllRanges();
+
+    } else {
+        alert("Die aktuelle Markierung befindet sich nicht in einer Annotation.");
+    }
+}
+
+/** ANNOTATION-UPDATE NACH CODE-CHANGE **/
+
+function updateAnnotationLabels(codeId, newLabel, newColor, DOCUMENTS) {
+
+    // 1. Finde das alte Label
+    const codeIdStr = String(codeId);
+    
+    // Regulärer Ausdruck zum Suchen des <span>-Tags mit der entsprechenden data-code ID
+    // und dem title-Attribut, um den Label-Wert zu extrahieren/zu ersetzen.
+    // Suchmuster: <span class="annotation" data-code="CODE_ID" title="ALTES_LABEL">
+    // Erfassungsgruppen:
+    // 1: Alles vor title="
+    // 2: Das alte Label
+    const regex = new RegExp(
+        `(<span\\s+[^>]*?class=["']annotation["'][^>]*?data-code=["']${codeIdStr}["'][^>]*?)title=["']([^"']*?)["']`, 
+        'g' // 'g' für globales Suchen und Ersetzen in allen Vorkommen
+    );
+    //<span class=\"annotation\" data-code=\"1\" title=\"Code: Positive Äußerung\" style
+
+    // Das Ersatzmuster: ${1} ist die erste Erfassungsgruppe (alles bis title=")
+    // und wird durch das neue Label ersetzt.
+    const replacement = `$1title="${newLabel}"`;
+
+    // 2. Iteriere über alle Dokumente und ersetze das Label
+    DOCUMENTS.forEach(doc => {
+        if (doc.content) {
+            // Führe die Ersetzung im content-String durch
+            doc.content = doc.content.replace(regex, replacement);
+        }
+    });
+
+    return DOCUMENTS;
+}
+
+
+/** ANNOTATION-UPDATE FÜR ALLE CHANGED CODES **/
+
+function updateChangedCodes(CODES, CODES_updated, updateAnnotationLabels, DOCUMENTS) {
+
+    // 1. CODES_updated in eine Map umwandeln für schnellen Zugriff nach ID
+    const updatedCodesMap = CODES_updated.reduce((map, code) => {
+        map[code.id] = code;
+        return map;
+    }, {});
+
+    // 2. Originale CODES-Liste durchlaufen und prüfen
+    for (const originalCode of CODES) {
+        const { id: codeId, name: originalName, color: originalColor } = originalCode;
+
+        // Prüfen, ob der Code in der aktualisierten Liste noch existiert
+        const updatedCode = updatedCodesMap[codeId];
+
+        if (updatedCode) {
+            const { name: newName, color: newColor } = updatedCode;
+
+            // Prüfen, ob sich 'name' oder 'color' geändert haben
+            if (originalName !== newName || originalColor !== newColor) {
+                console.log(`Änderung erkannt für Code ID ${codeId}:`);
+                console.log(`  Name: "${originalName}" -> "${newName}"`);
+                console.log(`  Color: "${originalColor}" -> "${newColor}"`);
+
+                // 3. updateAnnotationLabels aufrufen
+                updateAnnotationLabels(codeId, newName, newColor, DOCUMENTS);
+            }
+        }
+        // Anmerkung: Codes, die in CODES_updated fehlen (gelöscht wurden),
+        // werden hier stillschweigend ignoriert, da die Anforderung nur 
+        // die Prüfung *aller IDs in CODES* für Änderungen betrifft.
+    }
+    
+    console.log("Prüfung auf geänderte Codes abgeschlossen.");
+}
+
+
+
+// ===================================
+// ANNOTATIONS-FUNKTIONALITÄT
+// ===================================
+
+
+/** ANNOTATIONEN FÜR SELECTEDCODE ANZEIGEN **/
+
+function showAnnotations() {
+
+    // 0. Prüfen, ob ein Code ausgewählt ist
+    if (!selectedCode) {
+        alert("Bitte wählen Sie zuerst einen Code (links unten) aus.");
+        return;
+    }
+
+    const codeIdStr = String(selectedCode.id);
+    const annotations = [];
+
+    // Regulärer Ausdruck, um das gesamte <span>-Tag mit dem Inhalt zu finden.
+    // Suchmuster: <span class="annotation" data-code="CODE_ID" [weitere Attribute]>INHALT</span>
+    // Erfassungsgruppe 1: Der Inhalt (Text) der Annotation.
+    const regex = new RegExp(
+        `<span\\s+[^>]*?class=["']annotation["'][^>]*?data-code=["']${codeIdStr}["'][^>]*?>(.*?)<\\/span>`,
+        'g'
+    );
+
+    // 1. Alle Annotationen sammeln
+    DOCUMENTS.forEach(doc => {
+        if (doc.content) {
+            let match;
+            // Iteriere über alle Matches in doc.content
+            while ((match = regex.exec(doc.content)) !== null) {
+                // match[1] enthält den Inhalt der Annotation (die erste Erfassungsgruppe)
+                const annotationText = match[1].trim();
+
+                // Füge das extrahierte Textstück zusammen mit der Quelle hinzu.
+                annotations.push({
+                    documentName: doc.name,
+                    text: annotationText
+                });
+            }
+        }
+    });
+
+    // 2. Popup-Fenster erstellen und Inhalte formatieren
+    const popupContent = annotations.map(ann =>
+        `<div>
+            <strong>${ann.documentName}:</strong>
+            <span>...${ann.text}...</span>
+            <hr style="border: 0; border-top: 1px solid #ccc; margin: 5px 0;">
+         </div>`
+    ).join('');
+
+    const windowTitle = `Annotationen für Code-ID: ${codeIdStr}`;
+
+    // Öffne ein neues Popup-Fenster mit Scrollbar
+    const popupWindow = window.open(
+        '', 
+        '_blank', 
+        'width=600,height=400,scrollbars=yes,resizable=yes'
+    );
+    
+    // Prüfen, ob das Fenster geöffnet werden konnte (kann durch Pop-up-Blocker verhindert werden)
+    if (!popupWindow) {
+        alert("Pop-up-Blocker hat das Fenster blockiert. Bitte erlauben Sie Pop-ups für diese Seite.");
+        return;
+    }
+
+    // Füge HTML-Struktur und Inhalte in das Popup-Fenster ein
+    popupWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${windowTitle}</title>
+            <style>
+                body { font-family: sans-serif; padding: 10px; }
+                hr { margin: 10px 0; }
+                strong { color: #333; }
+                span { display: block; margin-left: 10px; font-style: italic; }
+            </style>
+        </head>
+        <body>
+            <h2>${windowTitle}</h2><h3>(${annotations.length} Fundstellen)</h3>
+            <div id="annotations-list">
+                ${popupContent}
+            </div>
+        </body>
+        </html>
+    `);
+
+    // Schließe das Dokument, um das Rendering zu starten
+    popupWindow.document.close();
+}
+
+
+/** Zählt <span>-Tags basierend auf dem "data-code"-Attribut 
+ * @param {HTMLElement} rootElement Das Element, in dem nach <span>-Tags gesucht wird (z.B. document.body).
+ * @param {string[]} targetIds Eine Liste von IDs (Strings), deren Vorkommen im "data-code"-Attribut gezählt werden sollen.
+ */
+
+
+function countAnnotations() {
+
+    htmlString=DOCUMENTS[0].content;
+    targetIds=CODES.map(code => String(code.id)); //["1","2","3"];    
+
+    // 1. HTML-String in ein temporäres DOM-Fragment parsen
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+    const rootElement = doc.body; // Der body des temporären Dokuments dient als Root-Element
+
+    // 2. Alle <span>-Tags mit dem Attribut data-code finden
+    const allSpans = rootElement.querySelectorAll('span[data-code]');
+    
+    // Gesamtanzahl aller relevanten <span>-Tags (mit data-code)
+    const totalAllSpans = allSpans.length;
+
+    // Initialisierung der Zähler für jede Ziel-ID
+    const counts = {};
+    let totalRelevantSpans = 0;
+
+    targetIds.forEach(id => {
+        counts[id] = 0;
+    });
+
+    // 3. Zählung der Vorkommen
+    allSpans.forEach(span => {
+        // Mithilfe von .getAttribute('data-code') oder .dataset.code
+        const dataCode = span.getAttribute('data-code');
+        
+        // Überprüfen, ob die data-code-ID in der Liste der Ziel-IDs enthalten ist
+        if (targetIds.includes(dataCode)) {
+            counts[dataCode]++;
+            totalRelevantSpans++;
+        }
+    });
+
+    // 4. Tabelle als HTML-String erstellen (wie zuvor)
+    let tableHtml = `
+        <style>
+            body { font-family: sans-serif; padding: 20px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
+            th { background-color: #f2f2f2; }
+            .summary-row { font-weight: bold; background-color: #e0f7fa; }
+        </style>
+        <h1>Statistik der Code-Annotationen</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID (data-code)</th>
+                    <th>Anzahl der Code-Annotationen</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // Zeilen für jede gezählte ID hinzufügen
+    targetIds.forEach(id => {
+        tableHtml += `
+            <tr>
+                <td>${id}</td>
+                <td>${counts[id]}</td>
+            </tr>
+        `;
+    });
+
+    // Zusammenfassungszeilen hinzufügen
+    tableHtml2 = `
+            <tr class="summary-row">
+                <td>Summe (nur einschlägige IDs)</td>
+                <td>${totalRelevantSpans}</td>
+            </tr>`
+
+    tableHtml += `
+            <tr class="summary-row">
+                <td>Summe aller Annotationen</td>
+                <td>${totalAllSpans}</td>
+            </tr>
+            </tbody>
+        </table>
+    `;
+
+    // 5. Popup-Fenster öffnen und Tabelle anzeigen
+    const popup = window.open('', 'SpanCountStats', 'width=600,height=400,scrollbars=yes');
+    if (popup) {
+        // Sicherstellen, dass der Inhalt nach dem Laden des Popups geschrieben wird
+        // und Titel setzen
+        popup.document.write('<!DOCTYPE html><html><head><title>Span Statistik</title></head><body>' + tableHtml + '</body></html>');
+        popup.document.close();
+    } else {
+        alert('Das Popup-Fenster konnte nicht geöffnet werden. Bitte erlauben Sie Popups für diese Seite.');
+    }
+}
+
+
+// ===================================
+// IMPORT-FUNKTIONALITÄT
+// ===================================
+
+function openAndReadJsonFile() {
+  return new Promise((resolve) => {
+    // 1. Ein verstecktes <input type="file"> Element erstellen
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json'; // Optional: Filtert für JSON-Dateien im Dialog
+
+    // 2. Event-Listener für die Dateiauswahl definieren
+    input.onchange = (event) => {
+      const file = event.target.files[0];
+
+      // Prüfen, ob eine Datei ausgewählt wurde
+      if (!file) {
+        resolve(null); // Benutzer hat abgebrochen
+        return;
+      }
+
+      // 3. FileReader verwenden, um den Dateiinhalt zu lesen
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const fileContent = e.target.result;
+        let jsonData = null;
+
+        try {
+          // 4. Den Inhalt als JSON parsen
+          jsonData = JSON.parse(fileContent);
+          resolve(jsonData); // Erfolgreich geparstes JSON zurückgeben
+
+        } catch (error) {
+          // 5. Fehlerbehandlung für ungültiges JSON
+          alert('Fehler: Die ausgewählte Datei ist kein gültiges JSON-Format.');
+          console.error('JSON-Parsing-Fehler:', error);
+          resolve(null); // Fehler signalisieren
+        }
+      };
+
+      reader.onerror = () => {
+        alert('Fehler beim Lesen der Datei.');
+        console.error('FileReader-Fehler:', reader.error);
+        resolve(null);
+      };
+
+      // Den Inhalt der Datei als Text lesen
+      reader.readAsText(file);
+    };
+
+    // 3. Den Dateidialog programmgesteuert öffnen
+    input.click();
+  });
+}
+
+async function handleFileSelection() {
+  console.log('Warte auf Dateiauswahl...');
+  const data = await openAndReadJsonFile();
+
+  if (data) {
+    console.log('Datei erfolgreich als JSON eingelesen:', data);
+    //alert(JSON.stringify(data[0]["DOCUMENTS"]));
+    DOCUMENTS = data[0]["DOCUMENTS"];
+    CODES = data[0]["CODES"];
+
+    documentList.innerHTML = '';
+    DOCUMENTS.forEach(document => {
+      documentList.appendChild(createListItem(document, 'document-list'));
+    });
+    //alert(JSON.stringify(DOCUMENTS));
+    
+    codeList.innerHTML = '';
+    CODES.forEach(code => {
+      codeList.appendChild(createListItem(code, 'code-list'));
+    });
+    //alert(JSON.stringify(CODES));
+    
+    if(selectedCode !== null){
+      selectedCode = CODES.find(doc => doc.id == selectedCode.id);
+    }  
+    if(selectedDocument !== null){    
+      selectedDocument = DOCUMENTS.find(doc => doc.id == selectedDocument.id);
+        loadDocumentText(selectedDocument);
+    }
+    updateSelectedCodeDisplay();
+
+
+    alert(JSON.stringify(data));
+
+  } else {
+    console.log('Vorgang abgebrochen oder Fehler aufgetreten.');
+  }
+}
+
+// Initialisierung
+document.addEventListener('DOMContentLoaded', () => {
+    renderLists();
+    //updateSelectedCodeDisplay();
+    updateInterface(); 
+});
+</script>
+
+
+
+
+
+
+
+<style>
+
+/* Removes default list styling */
+nav ul {
+  list-style-type: none; /* Removes the bullets */
+  margin: 0;
+  padding: 0;
+  background-color: #333; /* Adds a background color to the bar */
+  overflow: hidden; /* Ensures any floats are contained */
+}
+
+/* Makes the list items display side-by-side */
+nav li {
+  float: left; /* Floats the list items horizontally */
+}
+
+/* Styles the actual links */
+nav li a {
+  display: block; /* Makes the entire <li> area clickable */
+  color: white;
+  cursor: pointer;
+  text-align: center;
+  padding: 14px 16px; /* Adds spacing around the text */
+  text-decoration: none; /* Removes the underline from links */
+}
+
+/* Changes color on hover for feedback */
+nav li a:hover {
+  background-color: #555;
+}
+
+/* Grund-Layout */
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    font-size: 12px;
+}
+
+#app-container {
+    display: flex;
+    height: calc(100vh - 50px);
+    /* min-height: 100vh; Mindesthöhe ist Viewporthöhe */
+}
+
+/* Linke Sidebar (1/3 Breite) */
+#left-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    min-width: 250px; /* Mindestbreite */
+    border-right: 1px solid #ccc;
+    background-color: #fff;
+}
+
+#title {
+    padding-left: 15px;
+}
+
+.panel {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    overflow: hidden; /* Für Scroll-Bereich */
+    flex-grow: 1;     
+    display: flex;
+    flex-direction: column;
+}
+
+#code-panel {
+    border-bottom: none;
+    flex-grow: 1;
+}
+
+#document-panel {
+    border-bottom: none;
+    flex-grow: 1;
+}
+
+/* Rechtes Hauptpanel (2/3 Breite) */
+#main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background-color: #fafafa;
+}
+
+/* List- und Control-Styles */
+.panel-controls {
+    margin-bottom: 10px;
+}
+
+.list-container {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto; /* Scrollbar für Listen */
+    flex-grow: 1; /* Nimmt den restlichen Platz im Panel ein */
+}
+
+.list-container li {
+    padding: 8px 10px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: background-color 0.15s, border 0.15s;
+}
+
+.list-container li:hover {
+    background-color: #f0f0f5;
+}
+
+/* Selektierter Eintrag */
+.list-container li.selected {
+    background-color: #3498db;
+    color: white;
+    border: 1px solid #2980b9;
+    font-weight: bold;
+}
+
+/* Text-Anzeige-Bereich */
+#text-display {
+    border: 1px solid #ccc;
+    padding: 15px;
+    flex-grow: 1;
+    overflow-y: auto; /* Scrollbar für den Text */
+    line-height: 1.6;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Style für annotierten Text */
+.annotation {
+    padding: 1px 3px;
+    margin: 0 1px;
+    border-radius: 3px;
+    font-weight: 500;
+    cursor: default;
+    /* Beispiel-Stil: Farbe wird dynamisch in JS gesetzt */
+}
+
+/* Control-Button Annotieren */
+#annotate-button {
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+#annotate-button:hover {
+    background-color: #27ae60;
+}
+
+#document-header, #code-header, button:hover { cursor: pointer; }
+
+/* Control-Button Annotation Löschen */
+#remove-annotation-button {
+    background-color: #e74c68;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+#remove-annotation-button:hover {
+    background-color: #c0392b;
+}
+
+/* Control-Button Annotationen Anzeigen */
+#show-annotations-button {
+    background-color: #3498db; //#1abc9c; //#9b59b6;		
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+#show-annotations-button:hover {
+    background-color: #2980b9; //#16a085; //#8e44ad;
+}
+
+
+/* Control-Button Annotationen Zählen */
+#count-annotations-button {
+    background-color: #1abc9c; //#9b59b6;		
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+#count-annotations-button:hover {
+    background-color: #16a085; //#8e44ad;
+}
+
+
+</style>
