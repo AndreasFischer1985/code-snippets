@@ -188,15 +188,38 @@ function createListItem(item, containerId) {
           }
         }); 
     } else if (containerId === 'code-list') {
-       li.addEventListener('input', () => {        
-          const index = CODES.findIndex(el => "code-"+el.id === li.id);
-          if(index !== -1) {
-            updateAnnotationLabels(CODES[index].id, li.textContent, CODES[index].color, DOCUMENTS); // update annotations in DOCUMENTS
-            CODES[index].name=li.textContent; //update CODES afterwards
-            updateInterface();
-          }
-          //alert("Updated Code "+(index+1)+" in\n\n"+JSON.stringify(CODES)); 
-        });        
+    
+       // Nur den Namen im Datenmodell bei jeder Eingabe aktualisieren
+       li.addEventListener('input', () => {         
+         const index = CODES.findIndex(el => "code-"+el.id === li.id);
+         if(index !== -1) {
+           // Aktualisiere nur den Namen im CODES-Array
+           CODES[index].name=li.textContent; 
+           
+           // Aktualisiere die Anzeige des ausgewählten Codes, falls es der ausgewählte Code ist
+           if (selectedCode && selectedCode.id === CODES[index].id) {
+               selectedCode.name = li.textContent;
+               updateSelectedCodeDisplay();
+           }
+         }
+       });  
+       
+       // BLUR-Event: Aktualisierung der Annotationen und der Oberfläche nur beim Verlassen des Feldes
+       // Dies ist optional, wird aber empfohlen, um die Konsistenz mit Annotationen zu gewährleisten.
+       li.addEventListener('blur', () => {         
+         const index = CODES.findIndex(el => "code-"+el.id === li.id);
+         if(index !== -1) {
+             // Aktualisiere die Annotationen in den Dokumenten mit dem neuen Label
+             updateAnnotationLabels(CODES[index].id, CODES[index].name, CODES[index].color, DOCUMENTS); 
+             
+             // KEIN AUFRUF von updateInterface(), da dies den Fokus und das Dokument neu lädt.
+             // Stattdessen nur das aktuell angezeigte Dokument neu laden, falls es Annotationen enthält.
+             if (selectedDocument) {
+                 loadDocumentText(selectedDocument);
+             }
+         }
+       });
+       
     }
 
     return li;
@@ -246,7 +269,7 @@ function loadDocumentText(doc) {
         // WICHTIG: Er muss **HTML** enthalten, wenn bereits annotiert wurde.
         textDisplay.innerHTML = doc.content; 
         document.getElementById('text-display').style.backgroundColor = 'white';
-        textDisplay.focus();
+        //textDisplay.focus();
     }
 }
 
