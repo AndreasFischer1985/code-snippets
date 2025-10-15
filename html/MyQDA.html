@@ -49,7 +49,10 @@
                 <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
                 <button id="show-annotations-button" onclick="showAnnotations()">🔍 Annotationen</button> 
                 <button id="count-annotations-button" onclick="countAnnotations()">📈 Zahlen</button>
-                <button id="ai-content-analysis-button" onclick="KIBasierteInhaltsanalyse()">🤖 KI</button>
+                <button id="ai-content-analysis-button" onclick="KIBasierteInhaltsanalyseForm()">🤖 KI</button>
+
+
+ 
             </div>
             
             <div id="text-display" contenteditable="true" spellcheck="false">
@@ -401,6 +404,10 @@ function annotateSelectedText() {
 /** ENTFERNT DIE ANNOTATION EINER MARKIERTE(N) STELLE */
 
 function removeAnnotation() {
+
+    // 0. Prüfen, welcher DOCUMENTS-Eintrag gerade angezeigt wird
+    const index = DOCUMENTS.findIndex(el => el.content === textDisplay.getHTML());
+
     const selection = window.getSelection();
 
     if (!selection.rangeCount) {
@@ -433,6 +440,11 @@ function removeAnnotation() {
 
         // 4. Auswahl aufheben
         selection.removeAllRanges();
+
+
+        // 5. Ergebnis festhalten 
+        if(index !== -1) DOCUMENTS[index].content=textDisplay.getHTML();
+        //alert("Document "+(index+1)+":\n\n"+textDisplay.getHTML());
 
     } else {
         alert("Die aktuelle Markierung befindet sich nicht in einer Annotation.");
@@ -811,7 +823,7 @@ async function handleFileSelection() {
 // ===================================
 
 
-function KIBasierteInhaltsanalyse() {
+function KIBasierteInhaltsanalyseForm() {
  /**
  * Öffnet ein neues Fenster und zeigt ein Formular für die KI-basierte Inhaltsanalyse.
  * Die Elemente und Logik basieren auf den Anforderungen nach Fischer (2025).
