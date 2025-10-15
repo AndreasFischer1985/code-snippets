@@ -48,7 +48,8 @@
                 <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
                 <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
                 <button id="show-annotations-button" onclick="showAnnotations()">🔍 Annotationen</button> 
-                <button id="count-annotations-button" onclick="countAnnotations()">📈 Zahlen</button> 
+                <button id="count-annotations-button" onclick="countAnnotations()">📈 Zahlen</button>
+                <button id="ai-content-analysis-button" onclick="KIBasierteInhaltsanalyse()">🤖 KI</button>
             </div>
             
             <div id="text-display" contenteditable="true" spellcheck="false">
@@ -804,6 +805,183 @@ async function handleFileSelection() {
   }
 }
 
+
+// ===================================
+// KI-FUNKTIONALITÄT
+// ===================================
+
+
+function KIBasierteInhaltsanalyse() {
+ /**
+ * Öffnet ein neues Fenster und zeigt ein Formular für die KI-basierte Inhaltsanalyse.
+ * Die Elemente und Logik basieren auf den Anforderungen nach Fischer (2025).
+ */
+    // 1. Neues Fenster öffnen
+    const newWindow = window.open("", "_blank", "width=800,height=700,scrollbars=yes");
+
+    if (!newWindow) {
+        alert("Das Popup-Fenster wurde blockiert. Bitte erlauben Sie Popups für diese Seite.");
+        return;
+    }
+
+    // 2. Dokumentenstruktur im neuen Fenster vorbereiten
+    newWindow.document.title = "KI-Inhaltsanalyse Konfiguration (Fischer, 2025)";
+    
+    // Grundlegendes Styling hinzufügen (optional, aber nützlich für die Lesbarkeit)
+    const style = newWindow.document.createElement('style');
+    style.textContent = `
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        h2 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Wichtig für korrekte Breite */
+        }
+        textarea { resize: vertical; height: 100px; }
+        .checkbox-group label { font-weight: normal; display: inline-block; margin-right: 15px; }
+    `;
+    newWindow.document.head.appendChild(style);
+
+    // 3. Formular erstellen
+    const form = newWindow.document.createElement('form');
+    form.innerHTML = `
+        <h2>Einstellungen für die KI-Inhaltsanalyse (Fischer, 2025)</h2>
+        
+        <div class="form-group">
+            <label for="context">Kontext:</label>
+            <textarea id="context" name="context" placeholder="Geben Sie hier Forschungsfrage oder andere Kontext-Informationen ein, die Sie im Prompt-Template mit {context} referenzieren möchten."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="llm_url">LLM-API-Endpunkt (URL):</label>
+            <input type="text" id="llm_url" name="llm_url" placeholder="z.B. https://api.llm-provider.com/v1/analyze" required>
+        </div>
+        <div class="form-group">
+            <label for="llm_key">LLM-API-Key (String):</label>
+            <input type="text" id="llm_key" name="llm_key" placeholder="z.B. hf_api123" required>
+        </div>   
+        <hr>
+
+        <h3>Analysestrategie und Prompt-Generierung</h3>
+
+        <div class="form-group">
+            <label for="analyseverfahren">Qualitatives Analyseverfahren (Single-Choice):</label>
+            <select id="analyseverfahren" name="analyseverfahren">
+                <option value="Zusammenfassung">Zusammenfassung</option>
+                <option value="Explikation">Explikation</option>
+                <option value="Induktion">Induktion</option>
+                <option value="Deduktion">Deduktion</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="prompt_anweisung">Spezifische Prompt-Anweisung:</label>
+            <textarea id="prompt_anweisung" name="prompt_anweisung" placeholder="Der Platzhalter {text} wird durch den zu analysierenden Text ersetzt. Die Standard-Aufforderung wird bei Änderung überschrieben."></textarea>
+            <small id="prompt_vorschlag" style="color: #666; display: block; margin-top: 5px;"></small>
+        </div>
+
+        <hr>
+
+        <h3>Datengranularität und Vorverarbeitung</h3>
+
+        <div class="form-group">
+            <label for="granularitaet">Analyseeinheit (Single-Choice):</label>
+            <select id="granularitaet" name="granularitaet">
+                <option value="korpus">Korpus</option>
+                <option value="dokument">Dokument</option>
+                <option value="segment">Segment</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Text-Vorverarbeitung:</label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="remove_quotes" name="vorverarbeitung" value="entferne_anfuehrungszeichen">
+                <label for="remove_quotes">entferne Anführungszeichen</label>                
+                <input type="checkbox" id="remove_double_spaces" name="vorverarbeitung" value="entferne_doppelte_leerzeilen">
+                <label for="remove_double_spaces">entferne doppelte Leerzeilen</label>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="form-group">
+             <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Analyse starten</button>
+        </div>
+    `;
+
+    // 4. Logik für die automatische Prompt-Generierung
+    const select = form.querySelector('#analyseverfahren');
+    const promptTextarea = form.querySelector('#prompt_anweisung');
+    const promptVorschlag = form.querySelector('#prompt_vorschlag');
+
+    function updatePrompt() {
+        const selectedValue = select.value;
+        let defaultPrompt = "";
+
+        switch (selectedValue) {
+            case 'Zusammenfassung':
+                defaultPrompt = "Fasse den folgenden Text stichpunktartig zusammen: '{text}'";
+                break;
+            case 'Explikation':
+                defaultPrompt = "Erläutere die Impliationen des Textes '{text}' für die Forschungsfrage '{context}'.";
+                break;
+            case 'Induktion':
+                defaultPrompt = "Gegeben sei der folgende Text '{text}' Welche Kategorien, Themen oder Muster lassen sich aus dem Text ableiten?";
+                break;
+            case 'Deduktion':
+                defaultPrompt = "Wende das Kodierschema {context} auf den folgenden Text an und extrahiere relevante Segmente: '{text}'";
+                break;
+        }
+
+        // Setzt den Standard-Prompt nur, wenn die Textarea noch leer ist, 
+        // andernfalls zeigt es den Vorschlag an.
+        if (promptTextarea.value.trim() === "") {
+            promptTextarea.value = defaultPrompt;
+        } else {
+            promptVorschlag.textContent = `Vorschlag für "${selectedValue}": ${defaultPrompt}`;
+        }
+    }
+
+    // Initialen Prompt setzen
+    newWindow.document.body.appendChild(form);
+    updatePrompt(); 
+
+    // Event-Listener für Änderungen im Dropdown
+    select.addEventListener('change', updatePrompt);
+
+    // Event-Listener, um den Vorschlag auszublenden, wenn der Benutzer selbst tippt
+    promptTextarea.addEventListener('input', () => {
+         if (promptTextarea.value.trim() !== "") {
+            promptVorschlag.textContent = "";
+        }
+    });
+
+    // Optional: Beispiel für Formular-Submission-Handling
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const data = {};
+        for (const [key, value] of formData.entries()) {
+            // Spezielle Behandlung für Checkboxen (mehrere Werte)
+            if (key === 'vorverarbeitung') {
+                if (!data[key]) data[key] = [];
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
+        }
+        newWindow.close();
+        alert("Die KI-basierte Inhaltsanalyse ist in der aktuell genutzten Version nicht freigeschaltet.\nBei Interesse wenden Sie sich an Dr. Andreas Fischer.");
+    });
+}
+
+
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
     renderLists();
@@ -1028,5 +1206,22 @@ html, body {
     background-color: #16a085; //#8e44ad;
 }
 
+
+
+/* Control-Button Annotationen Zählen */
+#ai-content-analysis-button {
+    background-color: #9b59b6;		
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+#ai-content-analysis-button:hover {
+    background-color: #8e44ad;
+}
 
 </style>
