@@ -44,15 +44,22 @@
 
         <div id="main-content">
             <div class="panel-controls">
-                <span id="selected-code-display">Aktueller Code: <i>Kein Code gewählt</i></span><br><br>
-                <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
-                <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
-                <button id="show-annotations-button" onclick="showAnnotations()">🔍 Annotationen</button> 
-                <button id="count-annotations-button" onclick="countAnnotations()">📈 Zahlen</button>
-                <button id="ai-content-analysis-button" onclick="KIBasierteInhaltsanalyseForm()">🤖 KI</button>
-
-
- 
+                <span id="selected-code-display">Aktueller Code: <i>Kein Code gewählt</i></span>
+                
+                <div class="button-row">
+                    <!-- Die letzten 3 Buttons (jetzt links) -->
+                    <div class="buttons-left">
+                        <button id="show-annotations-button" onclick="showAnnotations()">🔍 Textstellen</button> 
+                        <button id="count-annotations-button" onclick="countAnnotations()">📈 Statistik</button>
+                        <button id="ai-content-analysis-button" onclick="KIBasierteInhaltsanalyseForm()">🤖 KI</button>
+                    </div>
+            
+                    <!-- Die ersten 2 Buttons (jetzt rechts) -->
+                    <div class="buttons-right">
+                        <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
+                        <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
+                    </div>
+                </div>
             </div>
             
             <div id="text-display" contenteditable="true" spellcheck="false">
@@ -80,6 +87,18 @@ let CODES = [
     { id: 3, name: "Neutrale Beobachtung", color: "#f1c40f" }
 ];
 
+let SETTINGS = 
+   {        model: "google/gemma-4-12b-qat",
+            url: "http://127.0.0.1:1234/v1/chat/completions",
+            apiKey: "", 
+            context: "",
+            verfahren: "Zusammenfassung",
+            granularitaet: "Korpus",
+            promptTemplate: "Fasse den folgenden Text stichpunktartig zusammen: '{text}'",
+            removeQuotes: true,
+            removeDoubleSpaces: false
+   };
+
 let selectedCode = null;
 let selectedDocument = null;
 const documentList = document.getElementById('document-list');
@@ -93,7 +112,7 @@ document.getElementById('import').addEventListener('click', () => {
 
 document.getElementById('export').addEventListener('click', () => {
            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
-		JSON.stringify([{"CODES":CODES,"DOCUMENTS":DOCUMENTS}]));	
+		JSON.stringify([{"CODES":CODES,"DOCUMENTS":DOCUMENTS, "SETTINGS":SETTINGS}]));	
            var dlAnchorElem = document.getElementById('downloadAnchorElem');
            dlAnchorElem.setAttribute("href",     dataStr     );
            dlAnchorElem.setAttribute("download", "project_"+Date.now()+".json");
@@ -534,81 +553,97 @@ function updateChangedCodes(CODES, CODES_updated, updateAnnotationLabels, DOCUME
 /** ANNOTATIONEN FÜR SELECTEDCODE ANZEIGEN **/
 
 function showAnnotations() {
+    // 0. Map erstellen, um Code-IDs schnell ihren Namen/Farben zuzuordnen
+    const codeMap = new Map(CODES.map(c => [String(c.id), c]));
 
-    // 0. Prüfen, ob ein Code ausgewählt ist
-    if (!selectedCode) {
-        alert("Bitte wählen Sie zuerst einen Code (links unten) aus.");
-        return;
-    }
+    // Regulärer Ausdruck für ALLE data-code IDs
+    // Erfassungsgruppe 1: data-code ID
+    // Erfassungsgruppe 2: Inhalt der Annotation
+    const regex = /<span\s+[^>]*?class=["']annotation["'][^>]*?data-code=["'](\d+)["'][^>]*?>(.*?)<\/span>/g;
 
-    const codeIdStr = String(selectedCode.id);
-    const annotations = [];
+    // Objekte nach Code-IDs gruppieren: { "1": [], "2": [], ... }
+    const groupedAnnotations = {};
+    CODES.forEach(c => {
+        groupedAnnotations[c.id] = [];
+    });
 
-    // Regulärer Ausdruck, um das gesamte <span>-Tag mit dem Inhalt zu finden.
-    // Suchmuster: <span class="annotation" data-code="CODE_ID" [weitere Attribute]>INHALT</span>
-    // Erfassungsgruppe 1: Der Inhalt (Text) der Annotation.
-    const regex = new RegExp(
-        `<span\\s+[^>]*?class=["']annotation["'][^>]*?data-code=["']${codeIdStr}["'][^>]*?>(.*?)<\\/span>`,
-        'g'
-    );
+    let totalCount = 0;
 
-    // 1. Alle Annotationen sammeln
+    // 1. Alle Dokumente durchsuchen
     DOCUMENTS.forEach(doc => {
         if (doc.content) {
             let match;
-            // Iteriere über alle Matches in doc.content
-            while ((match = regex.exec(doc.content)) !== null) {
-                // match[1] enthält den Inhalt der Annotation (die erste Erfassungsgruppe)
-                const annotationText = match[1].trim();
+            // Da regex global ('g') ist, vor jedem Dokument den Index zurücksetzen
+            regex.lastIndex = 0;
 
-                // Füge das extrahierte Textstück zusammen mit der Quelle hinzu.
-                annotations.push({
-                    documentName: doc.name,
-                    text: annotationText
-                });
+            while ((match = regex.exec(doc.content)) !== null) {
+                const codeId = match[1];
+                const annotationText = match[2].trim();
+
+                if (groupedAnnotations[codeId]) {
+                    groupedAnnotations[codeId].push({
+                        documentName: doc.name,
+                        text: annotationText
+                    });
+                    totalCount++;
+                }
             }
         }
     });
 
-    // 2. Popup-Fenster erstellen und Inhalte formatieren
-    const popupContent = annotations.map(ann =>
-        `<div>
-            <strong>${ann.documentName}:</strong>
-            <span>...${ann.text}...</span>
-            <hr style="border: 0; border-top: 1px solid #ccc; margin: 5px 0;">
-         </div>`
-    ).join('');
+    // 2. HTML-Inhalt nach Codes strukturiert aufbauen
+    const popupContent = CODES.map(code => {
+        const items = groupedAnnotations[code.id] || [];
+        const itemsHtml = items.length > 0
+            ? items.map(ann => `
+                <div style="margin-bottom: 8px;">
+                    <strong>${ann.documentName}:</strong>
+                    <span>...${ann.text}...</span>
+                </div>
+              `).join('')
+            : '<em>Keine Treffer</em>';
 
-    const windowTitle = `Annotationen für Code-ID: ${codeIdStr}`;
+        return `
+            <div style="margin-bottom: 20px; border-left: 4px solid ${code.color}; padding-left: 10px;">
+                <h3 style="margin: 0 0 8px 0; color: ${code.color};">
+                    ${code.name} (ID: ${code.id}) — ${items.length} Treffer
+                </h3>
+                ${itemsHtml}
+            </div>
+            <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+        `;
+    }).join('');
 
-    // Öffne ein neues Popup-Fenster mit Scrollbar
+    const windowTitle = "Übersicht aller Annotationen";
+
+    // 3. Popup-Fenster öffnen
     const popupWindow = window.open(
         '', 
         '_blank', 
-        'width=600,height=400,scrollbars=yes,resizable=yes'
+        'width=700,height=500,scrollbars=yes,resizable=yes'
     );
-    
-    // Prüfen, ob das Fenster geöffnet werden konnte (kann durch Pop-up-Blocker verhindert werden)
+
     if (!popupWindow) {
         alert("Pop-up-Blocker hat das Fenster blockiert. Bitte erlauben Sie Pop-ups für diese Seite.");
         return;
     }
 
-    // Füge HTML-Struktur und Inhalte in das Popup-Fenster ein
     popupWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
             <title>${windowTitle}</title>
             <style>
-                body { font-family: sans-serif; padding: 10px; }
-                hr { margin: 10px 0; }
+                body { font-family: sans-serif; padding: 15px; background: #fff; }
                 strong { color: #333; }
-                span { display: block; margin-left: 10px; font-style: italic; }
+                span { display: block; margin-left: 10px; font-style: italic; color: #555; }
+                em { color: #999; margin-left: 10px; display: block; }
             </style>
         </head>
         <body>
-            <h2>${windowTitle}</h2><h3>(${annotations.length} Fundstellen)</h3>
+            <h2>${windowTitle}</h2>
+            <p><strong>Gesamtzahl der Fundstellen:</strong> ${totalCount}</p>
+            <hr style="border: 0; border-top: 2px solid #333; margin: 15px 0;">
             <div id="annotations-list">
                 ${popupContent}
             </div>
@@ -616,10 +651,8 @@ function showAnnotations() {
         </html>
     `);
 
-    // Schließe das Dokument, um das Rendering zu starten
     popupWindow.document.close();
 }
-
 
 /** Zählt <span>-Tags basierend auf dem "data-code"-Attribut 
  * @param {HTMLElement} rootElement Das Element, in dem nach <span>-Tags gesucht wird (z.B. document.body).
@@ -628,22 +661,21 @@ function showAnnotations() {
 
 
 function countAnnotations() {
+    // 1. Sichere Deklaration & Lookup-Map für Namen erstellen
+    const htmlString = DOCUMENTS[0]?.content || '';
+    
+    // Map erlaubt den schnellen Zugriff auf den Namen über die ID
+    const codeMap = new Map(CODES.map(code => [String(code.id), String(code.name)]));
+    const targetIds = Array.from(codeMap.keys());
 
-    htmlString=DOCUMENTS[0].content;
-    targetIds=CODES.map(code => String(code.id)); //["1","2","3"];    
-
-    // 1. HTML-String in ein temporäres DOM-Fragment parsen
+    // 2. HTML-String in ein DOM-Fragment parsen
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
-    const rootElement = doc.body; // Der body des temporären Dokuments dient als Root-Element
-
-    // 2. Alle <span>-Tags mit dem Attribut data-code finden
-    const allSpans = rootElement.querySelectorAll('span[data-code]');
+    const allSpans = doc.body.querySelectorAll('span[data-code]');
     
-    // Gesamtanzahl aller relevanten <span>-Tags (mit data-code)
     const totalAllSpans = allSpans.length;
 
-    // Initialisierung der Zähler für jede Ziel-ID
+    // 3. Zähler initialisieren & Vorkommen zählen
     const counts = {};
     let totalRelevantSpans = 0;
 
@@ -651,19 +683,15 @@ function countAnnotations() {
         counts[id] = 0;
     });
 
-    // 3. Zählung der Vorkommen
     allSpans.forEach(span => {
-        // Mithilfe von .getAttribute('data-code') oder .dataset.code
         const dataCode = span.getAttribute('data-code');
-        
-        // Überprüfen, ob die data-code-ID in der Liste der Ziel-IDs enthalten ist
         if (targetIds.includes(dataCode)) {
             counts[dataCode]++;
             totalRelevantSpans++;
         }
     });
 
-    // 4. Tabelle als HTML-String erstellen (wie zuvor)
+    // 4. HTML-Tabelle aufbauen
     let tableHtml = `
         <style>
             body { font-family: sans-serif; padding: 20px; }
@@ -676,44 +704,45 @@ function countAnnotations() {
         <table>
             <thead>
                 <tr>
-                    <th>ID (data-code)</th>
-                    <th>Anzahl der Code-Annotationen</th>
+                    <th>ID</th>
+                    <th>Code</th>
+                    <th>Anzahl der Annotationen</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
-    // Zeilen für jede gezählte ID hinzufügen
+    // Zeilen für jeden Code einfügen (Name wird aus der Map gelesen)
     targetIds.forEach(id => {
+        const codeName = codeMap.get(id) || 'Unbekannt';
         tableHtml += `
             <tr>
                 <td>${id}</td>
+                <td>${codeName}</td>
                 <td>${counts[id]}</td>
             </tr>
         `;
     });
 
-    // Zusammenfassungszeilen hinzufügen
-    tableHtml2 = `
-            <tr class="summary-row">
-                <td>Summe (nur einschlägige IDs)</td>
-                <td>${totalRelevantSpans}</td>
-            </tr>`
-
+    // Zusammenfassungszeilen direkt anhängen
     tableHtml += `
             <tr class="summary-row">
-                <td>Summe aller Annotationen</td>
+                <td>Summe (gültige IDs)</td>
+                <td></td>
+                <td>${totalRelevantSpans}</td>
+            </tr>
+            <tr class="summary-row">
+                <td>Summe (alle IDs)</td>
+                <td></td>
                 <td>${totalAllSpans}</td>
             </tr>
             </tbody>
         </table>
     `;
 
-    // 5. Popup-Fenster öffnen und Tabelle anzeigen
+    // 5. Popup-Fenster öffnen
     const popup = window.open('', 'SpanCountStats', 'width=600,height=400,scrollbars=yes');
     if (popup) {
-        // Sicherstellen, dass der Inhalt nach dem Laden des Popups geschrieben wird
-        // und Titel setzen
         popup.document.write('<!DOCTYPE html><html><head><title>Span Statistik</title></head><body>' + tableHtml + '</body></html>');
         popup.document.close();
     } else {
@@ -784,9 +813,11 @@ async function handleFileSelection() {
 
   if (data) {
     console.log('Datei erfolgreich als JSON eingelesen:', data);
-    //alert(JSON.stringify(data[0]["DOCUMENTS"]));
+
     DOCUMENTS = data[0]["DOCUMENTS"];
     CODES = data[0]["CODES"];
+    SETTINGS = data[0]["SETTINGS"];
+    //alert(JSON.stringify(data[0]["SETTINGS"]));
 
     documentList.innerHTML = '';
     DOCUMENTS.forEach(document => {
@@ -808,7 +839,6 @@ async function handleFileSelection() {
         loadDocumentText(selectedDocument);
     }
     updateSelectedCodeDisplay();
-
 
     alert(JSON.stringify(data));
 
@@ -837,7 +867,7 @@ function KIBasierteInhaltsanalyseForm() {
     }
 
     // 2. Dokumentenstruktur im neuen Fenster vorbereiten
-    newWindow.document.title = "KI-Inhaltsanalyse Konfiguration (Fischer, 2025)";
+    newWindow.document.title = "KI-basierte Inhaltsanalyse nach Fischer (2025)";
     
     // Grundlegendes Styling hinzufügen (optional, aber nützlich für die Lesbarkeit)
     const style = newWindow.document.createElement('style');
@@ -862,27 +892,34 @@ function KIBasierteInhaltsanalyseForm() {
     // 3. Formular erstellen
     const form = newWindow.document.createElement('form');
     form.innerHTML = `
-        <h2>Einstellungen für die KI-Inhaltsanalyse (Fischer, 2025)</h2>
-        
+        <h2>KI-basierte Inhaltsanalyse nach Fischer (2025)</h2>
+  
+	<small><p><i>Das vorliegende Tool bietet die Möglichkeit, ausgewählte Varianten der KI-basierten Inhaltsanalyse nach Fischer (2025) umzusetzen. Für Erläuterungen, Alternativen und weitere Varianten sei verwiesen auf "Die Zukunft der Qualitativen Inhaltsanalyse im Zeitalter Künstlicher Intelligenz", kostenfrei zu beziehen unter <a href="https://doi.org/10.25656/01:34405">https://doi.org/10.25656/01:34405</a></i></p></small>
+
+        <h3>Kontext</h3>  
+    
         <div class="form-group">
-            <label for="context">Kontext:</label>
+            <label for="context">Forschungsfrage:</label>
             <textarea id="context" name="context" placeholder="Geben Sie hier Forschungsfrage oder andere Kontext-Informationen ein, die Sie im Prompt-Template mit {context} referenzieren möchten."></textarea>
         </div>
-
         <div class="form-group">
-            <label for="llm_url">LLM-API-Endpunkt (URL):</label>
-            <input type="text" id="llm_url" name="llm_url" placeholder="z.B. https://api.llm-provider.com/v1/analyze" required>
+            <label for="llm_model">LLM (Model Name):</label>
+            <input type="text" id="llm_model" name="llm_model" placeholder="z.B. google/gemma-4-12b-qat" value="google/gemma-4-12b-qat">
         </div>
         <div class="form-group">
-            <label for="llm_key">LLM-API-Key (String):</label>
-            <input type="text" id="llm_key" name="llm_key" placeholder="z.B. hf_api123" required>
+            <label for="llm_url">LLM-API-Endpunkt (URL):</label>
+            <input type="text" id="llm_url" name="llm_url" placeholder="z.B. http://127.0.0.1:1234/v1/chat/completions" value="http://127.0.0.1:1234/v1/chat/completions" required>
+        </div>
+        <div class="form-group">
+            <label for="llm_key">LLM-API-Key (optional):</label>
+            <input type="text" id="llm_key" name="llm_key" placeholder="z.B. hf_api123">
         </div>   
         <hr>
 
-        <h3>Analysestrategie und Prompt-Generierung</h3>
+        <h3>Technik</h3>
 
         <div class="form-group">
-            <label for="analyseverfahren">Qualitatives Analyseverfahren (Single-Choice):</label>
+            <label for="analyseverfahren">Analysetechnik (Single-Choice):</label>
             <select id="analyseverfahren" name="analyseverfahren">
                 <option value="Zusammenfassung">Zusammenfassung</option>
                 <option value="Explikation">Explikation</option>
@@ -891,24 +928,27 @@ function KIBasierteInhaltsanalyseForm() {
             </select>
         </div>
 
+        <h3>Einheiten</h3>
+
         <div class="form-group">
-            <label for="prompt_anweisung">Spezifische Prompt-Anweisung:</label>
+            <label for="granularitaet">Verarbeitungseinheit (Single-Choice):</label>
+            <select id="granularitaet" name="granularitaet">
+                <option value="Korpus">Korpus</option>
+                <option value="Dokument">Dokument</option>
+                <option value="Segment">Segment</option>
+            </select>
+        </div>
+
+        <h3>Prozess</h3>
+<small><p><strong>Hinweis:</strong> <i>Für zuverlässige und gültige Ergebnisse sollten Sie den Prozess (und insb. das Prompt-Template) kompetent spezifzieren, empirisch erproben und bei Bedarf iterativ optimieren. Weiterführende Hinweise finden Sie bei Fischer (2025).</i></p></small>
+
+        <div class="form-group">
+            <label for="prompt_anweisung">Prompt-Template:</label>
             <textarea id="prompt_anweisung" name="prompt_anweisung" placeholder="Der Platzhalter {text} wird durch den zu analysierenden Text ersetzt. Die Standard-Aufforderung wird bei Änderung überschrieben."></textarea>
             <small id="prompt_vorschlag" style="color: #666; display: block; margin-top: 5px;"></small>
         </div>
 
         <hr>
-
-        <h3>Datengranularität und Vorverarbeitung</h3>
-
-        <div class="form-group">
-            <label for="granularitaet">Analyseeinheit (Single-Choice):</label>
-            <select id="granularitaet" name="granularitaet">
-                <option value="korpus">Korpus</option>
-                <option value="dokument">Dokument</option>
-                <option value="segment">Segment</option>
-            </select>
-        </div>
 
         <div class="form-group">
             <label>Text-Vorverarbeitung:</label>
@@ -921,10 +961,13 @@ function KIBasierteInhaltsanalyseForm() {
         </div>
         
         <hr>
+
+        <h3>Implementierung</h3>
         
         <div class="form-group">
              <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Analyse starten</button>
         </div>
+        <small><p><strong>Wichtig:</strong> <i>Bitte beachten Sie, dass die KI-generierten Antworten nach Fischer (2025) im Zuge der <strong>Implementierung</strong> kontinulierlich überwacht und im Zuge einer abschließenden <strong>Evaluation</strong> durch Menschen ausgewertet, berichtet und verantwortet werden sollten. Bei Bedarf besteht die Möglichkeit, die Analyse iterativ anzupassen. Mit Blick auf die Validität der Analyse wird außerdem empfohlen, abschließend möglichst alle KI-generierten Antworten zu überprüfen.</i></p></small>
     `;
 
     // 4. Logik für die automatische Prompt-Generierung
@@ -944,7 +987,7 @@ function KIBasierteInhaltsanalyseForm() {
                 defaultPrompt = "Erläutere die Impliationen des Textes '{text}' für die Forschungsfrage '{context}'.";
                 break;
             case 'Induktion':
-                defaultPrompt = "Gegeben sei der folgende Text '{text}' Welche Kategorien, Themen oder Muster lassen sich aus dem Text ableiten?";
+                defaultPrompt = "Gegeben sei der folgende Text '{text}' Welche Kategorien lassen sich aus dem Text ableiten?";
                 break;
             case 'Deduktion':
                 defaultPrompt = "Wende das Kodierschema {context} auf den folgenden Text an und extrahiere relevante Segmente: '{text}'";
@@ -956,12 +999,23 @@ function KIBasierteInhaltsanalyseForm() {
         if (promptTextarea.value.trim() === "") {
             promptTextarea.value = defaultPrompt;
         } else {
-            promptVorschlag.textContent = `Vorschlag für "${selectedValue}": ${defaultPrompt}`;
+            promptVorschlag.innerHTML = `Vorschlag für "${selectedValue}":<br>"${defaultPrompt}"`;
         }
     }
 
     // Initialen Prompt setzen
     newWindow.document.body.appendChild(form);
+
+            form.querySelector('#llm_model').value=SETTINGS.model
+            form.querySelector('#llm_url').value=SETTINGS.url
+            form.querySelector('#llm_key').value=SETTINGS.apiKey
+            form.querySelector('#context').value=SETTINGS.context
+            form.querySelector('#analyseverfahren').value=SETTINGS.verfahren
+            form.querySelector('#granularitaet').value=SETTINGS.granularitaet
+            form.querySelector('#prompt_anweisung').value=SETTINGS.promptTemplate
+            form.querySelector('#remove_quotes').checked=SETTINGS.removeQuotes
+            form.querySelector('#remove_double_spaces').checked=SETTINGS.removeDoubleSpaces
+
     updatePrompt(); 
 
     // Event-Listener für Änderungen im Dropdown
@@ -974,25 +1028,228 @@ function KIBasierteInhaltsanalyseForm() {
         }
     });
 
-    // Optional: Beispiel für Formular-Submission-Handling
-    form.addEventListener('submit', (event) => {
+    // Event-Listener für das Absenden im Popup
+    form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const formData = new FormData(form);
-        const data = {};
-        for (const [key, value] of formData.entries()) {
-            // Spezielle Behandlung für Checkboxen (mehrere Werte)
-            if (key === 'vorverarbeitung') {
-                if (!data[key]) data[key] = [];
-                data[key].push(value);
-            } else {
-                data[key] = value;
-            }
-        }
+
+        // Parameter aus dem Popup-Formular auslesen
+        const config = {
+            model: form.querySelector('#llm_model').value.trim(),
+            url: form.querySelector('#llm_url').value.trim(),
+            apiKey: form.querySelector('#llm_key').value.trim(), 
+            context: form.querySelector('#context').value,
+            verfahren: form.querySelector('#analyseverfahren').value,
+            granularitaet: form.querySelector('#granularitaet').value,
+            promptTemplate: form.querySelector('#prompt_anweisung').value,
+            removeQuotes: form.querySelector('#remove_quotes').checked,
+            removeDoubleSpaces: form.querySelector('#remove_double_spaces').checked
+        };
+
+	// Übetrage Settings
+        SETTINGS=config;
+
+        // Formular-Button deaktiveren
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Analyse läuft im Hauptfenster...";
+
+        // Hauptfunktion zur Analyse ausführen und Popup schließen
+        runAIAnalysis(config);
         newWindow.close();
-        alert("Die KI-basierte Inhaltsanalyse ist in der aktuell genutzten Version nicht freigeschaltet.\nBei Interesse wenden Sie sich an Dr. Andreas Fischer.");
     });
 }
 
+
+async function runAIAnalysis(config) {
+    // 1. Neues Ziel-Dokument direkt zu Beginn erstellen
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('de-DE');
+    const timeStr = now.toLocaleTimeString('de-DE');
+    
+    const resultDocName = `KI-basierte Inhaltsanalyse ${config.verfahren} ${Date.now().toString().slice(-4)}`;
+    let currentContent = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren})</h2><p><i>Analyse gestartet am ${dateStr} um ${timeStr} (dies kann einige Minuten dauern)...</i></p><hr>`;
+
+    const newDoc = {
+        id: DOCUMENTS.length + 1,
+        name: resultDocName,
+        content: currentContent
+    };
+
+    // Dokument zum Array hinzufügen und UI sofort aktualisieren
+    DOCUMENTS.push(newDoc);
+    updateInterface();
+    selectListItem(document.getElementById(`document-${newDoc.id}`), 'document-list');
+
+    // Hilfsfunktion zum schrittweisen Aktualisieren der UI & Datenstruktur
+    const updateDocContent = (addedHtml) => {
+        currentContent += addedHtml;
+        newDoc.content = currentContent;
+        if (selectedDocument && selectedDocument.id === newDoc.id) {
+            textDisplay.innerHTML = currentContent;
+        }
+    };
+
+    // 2. Zu verarbeitende Texte ermitteln (KI-Dokumente ignorieren)
+    let textsToAnalyze = [];
+    
+    // Alle Dokumente filtern, die nicht mit "KI-basierte Inhaltsanalyse" beginnen
+    const validDocs = DOCUMENTS.filter(d => !d.name.startsWith("KI-basierte Inhaltsanalyse"));
+    
+    if (config.granularitaet === 'Dokument') {
+        validDocs.forEach(doc => {
+                textsToAnalyze.push({ title: doc.name, content: doc.content });
+        });
+    } else if (config.granularitaet === 'Korpus') {
+        const combinedContent = validDocs.map(d => d.content).join("\n\n");
+        textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dokumente)`, content: combinedContent });
+    } else if (config.granularitaet === 'Segment') {
+        
+        // Regulärer Ausdruck für ALLE Annotation-Spans
+        const annotationRegex = /<span\s+[^>]*?class=["']annotation["'][^>]*?>(.*?)<\/span>/gi;
+    
+        // 2.1. Alle Annotationen korpusweit sammeln
+        validDocs.forEach(doc => {
+            if (doc.content) {
+                annotationRegex.lastIndex = 0;
+                let segIdx = 1;
+                let match;
+                
+                while ((match = annotationRegex.exec(doc.content)) !== null) {
+                    const cleanAnnotationText = match[1].replace(/<[^>]*>/g, '').trim();
+    
+                    if (cleanAnnotationText !== '') {
+                        textsToAnalyze.push({
+                            title: `${doc.name} - Segment ${segIdx}`,
+                            content: cleanAnnotationText
+                        });
+                        segIdx++;
+                    }
+                }
+            }
+        });
+    
+    	// 2.2. Fallback: Absätze als Segmente nutzen mit fortlaufendem Zähler
+        if (textsToAnalyze.length === 0) {
+            validDocs.forEach(doc => {
+                if (doc.content) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = doc.content;
+                    
+                    // P- und DIV-Tags selektieren
+                    let paragraphElements = Array.from(tempDiv.querySelectorAll('p, div'))
+                        // Nur Elemente berücksichtigen, die direkt Text oder Inline-Tags enthalten (keine Container-Divs)
+                        .filter(el => !el.querySelector('p, div'))
+                        .map(el => el.innerText.trim())
+                        .filter(text => text !== '');
+    
+                    // Falls weder <p> noch <div> Tags vorhanden sind, am Zeilenumbruch trennen
+                    if (paragraphElements.length === 0) {
+                        paragraphElements = tempDiv.innerText
+                            .split(/\r?\n+/)
+                            .map(p => p.trim())
+                            .filter(p => p !== '');
+                    }
+                    
+                    // Korrekte Indexierung pro Absatz im jeweiligen Dokument
+                    paragraphElements.forEach((p, idx) => {
+                        textsToAnalyze.push({
+                            title: `${doc.name} - Absatz${idx + 1}`,
+                            content: p
+                        });
+                    });
+                }
+            });
+        }
+
+    }
+
+    if (textsToAnalyze.length === 0) {
+        updateDocContent(`<p style="color:red;"><strong>Abgebrochen:</strong> Keine Texte zur spezifizierten Analyse vorhanden.</p>`);
+        return;
+    }
+
+    // 3. Header aufbauen (Authorization nur falls Key vorhanden)
+    const headers = { 'Content-Type': 'application/json' };
+    if (config.apiKey !== "") {
+        headers['Authorization'] = `Bearer ${config.apiKey}`;
+    }
+
+    updateDocContent(`<small><p>⏳ <i>Spezifiziere Eckdaten:</i></p><ul><li>KI-Endpunkt "${config.url}"</li><li>Technik "${config.verfahren}"</li><li>Verarbeitungseinheit "${config.granularitaet}"</li></ul></small>`);
+
+
+    // 4. Sequentielle Verarbeitung mit Live-Updates im Dokument
+    for (let i = 0; i < textsToAnalyze.length; i++) {
+        updateDocContent(`<small>`);
+        const item = textsToAnalyze[i];
+        
+        // Status-Update vor dem Request schreiben
+        updateDocContent(`<p>⏳ <i>Verarbeite ${item.title} (${i + 1}/${textsToAnalyze.length})...</i></p>`);
+
+        let cleanText = item.content.replace(/<[^>]*>/g, '');
+        if (config.removeQuotes) { 
+		cleanText = cleanText.replace(/["'„“]/g, '');
+        	updateDocContent(`<p>⏳ <i>Entferne Anführungszeichen ("'„“)...</i></p>`);
+	}
+        if (config.removeDoubleSpaces){ 
+		cleanText = cleanText.replace(/\s+/g, ' ');
+		updateDocContent(`<p>⏳ <i>Entferne doppelte Anführungszeichen...</i></p>`);
+	}
+        let finalPrompt = config.promptTemplate
+            .replace('{text}', cleanText)
+            .replace('{context}', config.context);
+
+        try {
+            // Request-Body dynamisch aufbauen
+            const requestBody = {
+                messages: [
+                    { role: "system", content: "Du bist ein präziser wissenschaftlicher Assistent für qualitative Inhaltsanalyse." },
+                    { role: "user", content: finalPrompt }
+                ],
+                temperature: 0.3
+            };
+
+            // Eigenschaft 'model' nur hinzufügen, wenn im Formular ein Wert eingegeben wurde
+            if (config.model && config.model.trim() !== "") {
+                requestBody.model = config.model.trim();
+                updateDocContent(`<p>⏳ <i>Setze Modell ${config.model.trim()} als Parameter...</i></p>`);
+
+            }
+
+	    // Halte Body im Detail fest
+	    updateDocContent(`<p>⏳ <i>Sende Anfrage zu folgendem Material an LLM:<br>${JSON.stringify(requestBody)}...</i></p>`);
+
+            // Antwort anfragen
+            const response = await fetch(config.url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server antwortete mit Status ${response.status}`);
+            } else {
+		 updateDocContent(`<p>⏳ <i>Extrahiere Antwort des LLM...</i></p>`);
+	    }
+
+            const data = await response.json();
+            const aiAnswer = data.choices?.[0]?.message?.content || "Kein Inhalt von der KI zurückgemeldet.";
+
+            // Teilergebnis im Dokument ergänzen
+            updateDocContent(`</small>`);
+            updateDocContent(`<hr><h3>KI-generiertes Ergebnis für ${item.title}</h3><p>${aiAnswer.replace(/\n/g, '<br>')}</p><hr>`);
+
+        } catch (err) {
+            console.error(err);
+	    updateDocContent(`</small>`);
+            updateDocContent(`<hr><h3>Fehler bei: ${item.title}</h3><p style="color:red;"><strong>Fehler:</strong> ${err.message}</p><hr>`);
+        }
+    }
+
+    // Abschlussmeldung ergänzen
+    const dateStr2 = now.toLocaleDateString('de-DE');
+    const timeStr2 = now.toLocaleTimeString('de-DE');
+    updateDocContent(`<p><b>Analyse vollständig abgeschlossen am ${dateStr2} um ${timeStr2}!</b></p>`);
+}
 
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
@@ -1149,6 +1406,22 @@ html, body {
     font-weight: 500;
     cursor: default;
     /* Beispiel-Stil: Farbe wird dynamisch in JS gesetzt */
+}
+
+/* Layout für den Button-Container */
+.button-row {
+    display: flex;
+    justify-content: space-between; /* Links- und Rechts-Gruppe auseinanderschieben */
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px; /* Ersetzt die unsauberen <br>-Tags */
+}
+
+/* Flexbox für die beiden Button-Gruppen */
+.buttons-left,
+.buttons-right {
+    display: flex;
+    gap: 8px; /* Abstand zwischen den einzelnen Buttons */
 }
 
 /* Control-Button Annotieren */
