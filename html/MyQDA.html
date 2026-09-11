@@ -2,8 +2,24 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="author" content="Dr. Andreas Fischer">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Dr. Andreas Fischer">
+    <meta name="copyright" content="Dr. Andreas Fischer">
+    <meta name="reply-to" content="andreasfischer1985@web.de">
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Andreas fischer",
+  "url": "https://github.com/AndreasFischer1985",
+  "email": "andreasfischer1985@web.de",
+  "sameAs": [
+    "https://chaos.social/@afischer1985",
+    "https://www.researchgate.net/profile/Andreas-Fischer-33",
+    "https://www.linkedin.com/in/andreas-fischer-978193198/"
+  ]
+}
+    </script>
     <title>MyQDA - Text-Annotation-Tool</title>
 </head>
 <body>
@@ -43,21 +59,21 @@
         </div>
 
         <div id="main-content">
-            <div class="panel-controls">
+            <div class="panel-controls" >
                 <span id="selected-code-display">Aktueller Code: <i>Kein Code gewählt</i></span>
                 
                 <div class="button-row">
-                    <!-- Die letzten 3 Buttons (jetzt links) -->
+                    <!-- Die letzten 2 Buttons (links) -->
                     <div class="buttons-left">
+                        <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
+                        <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
+                    </div>
+            
+                    <!-- Die ersten 3 Buttons (rechts) -->
+                    <div class="buttons-right">
                         <button id="show-annotations-button" onclick="showAnnotations()">🔍 Textstellen</button> 
                         <button id="count-annotations-button" onclick="countAnnotations()">📈 Statistik</button>
                         <button id="ai-content-analysis-button" onclick="KIBasierteInhaltsanalyseForm()">🤖 KI</button>
-                    </div>
-            
-                    <!-- Die ersten 2 Buttons (jetzt rechts) -->
-                    <div class="buttons-right">
-                        <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
-                        <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
                     </div>
                 </div>
             </div>
@@ -661,8 +677,8 @@ function showAnnotations() {
 
 
 function countAnnotations() {
-    // 1. Sichere Deklaration & Lookup-Map für Namen erstellen
-    const htmlString = DOCUMENTS[0]?.content || '';
+    // 1. Inhalte ALLER Dokumente zusammenführen
+    const htmlString = DOCUMENTS.map(doc => doc.content || '').join('');
     
     // Map erlaubt den schnellen Zugriff auf den Namen über die ID
     const codeMap = new Map(CODES.map(code => [String(code.id), String(code.name)]));
