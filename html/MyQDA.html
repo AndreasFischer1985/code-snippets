@@ -6,74 +6,298 @@
     <meta name="author" content="Dr. Andreas Fischer">
     <meta name="copyright" content="Dr. Andreas Fischer">
     <meta name="reply-to" content="andreasfischer1985@web.de">
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Person",
-  "name": "Andreas fischer",
-  "url": "https://github.com/AndreasFischer1985",
-  "email": "andreasfischer1985@web.de",
-  "sameAs": [
-    "https://chaos.social/@afischer1985",
-    "https://www.researchgate.net/profile/Andreas-Fischer-33",
-    "https://www.linkedin.com/in/andreas-fischer-978193198/"
-  ]
-}
-    </script>
-    <title>MyQDA - Text-Annotation-Tool</title>
+    <title>MyQDA - Text-Annotation-Tool (Textstellenbasierte Annotation)</title>
+    <style>
+        :root {
+            --bg-main: #f4f6f8;
+            --bg-card: #ffffff;
+            --sidebar-bg: #f8fafc;
+            --border-color: #cbd5e1;
+            --primary: #334155;       /* Slate / Navy */
+            --primary-hover: #1e293b;
+            --accent: #475569;        /* Cool Gray */
+            --accent-green: #3b7a57;  /* Soft Muted Green */
+            --accent-green-hover: #2d5e43;
+            --accent-blue: #3b82f6;   /* Soft Blue */
+            --accent-purple: #6366f1; /* Soft Indigo */
+            --accent-purple-hover: #4f46e5;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            font-size: 13px;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            background-color: var(--primary);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        nav li { float: left; }
+
+        nav li a {
+            display: block;
+            color: #f8fafc;
+            cursor: pointer;
+            text-align: center;
+            padding: 12px 18px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        nav li a:hover { background-color: var(--primary-hover); }
+
+        #app-container {
+            display: flex;
+            height: calc(100vh - 43px);
+        }
+
+        #left-sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 30%;
+            min-width: 270px;
+            border-right: 1px solid var(--border-color);
+            background-color: var(--sidebar-bg);
+        }
+
+        .panel {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            overflow: hidden;
+            flex-grow: 1;     
+            display: flex;
+            flex-direction: column;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background-color: var(--bg-main);
+        }
+
+        .panel-controls { margin-bottom: 10px; }
+
+        .list-container {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .list-container li {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: 1px solid transparent;
+            background-color: #fff;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .list-container li:hover { background-color: #e2e8f0; }
+
+        .list-container li.selected {
+            background-color: #475569;
+            color: white;
+            border: 1px solid #334155;
+            font-weight: 600;
+        }
+
+        #text-display {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            line-height: 1.7;
+            background-color: var(--bg-card);
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            font-size: 1.05em;
+        }
+
+        .annotation {
+            padding: 2px 4px;
+            margin: 0 1px;
+            border-radius: 3px;
+            font-weight: 500;
+            cursor: default;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .buttons-left, .buttons-right { display: flex; gap: 8px; }
+
+        button {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        #annotate-button { background-color: #2e7d32; }
+        #annotate-button:hover { background-color: #1b5e20; }
+        #remove-annotation-button { background-color: #c62828; }
+        #remove-annotation-button:hover { background-color: #b71c1c; }
+        #show-annotations-button { background-color: #0284c7; }
+        #show-annotations-button:hover { background-color: #0369a1; }
+        #count-annotations-button { background-color: #0d9488; }
+        #count-annotations-button:hover { background-color: #0f766e; }
+        #ai-content-analysis-button { background-color: var(--accent-purple); }
+        #ai-content-analysis-button:hover { background-color: var(--accent-purple-hover); }
+        #document-header, #code-header { cursor: pointer; color: var(--primary); margin-top: 0; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 4% auto;
+            padding: 24px;
+            border-radius: 8px;
+            width: 65%;
+            max-width: 850px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+        }
+
+        .close-modal {
+            color: #94a3b8;
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover { color: #1e293b; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #334155; }
+        .form-group input[type="text"], .form-group input[type="number"], .form-group textarea, .form-group select {
+            width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box; background-color: #f8fafc;
+        }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+        .hit-item { margin-bottom: 8px; padding: 6px 10px; background: #f1f5f9; border-left: 3px solid #0284c7; border-radius: 3px; }
+        
+        .category-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid var(--accent-purple);
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .category-card h4 { margin: 0 0 6px 0; color: #1e293b; font-size: 1.05em; }
+        .category-card p { margin: 0 0 8px 0; color: #475569; font-size: 0.95em; }
+        .quotes-list { margin: 5px 0 10px 15px; padding: 0; font-style: italic; color: #334155; }
+        .quotes-list li { margin-bottom: 4px; }
+
+        .ai-action-btn {
+            background-color: #475569;
+            font-size: 0.85em;
+            padding: 5px 10px;
+            margin-right: 6px;
+            border-radius: 4px;
+        }
+        .ai-action-btn:hover { background-color: #334155; }
+        .ai-action-btn-auto {
+            background-color: var(--accent-green);
+            font-size: 0.85em;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .ai-action-btn-auto:hover { background-color: var(--accent-green-hover); }
+        .validation-warning {
+            background-color: #fffbeeb0;
+            color: #b45309;
+            border: 1px solid #fde68a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+        }
+    </style>
 </head>
 <body>
-<div>
+
     <nav>
       <ul>
         <li><a id="export">Save Project</a></li>
         <li><a id="import">Load Project</a></li>
       </ul>
     </nav>
-</div>
+
     <a id="downloadAnchorElem" style="display:none"></a>
+
     <div id="app-container">
-        
         <div id="left-sidebar">
-            
             <div id="document-panel" class="panel">
                 <h3 id="document-header">Dokumente 📑</h3>
                 <div class="panel-controls">
-                    <button onclick="addListItem('document-list', 'Neues Dokument')">➕ Hinzufügen</button>
-                    <button onclick="deleteSelected('document-list')">🗑️ Löschen</button>
+                    <button onclick="addListItem('document-list', 'Neues Dokument')" style="background-color: #0284c7;">➕ Hinzufügen</button>
+                    <button onclick="deleteSelected('document-list')" style="background-color: #e11d48;">🗑️ Löschen</button>
                 </div>
-                <ul id="document-list" class="list-container">
-                    </ul>
+                <ul id="document-list" class="list-container"></ul>
             </div>
 
             <div id="code-panel" class="panel">
                 <h3 id="code-header">Codes 🏷️</h3>
                 <div class="panel-controls">
-                    <button onclick="addListItem('code-list', 'Neuer Code')">➕ Hinzufügen</button>
-                    <button onclick="deleteSelected('code-list')">🗑️ Löschen</button>
+                    <button onclick="addListItem('code-list', 'Neuer Code')" style="background-color: #0284c7;">➕ Hinzufügen</button>
+                    <button onclick="deleteSelected('code-list')" style="background-color: #e11d48;">🗑️ Löschen</button>
                 </div>
-                <ul id="code-list" class="list-container">
-                    </ul>
+                <ul id="code-list" class="list-container"></ul>
             </div>
-            
         </div>
 
         <div id="main-content">
-            <div class="panel-controls" >
+            <div class="panel-controls">
                 <span id="selected-code-display">Aktueller Code: <i>Kein Code gewählt</i></span>
-                
                 <div class="button-row">
-                    <!-- Die letzten 2 Buttons (links) -->
                     <div class="buttons-left">
                         <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
                         <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
                     </div>
-            
-                    <!-- Die ersten 3 Buttons (rechts) -->
                     <div class="buttons-right">
-                        <button id="show-annotations-button" onclick="showAnnotations()">🔍 Textstellen</button> 
-                        <button id="count-annotations-button" onclick="countAnnotations()">📈 Statistik</button>
-                        <button id="ai-content-analysis-button" onclick="KIBasierteInhaltsanalyseForm()">🤖 KI</button>
+                        <button id="show-annotations-button" onclick="showAnnotationsModal()">🔍 Textstellen</button> 
+                        <button id="count-annotations-button" onclick="countAnnotationsModal()">📈 Statistik</button>
+                        <button id="ai-content-analysis-button" onclick="openAIModal()">🤖 KI</button>
                     </div>
                 </div>
             </div>
@@ -82,38 +306,65 @@
                 Wählen Sie ein Dokument aus der Liste links, um den Text hier anzuzeigen.
             </div>
         </div>
-
     </div>
 
-</body>
-</html>
-
-
+    <div id="app-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
 
 <script>
-
 let DOCUMENTS = [
-    { id: 1, name: "Text_A_Protokoll", content: "Der erste Satz ist unproblematisch. Hier beginnt der spannende Teil, der kommentiert werden sollte. Das ist der dritte Satz.", color: "#e74c3c" },
-    { id: 2, name: "Text_B_Interview", content: "Die Befragten äußerten sich durchwegs positiv zur KI-basierten Inhaltsanalyse von Dr. Andreas Fischer.", color: "#3498db" }
+    { 
+        id: 1, 
+        name: "Text_A_Interview", 
+        content: "Interviewer: Welche Erfahrungen haben Sie bisher mit der KI-basierten Inhaltsanalyse nach Fischer (2025) gemacht?<br><br>Befragte Person: Ich bin wirklich begeistert. Die strukturierte Extraktion mit MyQDA spart uns enorm viel Zeit bei der Aufbereitung des Korpus, und die Nachvollziehbarkeit der Kodierungen ist hervorragend.<br><br>Interviewer: Sieht das Ihr gesamtes Forschungsteam so?<br><br>Befragte Person: Absolut, die Akzeptanz im Team ist extrem hoch, weil die Validitätsprüfung durch die direkte Verknüpfung von Zitaten und Kategoriensystem enorm profitiert. Aber natürlich setzt diese Art der Analyse auch erhebliche Kompetenzen im Umgang mit KI und qualitativer Datenauswertung voraus." 
+    },
+    { 
+        id: 2, 
+        name: "Text_B_Interview", 
+        content: "Interviewer: Wie bewerten Sie die Umsetzbarkeit des methodischen Ansatzes von Fischer (2025) in der Praxis?<br><br>Befragte Person: Die praktische Umsetzung verläuft verblüffend reibungslos. Insbesondere die Kombination aus automatisierter Unterstützung und manueller Kontrolle gibt uns maximale Sicherheit.<br><br>Interviewer: Gibt es Aspekte, die Sie besonders hervorheben möchten?<br><br>Befragte Person: Ja, der Mensch bleibt im Mittelpunkt und verantwortlich für seine Analysen - aber KI kann diese Analysen erleichtern und bereichern, wenn man sie kompetent einsetzt." 
+    }
 ];
 
 let CODES = [
-    { id: 1, name: "Positive Äußerung", color: "#2ecc71" },
-    { id: 2, name: "Negative Äußerung", color: "#e74c3c" },
-    { id: 3, name: "Neutrale Beobachtung", color: "#f1c40f" }
+    { id: 1, name: "Positive Äußerung", color: "#22c55e" },
+    { id: 2, name: "Negative Äußerung", color: "#06b6d4" },
+    { id: 3, name: "Neutrale Äußerung", color: "#6366f1" }
 ];
 
-let SETTINGS = 
-   {        model: "google/gemma-4-12b-qat",
-            url: "http://127.0.0.1:1234/v1/chat/completions",
-            apiKey: "", 
-            context: "",
-            verfahren: "Zusammenfassung",
-            granularitaet: "Korpus",
-            promptTemplate: "Fasse den folgenden Text stichpunktartig zusammen: '{text}'",
-            removeQuotes: true,
-            removeDoubleSpaces: false
-   };
+const PROMPT_HEADER = "Du bist ein wissenschaftlicher Assistent für qualitative Inhaltsanalysen nach Fischer (2025).\nKontext der Analyse: {context}\nText: {text}\nAufgabe: ";
+
+const PROMPT_TEMPLATES = {
+    Induktion: `${PROMPT_HEADER}Leite induktiv relevante Kategorien aus dem Text ab.\n\nGib das Ergebnis STRENG als JSON-Array im folgenden Format aus:\n[\n  {\n    "code": "Kategoriename",\n    "description": "Kurze Beschreibung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
+    Deduktion: `${PROMPT_HEADER}Wende das Kodierschema aus dem Kontext deduktiv auf den Text an.\n\nGib das Ergebnis STRENG als JSON-Array im folgenden Format aus:\n[\n  {\n    "code": "Kategoriename aus Schema",\n    "description": "Begründung der Zuordnung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
+    Zusammenfassung: `${PROMPT_HEADER}Führe eine Zusammenfassung des Textes durch. Erstelle eine Liste von Paraphrasen aller für die Analyse relevanten Textstellen. Ordne jeder Paraphrase mindestens ein exaktes wörtliches Zitat aus dem Originaltext zu.\n\nGib das Ergebnis STRENG als JSON-Array im folgenden Format aus:\n[\n  {\n    "paraphrase": "Einzelne zusammenfassende Paraphrase",\n    "textstellen": ["Exaktes wörtliches Zitat aus dem Original 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
+    Explikation: `${PROMPT_HEADER}Expliziere den Text im Hinblick auf den angegebenen Kontext. Erstelle eine Liste aller relevanten Assoziationen, Erläuterungen und Implikationen. Ordne jeder Assoziation mindestens ein exaktes wörtliches Zitat aus dem Originaltext zu.\n\nGib das Ergebnis STRENG als JSON-Array im folgenden Format aus:\n[\n  {\n    "assoziation": "Einzelne Assoziation / Erläuterung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`
+};
+
+let DEFAULT_SETTINGS = {
+    model: "google/gemma-4-12b-qat",
+    url: "http://127.0.0.1:1234/v1/chat/completions",
+    apiKey: "", 
+    context: "Worum geht es im vorliegenden Textmaterial?",
+    verfahren: "Induktion",
+    granularitaet: "Korpus",
+    promptTemplate: PROMPT_TEMPLATES.Induktion,
+    removeQuotes: true,
+    removeDoubleSpaces: false,
+    useLabeledJSON: false,
+    temperature: 0.0,
+    top_p: 0.95,
+    useStreaming: true
+};
+
+let SETTINGS = JSON.parse(localStorage.getItem('myqda_settings')) || DEFAULT_SETTINGS;
+
+function saveSettings() {
+    localStorage.setItem('myqda_settings', JSON.stringify(SETTINGS));
+}
 
 let selectedCode = null;
 let selectedDocument = null;
@@ -122,981 +373,438 @@ const codeList = document.getElementById('code-list');
 const textDisplay = document.getElementById('text-display');
 const selectedCodeDisplay = document.getElementById('selected-code-display');
 
-document.getElementById('import').addEventListener('click', () => {
-  handleFileSelection(); //Updates DOCUMENT & CODE
-});
-
-document.getElementById('export').addEventListener('click', () => {
-           var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
-		JSON.stringify([{"CODES":CODES,"DOCUMENTS":DOCUMENTS, "SETTINGS":SETTINGS}]));	
-           var dlAnchorElem = document.getElementById('downloadAnchorElem');
-           dlAnchorElem.setAttribute("href",     dataStr     );
-           dlAnchorElem.setAttribute("download", "project_"+Date.now()+".json");
-           dlAnchorElem.click();
-
-        }); 
-
-textDisplay.addEventListener('input', () => {
-          if(selectedDocument !== null){ 
-            DOCUMENTS[selectedDocument["id"]-1].content=textDisplay.getHTML();
-            //loadDocumentText(selectedDocument);
-          }
-        }); 
-
-document.getElementById('document-header').addEventListener('click', () => {
-          var json=prompt("Dokumente:",JSON.stringify(DOCUMENTS));
-          if(json !== null){
-            DOCUMENTS=JSON.parse(json);
-            updateInterface();
-          }
-        }); 
-
-document.getElementById('code-header').addEventListener('click', () => {
-          var json=prompt("Codes:",JSON.stringify(CODES));
-          if(json !== null){
-            alert(json);
-            updateChangedCodes(CODES, JSON.parse(json), updateAnnotationLabels, DOCUMENTS); //update Annotation for changes in known ids
-            CODES=JSON.parse(json); //update CODES afterwards       
-            updateInterface();
-          }
-        }); 
-
-function updateInterface(){
-            documentList.innerHTML = '';
-            DOCUMENTS.forEach(document => {
-               documentList.appendChild(createListItem(document, 'document-list'));
-            });
-
-            if(selectedDocument == null) {
-		selectListItem(document.getElementById('document-'+DOCUMENTS[0].id), 'documents-list');
-                selectedDocument=DOCUMENTS[0];
-	    }
-
-            if(selectedDocument !== null){ 
-              selectedDocument = DOCUMENTS.find(doc => doc.id == selectedDocument.id);
-              selectListItem(document.getElementById('document-'+selectedDocument.id), 'documents-list');
-              loadDocumentText(selectedDocument);
-            }
-
-            codeList.innerHTML = '';
-            CODES.forEach(code => {
-               codeList.appendChild(createListItem(code, 'code-list'));
-            });
-             
-            if(selectedCode == null){
-		selectListItem(document.getElementById('code-'+CODES[0].id), 'codes-list');
-		selectedCode=CODES[0];
-	    }
-
-            if(selectedCode !== null){
-              selectedCode = CODES.find(doc => doc.id == selectedCode.id);
-              selectListItem(document.getElementById('code-'+selectedCode.id), 'codes-list');
-            }
-            updateSelectedCodeDisplay();
+function getCorpusDocuments() {
+    return DOCUMENTS.filter(d => !d.name.startsWith("KI-Analyse"));
 }
 
-// =====================================
-// LISTEN-VERWALTUNG (Dokumente & Codes)
-// =====================================
+function openModalWithHTML(html) {
+    document.getElementById('modal-body').innerHTML = html;
+    document.getElementById('app-modal').style.display = 'block';
+}
 
+function closeModal() {
+    document.getElementById('app-modal').style.display = 'none';
+}
 
-/** Erstellt und rendert einen Listeneintrag (li) **/
+document.getElementById('import').addEventListener('click', handleFileSelection);
+
+document.getElementById('export').addEventListener('click', () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
+        JSON.stringify([{"CODES": CODES, "DOCUMENTS": DOCUMENTS, "SETTINGS": SETTINGS}])
+    );	
+    const dlAnchorElem = document.getElementById('downloadAnchorElem');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", "project_" + Date.now() + ".json");
+    dlAnchorElem.click();
+}); 
+
+textDisplay.addEventListener('input', () => {
+    if(selectedDocument !== null){ 
+        const doc = DOCUMENTS.find(d => d.id === selectedDocument.id);
+        if(doc) doc.content = textDisplay.innerHTML;
+    }
+}); 
+
+document.getElementById('document-header').addEventListener('click', () => {
+    var json = prompt("Dokumente (JSON):", JSON.stringify(DOCUMENTS));
+    if(json !== null){
+        try { DOCUMENTS = JSON.parse(json); updateInterface(); } catch(e) { alert("Ungültiges JSON"); }
+    }
+}); 
+
+document.getElementById('code-header').addEventListener('click', () => {
+    var json = prompt("Codes (JSON):", JSON.stringify(CODES));
+    if(json !== null){
+        try {
+            const parsed = JSON.parse(json);
+            updateChangedCodes(CODES, parsed, updateAnnotationLabels, DOCUMENTS);
+            CODES = parsed;
+            updateInterface();
+        } catch(e) { alert("Ungültiges JSON"); }
+    }
+}); 
+
+function updateInterface(){
+    documentList.innerHTML = '';
+    DOCUMENTS.forEach(doc => documentList.appendChild(createListItem(doc, 'document-list')));
+
+    if(!selectedDocument && DOCUMENTS.length > 0) selectedDocument = DOCUMENTS[0];
+    if(selectedDocument) {
+        selectedDocument = DOCUMENTS.find(doc => doc.id == selectedDocument.id) || DOCUMENTS[0];
+        selectListItem(document.getElementById(`document-${selectedDocument.id}`), 'document-list');
+        loadDocumentText(selectedDocument);
+    }
+
+    codeList.innerHTML = '';
+    CODES.forEach(code => codeList.appendChild(createListItem(code, 'code-list')));
+    
+    if(!selectedCode && CODES.length > 0) selectedCode = CODES[0];
+    if(selectedCode) {
+        selectedCode = CODES.find(c => c.id == selectedCode.id) || CODES[0];
+        selectListItem(document.getElementById(`code-${selectedCode.id}`), 'code-list');
+    }
+    updateSelectedCodeDisplay();
+}
 
 function createListItem(item, containerId) {
     const li = document.createElement('li');
-    li.id = `${containerId.replace('-list', '')}-${item.id || item.name.replace(/\s/g, '_')}`;
-    li.setAttribute('data-id', item.id || item.name);
-    
-    // Ermöglicht die Bearbeitung des Listeneintrags (Anforderung: editierbar)
+    li.id = `${containerId.replace('-list', '')}-${item.id}`;
+    li.setAttribute('data-id', item.id);
     li.contentEditable = true; 
     li.textContent = item.name;
 
-    // Auswahl-Logik
-    li.addEventListener('click', () => {
-        selectListItem(li, containerId);
-    });
+    li.addEventListener('click', () => selectListItem(li, containerId));
 
-    // Change-Logik
     if (containerId === 'document-list'){
-       li.addEventListener('input', () => {        
-          const index = DOCUMENTS.findIndex(el => "document-"+el.id === li.id);
-          if(index !== -1) {
-            DOCUMENTS[index].name=li.textContent;            
-          }
+        li.addEventListener('input', () => {        
+            const doc = DOCUMENTS.find(el => el.id == item.id);
+            if(doc) doc.name = li.textContent;            
         }); 
     } else if (containerId === 'code-list') {
-    
-       // Nur den Namen im Datenmodell bei jeder Eingabe aktualisieren
-       li.addEventListener('input', () => {         
-         const index = CODES.findIndex(el => "code-"+el.id === li.id);
-         if(index !== -1) {
-           // Aktualisiere nur den Namen im CODES-Array
-           CODES[index].name=li.textContent; 
-           
-           // Aktualisiere die Anzeige des ausgewählten Codes, falls es der ausgewählte Code ist
-           if (selectedCode && selectedCode.id === CODES[index].id) {
-               selectedCode.name = li.textContent;
-               updateSelectedCodeDisplay();
-           }
-         }
-       });  
-       
-       // BLUR-Event: Aktualisierung der Annotationen und der Oberfläche nur beim Verlassen des Feldes
-       // Dies ist optional, wird aber empfohlen, um die Konsistenz mit Annotationen zu gewährleisten.
-       li.addEventListener('blur', () => {         
-         const index = CODES.findIndex(el => "code-"+el.id === li.id);
-         if(index !== -1) {
-             // Aktualisiere die Annotationen in den Dokumenten mit dem neuen Label
-             updateAnnotationLabels(CODES[index].id, CODES[index].name, CODES[index].color, DOCUMENTS); 
-             
-             // KEIN AUFRUF von updateInterface(), da dies den Fokus und das Dokument neu lädt.
-             // Stattdessen nur das aktuell angezeigte Dokument neu laden, falls es Annotationen enthält.
-             if (selectedDocument) {
-                 loadDocumentText(selectedDocument);
-             }
-         }
-       });
-       
+        li.addEventListener('input', () => {         
+            const code = CODES.find(el => el.id == item.id);
+            if(code) {
+                code.name = li.textContent; 
+                if (selectedCode && selectedCode.id === code.id) {
+                    selectedCode.name = li.textContent;
+                    updateSelectedCodeDisplay();
+                }
+            }
+        });  
+        li.addEventListener('blur', () => {         
+            const code = CODES.find(el => el.id == item.id);
+            if(code) {
+                updateAnnotationLabels(code.id, code.name, code.color, DOCUMENTS); 
+                if (selectedDocument) loadDocumentText(selectedDocument);
+            }
+        });
     }
-
     return li;
 }
 
-
-/** Behandelt die Auswahl eines Listeneintrags **/
-
 function selectListItem(element, containerId) {
-    // Entfernt die 'selected'-Klasse von allen Elementen im Container
-    document.querySelectorAll(`#${containerId} li`).forEach(item => {
-        item.classList.remove('selected');
-    });
-
-    // Fügt die 'selected'-Klasse zum ausgewählten Element hinzu
+    if(!element) return;
+    document.querySelectorAll(`#${containerId} li`).forEach(item => item.classList.remove('selected'));
     element.classList.add('selected');
-    
     const itemId = element.getAttribute('data-id');
 
     if (containerId === 'document-list') {
-        selectedDocument = DOCUMENTS.find(doc => doc.id == itemId || doc.name === itemId);
+        selectedDocument = DOCUMENTS.find(doc => doc.id == itemId);
         loadDocumentText(selectedDocument);
     } else if (containerId === 'code-list') {        
-        selectedCode = CODES.find(code => code.id.toString() === itemId.toString() || code.name.toString() === itemId.toString());
-	updateSelectedCodeDisplay();
+        selectedCode = CODES.find(code => code.id == itemId);
+        updateSelectedCodeDisplay();
     }
 }
 
-
-/** Rendert die Initial-Listen **/
-
 function renderLists() {
-    DOCUMENTS.forEach(doc => {
-        documentList.appendChild(createListItem(doc, 'document-list'));
-    });
-    CODES.forEach(code => {
-        codeList.appendChild(createListItem(code, 'code-list'));
-    });
+    DOCUMENTS.forEach(doc => documentList.appendChild(createListItem(doc, 'document-list')));
+    CODES.forEach(code => codeList.appendChild(createListItem(code, 'code-list')));
 }
-
-
-/** Lädt den Text des ausgewählten Dokuments **/
 
 function loadDocumentText(doc) {
     if (doc) {
-        // Der Text wird in den 'text-display' Container geladen. 
-        // WICHTIG: Er muss **HTML** enthalten, wenn bereits annotiert wurde.
         textDisplay.innerHTML = doc.content; 
-        document.getElementById('text-display').style.backgroundColor = 'white';
-        //textDisplay.focus();
     }
 }
-
-
-/** Aktualisiert die Anzeige des aktuell gewählten Codes **/
 
 function updateSelectedCodeDisplay() {
     if (selectedCode) {
         selectedCodeDisplay.innerHTML = `Aktueller Code: <strong style="color: ${selectedCode.color};">${selectedCode.name}</strong>`;
     } else {
-        selectedCodeDisplay.innerHTML = `Aktueller Code: **Kein Code gewählt**`;
+        selectedCodeDisplay.innerHTML = `Aktueller Code: <strong>Kein Code gewählt</strong>`;
     }
 }
 
-// ============================================
-// BUTTON-FUNKTIONALITÄTEN (Hinzufügen/Löschen)
-// ============================================
-
-
-/** Fügt einen neuen Eintrag zu einer Liste hinzu (für alle Listen) **/
-
 function addListItem(containerId, defaultName) {
     const container = document.getElementById(containerId);
-    var newItem = null;
+    let newItem = null;
 
     if (containerId === 'document-list') {
-        newItem = { id: (DOCUMENTS.length+1), name: defaultName }; // Eindeutige ID wäre Date.now() für das neue Element
-        DOCUMENTS.push({ ...newItem, content: "Bitte hier den Text für das neue Dokument einfügen." });
+        newItem = { id: Date.now(), name: defaultName, content: "Inhalt eingeben..." };
+        DOCUMENTS.push(newItem);
     } else if (containerId === 'code-list') {
-        newItem = { id: (CODES.length+1), name: defaultName }; // Eindeutige ID wäre Date.now() für das neue Element
-        CODES.push({ ...newItem, color: "#95a5a6" });
+        newItem = { id: Date.now(), name: defaultName, color: "#" + Math.floor(Math.random()*16777215).toString(16) };
+        CODES.push(newItem);
     }
 
     const li = createListItem(newItem, containerId);
     container.appendChild(li);
-    li.focus(); // Setzt Fokus auf das neue editierbare Element
-    selectListItem(li, containerId); // Wählt das neue Element aus
+    selectListItem(li, containerId);
 }
 
-/** Löscht den aktuell ausgewählten Eintrag */
 function deleteSelected(containerId) {
     const selectedItem = document.querySelector(`#${containerId} li.selected`);
-    if (!selectedItem) {
-        alert("Bitte wählen Sie zuerst einen Eintrag zum Löschen aus.");
-        return;
-    }
+    if (!selectedItem) return alert("Bitte Eintrag auswählen.");
 
-    if (confirm(`Soll der Eintrag "${selectedItem.textContent}" wirklich gelöscht werden?`)) {
+    if (confirm(`Soll "${selectedItem.textContent}" gelöscht werden?`)) {
+        const itemId = selectedItem.getAttribute('data-id');
         selectedItem.remove();
 
-        // Interne Datenstrukturen aktualisieren (simplifiziert)
-        const itemId = selectedItem.getAttribute('data-id');
         if (containerId === 'document-list') {
-            const index = DOCUMENTS.findIndex(doc => doc.id == itemId || doc.name === itemId);
-            if (index > -1) DOCUMENTS.splice(index, 1);
-            textDisplay.innerHTML = "Wählen Sie ein Dokument aus der Liste links...";
+            DOCUMENTS = DOCUMENTS.filter(doc => doc.id != itemId);
+            textDisplay.innerHTML = "";
             selectedDocument = null;
         } else if (containerId === 'code-list') {
-            const index = CODES.findIndex(code => code.id == itemId || code.name === itemId);
-            if (index > -1) CODES.splice(index, 1);
+            CODES = CODES.filter(code => code.id != itemId);
             selectedCode = null;
             updateSelectedCodeDisplay();
         }
     }
 }
 
-// ===================================
-// ANNOTATIONS-FUNKTIONALITÄT
-// ===================================
-
-/** Umschließt den ausgewählten Text mit einem Annotation-Span */
 function annotateSelectedText() {
-
-    // 0. Prüfen, welcher DOCUMENTS-Eintrag gerade angezeigt wird
-    const index = DOCUMENTS.findIndex(el => el.content === textDisplay.getHTML());
-
-    // 1. Prüfen, ob ein Code ausgewählt ist
-    if (!selectedCode) {
-        alert("Bitte wählen Sie zuerst einen Code (links unten) aus.");
-        return;
-    }
-
-    // 2. Auswahl (Selection) abrufen
+    if (!selectedCode) return alert("Bitte zuerst einen Code wählen.");
     const selection = window.getSelection();
-    if (!selection.rangeCount) {
-        alert("Bitte markieren Sie zuerst einen Textabschnitt im rechten Panel.");
-        return;
-    }
+    if (!selection.rangeCount || selection.isCollapsed) return alert("Bitte Text im Hauptfeld markieren.");
 
     const range = selection.getRangeAt(0);
+    if (!textDisplay.contains(range.commonAncestorContainer)) return alert("Markierung außerhalb des Haupttextes.");
 
-    // 3. Prüfen, ob die Auswahl im Text-Panel liegt
-    if (!textDisplay.contains(range.commonAncestorContainer)) {
-         alert("Bitte markieren Sie einen Textabschnitt **innerhalb** des Dokumenten-Panels.");
-         return;
-    }
-
-    // 4. Annotation-Element erstellen
     const span = document.createElement('span');
     span.classList.add('annotation');
-    // Code als Attribut speichern
     span.setAttribute('data-code', selectedCode.id); 
     span.title = `Code: ${selectedCode.name}`;
-    // Style für bessere Visualisierung
-    span.style.backgroundColor = selectedCode.color + '33'; // 33 für Transparenz
+    span.style.backgroundColor = selectedCode.color + '33'; 
     span.style.border = `1px solid ${selectedCode.color}`; 
 
-    // 5. Den ausgewählten Text mit dem Span umschließen (Range API)
     try {
-        // surroundContents funktioniert nur, wenn die Auswahl sauber in TextNodes ist.
-        // Bei komplexen verschachtelten Elementen muss man kompliziertere Logik verwenden.
         range.surroundContents(span);       
     } catch (e) {
-        // Fallback: Manchmal ist surroundContents nicht möglich (z.B. wenn Start/Ende nicht im selben Node sind)
-        // Bei contenteditable ist dies meistens kein Problem, aber es ist gut, dies zu beachten.
-        console.error("Fehler beim Umschließen der Auswahl:", e);
-        alert("Die Markierung konnte nicht sauber annotiert werden. Bitte wählen Sie einen ununterbrochenen Textbereich.");
+        alert("Markierung über komplexe Strukturen hinweg nicht möglich.");
         return;
     }
 
-    // 6. Ergebnis festhalten 
-    if(index !== -1) DOCUMENTS[index].content=textDisplay.getHTML();
-    //alert("Document "+(index+1)+":\n\n"+textDisplay.getHTML());
-
-    // 7. Auswahl aufheben
+    const doc = DOCUMENTS.find(d => d.id === selectedDocument.id);
+    if(doc) doc.content = textDisplay.innerHTML;
     selection.removeAllRanges(); 
 }
 
-
-/** ENTFERNT DIE ANNOTATION EINER MARKIERTE(N) STELLE */
-
 function removeAnnotation() {
-
-    // 0. Prüfen, welcher DOCUMENTS-Eintrag gerade angezeigt wird
-    const index = DOCUMENTS.findIndex(el => el.content === textDisplay.getHTML());
-
     const selection = window.getSelection();
+    if (!selection.rangeCount) return;
 
-    if (!selection.rangeCount) {
-        alert("Bitte markieren Sie die zu entfernende Annotation oder platzieren Sie den Cursor darin.");
-        return;
-    }
+    let commonNode = selection.getRangeAt(0).commonAncestorContainer;
+    if (commonNode.nodeType === 3) commonNode = commonNode.parentNode;
 
-    const range = selection.getRangeAt(0);
-    let commonNode = range.commonAncestorContainer;
-
-    // 1. Suche das umschließende Annotation-Span
-    // Wenn die Auswahl in einem Text-Node ist, prüfen wir den Parent-Node
-    if (commonNode.nodeType === 3) { // 3 ist ein Text-Node
-        commonNode = commonNode.parentNode;
-    }
-
-    // Finde den nächsten Elternelement mit der Klasse 'annotation'
     const annotationSpan = commonNode.closest('.annotation');
-
     if (annotationSpan) {
-        // 2. Den Inhalt des Span-Elements "auspacken"
-        // fragment enthält alle Kinder (den Text) des Span
         const fragment = document.createDocumentFragment();
-        while (annotationSpan.firstChild) {
-            fragment.appendChild(annotationSpan.firstChild);
-        }
-        
-        // 3. Das Span durch seinen Inhalt ersetzen
+        while (annotationSpan.firstChild) fragment.appendChild(annotationSpan.firstChild);
         annotationSpan.parentNode.replaceChild(fragment, annotationSpan);
-
-        // 4. Auswahl aufheben
         selection.removeAllRanges();
 
-
-        // 5. Ergebnis festhalten 
-        if(index !== -1) DOCUMENTS[index].content=textDisplay.getHTML();
-        //alert("Document "+(index+1)+":\n\n"+textDisplay.getHTML());
-
+        const doc = DOCUMENTS.find(d => d.id === selectedDocument.id);
+        if(doc) doc.content = textDisplay.innerHTML;
     } else {
-        alert("Die aktuelle Markierung befindet sich nicht in einer Annotation.");
+        alert("Keine Annotation an Auswahlstelle.");
     }
 }
-
-/** ANNOTATION-UPDATE NACH CODE-CHANGE **/
 
 function updateAnnotationLabels(codeId, newLabel, newColor, DOCUMENTS) {
-
-    // 1. Finde das alte Label
-    const codeIdStr = String(codeId);
-    
-    // Regulärer Ausdruck zum Suchen des <span>-Tags mit der entsprechenden data-code ID
-    // und dem title-Attribut, um den Label-Wert zu extrahieren/zu ersetzen.
-    // Suchmuster: <span class="annotation" data-code="CODE_ID" title="ALTES_LABEL">
-    // Erfassungsgruppen:
-    // 1: Alles vor title="
-    // 2: Das alte Label
-    const regex = new RegExp(
-        `(<span\\s+[^>]*?class=["']annotation["'][^>]*?data-code=["']${codeIdStr}["'][^>]*?)title=["']([^"']*?)["']`, 
-        'g' // 'g' für globales Suchen und Ersetzen in allen Vorkommen
-    );
-    //<span class=\"annotation\" data-code=\"1\" title=\"Code: Positive Äußerung\" style
-
-    // Das Ersatzmuster: ${1} ist die erste Erfassungsgruppe (alles bis title=")
-    // und wird durch das neue Label ersetzt.
-    const replacement = `$1title="${newLabel}"`;
-
-    // 2. Iteriere über alle Dokumente und ersetze das Label
+    const regex = new RegExp(`(<span\\s+[^>]*?class=["']annotation["'][^>]*?data-code=["']${codeId}["'][^>]*?)title=["']([^"']*?)["']`, 'g');
     DOCUMENTS.forEach(doc => {
-        if (doc.content) {
-            // Führe die Ersetzung im content-String durch
-            doc.content = doc.content.replace(regex, replacement);
-        }
+        if (doc.content) doc.content = doc.content.replace(regex, `$1title="${newLabel}"`);
     });
-
-    return DOCUMENTS;
 }
-
-
-/** ANNOTATION-UPDATE FÜR ALLE CHANGED CODES **/
 
 function updateChangedCodes(CODES, CODES_updated, updateAnnotationLabels, DOCUMENTS) {
-
-    // 1. CODES_updated in eine Map umwandeln für schnellen Zugriff nach ID
-    const updatedCodesMap = CODES_updated.reduce((map, code) => {
-        map[code.id] = code;
-        return map;
-    }, {});
-
-    // 2. Originale CODES-Liste durchlaufen und prüfen
-    for (const originalCode of CODES) {
-        const { id: codeId, name: originalName, color: originalColor } = originalCode;
-
-        // Prüfen, ob der Code in der aktualisierten Liste noch existiert
-        const updatedCode = updatedCodesMap[codeId];
-
-        if (updatedCode) {
-            const { name: newName, color: newColor } = updatedCode;
-
-            // Prüfen, ob sich 'name' oder 'color' geändert haben
-            if (originalName !== newName || originalColor !== newColor) {
-                console.log(`Änderung erkannt für Code ID ${codeId}:`);
-                console.log(`  Name: "${originalName}" -> "${newName}"`);
-                console.log(`  Color: "${originalColor}" -> "${newColor}"`);
-
-                // 3. updateAnnotationLabels aufrufen
-                updateAnnotationLabels(codeId, newName, newColor, DOCUMENTS);
-            }
+    const updatedMap = CODES_updated.reduce((m, c) => { m[c.id] = c; return m; }, {});
+    CODES.forEach(orig => {
+        const up = updatedMap[orig.id];
+        if (up && (orig.name !== up.name || orig.color !== up.color)) {
+            updateAnnotationLabels(orig.id, up.name, up.color, DOCUMENTS);
         }
-        // Anmerkung: Codes, die in CODES_updated fehlen (gelöscht wurden),
-        // werden hier stillschweigend ignoriert, da die Anforderung nur 
-        // die Prüfung *aller IDs in CODES* für Änderungen betrifft.
-    }
-    
-    console.log("Prüfung auf geänderte Codes abgeschlossen.");
+    });
 }
 
+function showAnnotationsModal() {
+    let totalCount = 0;
+    const grouped = {};
+    CODES.forEach(c => grouped[c.id] = []);
 
-
-// ===================================
-// ANNOTATIONS-FUNKTIONALITÄT
-// ===================================
-
-
-/** ANNOTATIONEN FÜR SELECTEDCODE ANZEIGEN **/
-
-function showAnnotations() {
-    // 0. Map erstellen, um Code-IDs schnell ihren Namen/Farben zuzuordnen
-    const codeMap = new Map(CODES.map(c => [String(c.id), c]));
-
-    // Regulärer Ausdruck für ALLE data-code IDs
-    // Erfassungsgruppe 1: data-code ID
-    // Erfassungsgruppe 2: Inhalt der Annotation
     const regex = /<span\s+[^>]*?class=["']annotation["'][^>]*?data-code=["'](\d+)["'][^>]*?>(.*?)<\/span>/g;
 
-    // Objekte nach Code-IDs gruppieren: { "1": [], "2": [], ... }
-    const groupedAnnotations = {};
-    CODES.forEach(c => {
-        groupedAnnotations[c.id] = [];
-    });
-
-    let totalCount = 0;
-
-    // 1. Alle Dokumente durchsuchen
-    DOCUMENTS.forEach(doc => {
+    getCorpusDocuments().forEach(doc => {
         if (doc.content) {
             let match;
-            // Da regex global ('g') ist, vor jedem Dokument den Index zurücksetzen
             regex.lastIndex = 0;
-
             while ((match = regex.exec(doc.content)) !== null) {
                 const codeId = match[1];
-                const annotationText = match[2].trim();
-
-                if (groupedAnnotations[codeId]) {
-                    groupedAnnotations[codeId].push({
-                        documentName: doc.name,
-                        text: annotationText
-                    });
+                if (grouped[codeId]) {
+                    grouped[codeId].push({ docName: doc.name, text: match[2].replace(/<[^>]*>/g, '').trim() });
                     totalCount++;
                 }
             }
         }
     });
 
-    // 2. HTML-Inhalt nach Codes strukturiert aufbauen
-    const popupContent = CODES.map(code => {
-        const items = groupedAnnotations[code.id] || [];
-        const itemsHtml = items.length > 0
-            ? items.map(ann => `
-                <div style="margin-bottom: 8px;">
-                    <strong>${ann.documentName}:</strong>
-                    <span>...${ann.text}...</span>
-                </div>
-              `).join('')
-            : '<em>Keine Treffer</em>';
+    let html = `<h2>Übersicht aller Korpus-Annotationen</h2><p><strong>Gesamtzahl der Fundstellen:</strong> ${totalCount}</p><hr>`;
+    CODES.forEach(code => {
+        const items = grouped[code.id] || [];
+        html += `<div style="border-left: 4px solid ${code.color}; padding-left: 10px; margin-bottom: 15px;">
+            <h4 style="margin: 0; color: ${code.color};">${code.name} (${items.length} Treffer)</h4>`;
+        if(items.length === 0) {
+            html += `<i>Keine Treffer im Korpus</i>`;
+        } else {
+            items.forEach(it => {
+                html += `<div class="hit-item"><strong>${it.docName}:</strong> <i>"...${it.text}..."</i></div>`;
+            });
+        }
+        html += `</div>`;
+    });
 
-        return `
-            <div style="margin-bottom: 20px; border-left: 4px solid ${code.color}; padding-left: 10px;">
-                <h3 style="margin: 0 0 8px 0; color: ${code.color};">
-                    ${code.name} (ID: ${code.id}) — ${items.length} Treffer
-                </h3>
-                ${itemsHtml}
-            </div>
-            <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
-        `;
-    }).join('');
-
-    const windowTitle = "Übersicht aller Annotationen";
-
-    // 3. Popup-Fenster öffnen
-    const popupWindow = window.open(
-        '', 
-        '_blank', 
-        'width=700,height=500,scrollbars=yes,resizable=yes'
-    );
-
-    if (!popupWindow) {
-        alert("Pop-up-Blocker hat das Fenster blockiert. Bitte erlauben Sie Pop-ups für diese Seite.");
-        return;
-    }
-
-    popupWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>${windowTitle}</title>
-            <style>
-                body { font-family: sans-serif; padding: 15px; background: #fff; }
-                strong { color: #333; }
-                span { display: block; margin-left: 10px; font-style: italic; color: #555; }
-                em { color: #999; margin-left: 10px; display: block; }
-            </style>
-        </head>
-        <body>
-            <h2>${windowTitle}</h2>
-            <p><strong>Gesamtzahl der Fundstellen:</strong> ${totalCount}</p>
-            <hr style="border: 0; border-top: 2px solid #333; margin: 15px 0;">
-            <div id="annotations-list">
-                ${popupContent}
-            </div>
-        </body>
-        </html>
-    `);
-
-    popupWindow.document.close();
+    openModalWithHTML(html);
 }
 
-/** Zählt <span>-Tags basierend auf dem "data-code"-Attribut 
- * @param {HTMLElement} rootElement Das Element, in dem nach <span>-Tags gesucht wird (z.B. document.body).
- * @param {string[]} targetIds Eine Liste von IDs (Strings), deren Vorkommen im "data-code"-Attribut gezählt werden sollen.
- */
-
-
-function countAnnotations() {
-    // 1. Inhalte ALLER Dokumente zusammenführen
-    const htmlString = DOCUMENTS.map(doc => doc.content || '').join('');
-    
-    // Map erlaubt den schnellen Zugriff auf den Namen über die ID
-    const codeMap = new Map(CODES.map(code => [String(code.id), String(code.name)]));
-    const targetIds = Array.from(codeMap.keys());
-
-    // 2. HTML-String in ein DOM-Fragment parsen
+function countAnnotationsModal() {
+    const corpusDocs = getCorpusDocuments();
+    const htmlString = corpusDocs.map(doc => doc.content || '').join('');
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
     const allSpans = doc.body.querySelectorAll('span[data-code]');
-    
-    const totalAllSpans = allSpans.length;
 
-    // 3. Zähler initialisieren & Vorkommen zählen
     const counts = {};
-    let totalRelevantSpans = 0;
-
-    targetIds.forEach(id => {
-        counts[id] = 0;
+    CODES.forEach(c => counts[c.id] = 0);
+    allSpans.forEach(s => {
+        const id = s.getAttribute('data-code');
+        if(counts[id] !== undefined) counts[id]++;
     });
 
-    allSpans.forEach(span => {
-        const dataCode = span.getAttribute('data-code');
-        if (targetIds.includes(dataCode)) {
-            counts[dataCode]++;
-            totalRelevantSpans++;
-        }
+    let tableHtml = `<h2>Statistik der Korpus-Annotationen</h2>
+        <p><small><i>Exklusive Analyse-Dokumente</i></small></p>
+        <table border="1" cellpadding="8" style="width:100%; border-collapse:collapse; border-color: var(--border-color);">
+            <thead><tr style="background:#f1f5f9;"><th>ID</th><th>Code</th><th>Anzahl</th></tr></thead><tbody>`;
+
+    CODES.forEach(c => {
+        tableHtml += `<tr><td>${c.id}</td><td>${c.name}</td><td>${counts[c.id]}</td></tr>`;
     });
 
-    // 4. HTML-Tabelle aufbauen
-    let tableHtml = `
-        <style>
-            body { font-family: sans-serif; padding: 20px; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
-            th { background-color: #f2f2f2; }
-            .summary-row { font-weight: bold; background-color: #e0f7fa; }
-        </style>
-        <h1>Statistik der Code-Annotationen</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Code</th>
-                    <th>Anzahl der Annotationen</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    // Zeilen für jeden Code einfügen (Name wird aus der Map gelesen)
-    targetIds.forEach(id => {
-        const codeName = codeMap.get(id) || 'Unbekannt';
-        tableHtml += `
-            <tr>
-                <td>${id}</td>
-                <td>${codeName}</td>
-                <td>${counts[id]}</td>
-            </tr>
-        `;
-    });
-
-    // Zusammenfassungszeilen direkt anhängen
-    tableHtml += `
-            <tr class="summary-row">
-                <td>Summe (gültige IDs)</td>
-                <td></td>
-                <td>${totalRelevantSpans}</td>
-            </tr>
-            <tr class="summary-row">
-                <td>Summe (alle IDs)</td>
-                <td></td>
-                <td>${totalAllSpans}</td>
-            </tr>
-            </tbody>
-        </table>
-    `;
-
-    // 5. Popup-Fenster öffnen
-    const popup = window.open('', 'SpanCountStats', 'width=600,height=400,scrollbars=yes');
-    if (popup) {
-        popup.document.write('<!DOCTYPE html><html><head><title>Span Statistik</title></head><body>' + tableHtml + '</body></html>');
-        popup.document.close();
-    } else {
-        alert('Das Popup-Fenster konnte nicht geöffnet werden. Bitte erlauben Sie Popups für diese Seite.');
-    }
+    tableHtml += `</tbody></table>`;
+    openModalWithHTML(tableHtml);
 }
 
-
-// ===================================
-// IMPORT-FUNKTIONALITÄT
-// ===================================
-
-function openAndReadJsonFile() {
-  return new Promise((resolve) => {
-    // 1. Ein verstecktes <input type="file"> Element erstellen
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json'; // Optional: Filtert für JSON-Dateien im Dialog
-
-    // 2. Event-Listener für die Dateiauswahl definieren
-    input.onchange = (event) => {
-      const file = event.target.files[0];
-
-      // Prüfen, ob eine Datei ausgewählt wurde
-      if (!file) {
-        resolve(null); // Benutzer hat abgebrochen
-        return;
-      }
-
-      // 3. FileReader verwenden, um den Dateiinhalt zu lesen
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        const fileContent = e.target.result;
-        let jsonData = null;
-
-        try {
-          // 4. Den Inhalt als JSON parsen
-          jsonData = JSON.parse(fileContent);
-          resolve(jsonData); // Erfolgreich geparstes JSON zurückgeben
-
-        } catch (error) {
-          // 5. Fehlerbehandlung für ungültiges JSON
-          alert('Fehler: Die ausgewählte Datei ist kein gültiges JSON-Format.');
-          console.error('JSON-Parsing-Fehler:', error);
-          resolve(null); // Fehler signalisieren
-        }
-      };
-
-      reader.onerror = () => {
-        alert('Fehler beim Lesen der Datei.');
-        console.error('FileReader-Fehler:', reader.error);
-        resolve(null);
-      };
-
-      // Den Inhalt der Datei als Text lesen
-      reader.readAsText(file);
-    };
-
-    // 3. Den Dateidialog programmgesteuert öffnen
-    input.click();
-  });
-}
-
-async function handleFileSelection() {
-  console.log('Warte auf Dateiauswahl...');
-  const data = await openAndReadJsonFile();
-
-  if (data) {
-    console.log('Datei erfolgreich als JSON eingelesen:', data);
-
-    DOCUMENTS = data[0]["DOCUMENTS"];
-    CODES = data[0]["CODES"];
-    SETTINGS = data[0]["SETTINGS"];
-    //alert(JSON.stringify(data[0]["SETTINGS"]));
-
-    documentList.innerHTML = '';
-    DOCUMENTS.forEach(document => {
-      documentList.appendChild(createListItem(document, 'document-list'));
-    });
-    //alert(JSON.stringify(DOCUMENTS));
-    
-    codeList.innerHTML = '';
-    CODES.forEach(code => {
-      codeList.appendChild(createListItem(code, 'code-list'));
-    });
-    //alert(JSON.stringify(CODES));
-    
-    if(selectedCode !== null){
-      selectedCode = CODES.find(doc => doc.id == selectedCode.id);
-    }  
-    if(selectedDocument !== null){    
-      selectedDocument = DOCUMENTS.find(doc => doc.id == selectedDocument.id);
-        loadDocumentText(selectedDocument);
-    }
-    updateSelectedCodeDisplay();
-
-    alert(JSON.stringify(data));
-
-  } else {
-    console.log('Vorgang abgebrochen oder Fehler aufgetreten.');
-  }
-}
-
-
-// ===================================
-// KI-FUNKTIONALITÄT
-// ===================================
-
-
-function KIBasierteInhaltsanalyseForm() {
- /**
- * Öffnet ein neues Fenster und zeigt ein Formular für die KI-basierte Inhaltsanalyse.
- * Die Elemente und Logik basieren auf den Anforderungen nach Fischer (2025).
- */
-    // 1. Neues Fenster öffnen
-    const newWindow = window.open("", "_blank", "width=800,height=700,scrollbars=yes");
-
-    if (!newWindow) {
-        alert("Das Popup-Fenster wurde blockiert. Bitte erlauben Sie Popups für diese Seite.");
-        return;
-    }
-
-    // 2. Dokumentenstruktur im neuen Fenster vorbereiten
-    newWindow.document.title = "KI-basierte Inhaltsanalyse nach Fischer (2025)";
-    
-    // Grundlegendes Styling hinzufügen (optional, aber nützlich für die Lesbarkeit)
-    const style = newWindow.document.createElement('style');
-    style.textContent = `
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
-        h2 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
-        form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-        input[type="text"], textarea, select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box; /* Wichtig für korrekte Breite */
-        }
-        textarea { resize: vertical; height: 100px; }
-        .checkbox-group label { font-weight: normal; display: inline-block; margin-right: 15px; }
-    `;
-    newWindow.document.head.appendChild(style);
-
-    // 3. Formular erstellen
-    const form = newWindow.document.createElement('form');
-    form.innerHTML = `
+function openAIModal() {
+    const html = `
         <h2>KI-basierte Inhaltsanalyse nach Fischer (2025)</h2>
-  
-	<small><p><i>Das vorliegende Tool bietet die Möglichkeit, ausgewählte Varianten der KI-basierten Inhaltsanalyse nach Fischer (2025) umzusetzen. Für Erläuterungen, Alternativen und weitere Varianten sei verwiesen auf "Die Zukunft der Qualitativen Inhaltsanalyse im Zeitalter Künstlicher Intelligenz", kostenfrei zu beziehen unter <a href="https://doi.org/10.25656/01:34405">https://doi.org/10.25656/01:34405</a></i></p></small>
+        <p><small><i>Anpassungen & Modellparameter zur Erhöhung der Validität und Reliabilität vornehmen! Weitere Informationen bei Fischer (2025) unter <a href="https://doi.org/10.25656/01:34405">https://doi.org/10.25656/01:34405</a></i></small></p>
 
-        <h3>Kontext</h3>  
-    
-        <div class="form-group">
-            <label for="context">Forschungsfrage:</label>
-            <textarea id="context" name="context" placeholder="Geben Sie hier Forschungsfrage oder andere Kontext-Informationen ein, die Sie im Prompt-Template mit {context} referenzieren möchten."></textarea>
-        </div>
-        <div class="form-group">
-            <label for="llm_model">LLM (Model Name):</label>
-            <input type="text" id="llm_model" name="llm_model" placeholder="z.B. google/gemma-4-12b-qat" value="google/gemma-4-12b-qat">
-        </div>
-        <div class="form-group">
-            <label for="llm_url">LLM-API-Endpunkt (URL):</label>
-            <input type="text" id="llm_url" name="llm_url" placeholder="z.B. http://127.0.0.1:1234/v1/chat/completions" value="http://127.0.0.1:1234/v1/chat/completions" required>
-        </div>
-        <div class="form-group">
-            <label for="llm_key">LLM-API-Key (optional):</label>
-            <input type="text" id="llm_key" name="llm_key" placeholder="z.B. hf_api123">
-        </div>   
-        <hr>
-
-        <h3>Technik</h3>
-
-        <div class="form-group">
-            <label for="analyseverfahren">Analysetechnik (Single-Choice):</label>
-            <select id="analyseverfahren" name="analyseverfahren">
-                <option value="Zusammenfassung">Zusammenfassung</option>
-                <option value="Explikation">Explikation</option>
-                <option value="Induktion">Induktion</option>
-                <option value="Deduktion">Deduktion</option>
-            </select>
-        </div>
-
-        <h3>Einheiten</h3>
-
-        <div class="form-group">
-            <label for="granularitaet">Verarbeitungseinheit (Single-Choice):</label>
-            <select id="granularitaet" name="granularitaet">
-                <option value="Korpus">Korpus</option>
-                <option value="Dokument">Dokument</option>
-                <option value="Segment">Segment</option>
-            </select>
-        </div>
-
-        <h3>Prozess</h3>
-<small><p><strong>Hinweis:</strong> <i>Für zuverlässige und gültige Ergebnisse sollten Sie den Prozess (und insb. das Prompt-Template) kompetent spezifzieren, empirisch erproben und bei Bedarf iterativ optimieren. Weiterführende Hinweise finden Sie bei Fischer (2025).</i></p></small>
-
-        <div class="form-group">
-            <label for="prompt_anweisung">Prompt-Template:</label>
-            <textarea id="prompt_anweisung" name="prompt_anweisung" placeholder="Der Platzhalter {text} wird durch den zu analysierenden Text ersetzt. Die Standard-Aufforderung wird bei Änderung überschrieben."></textarea>
-            <small id="prompt_vorschlag" style="color: #666; display: block; margin-top: 5px;"></small>
-        </div>
-
-        <hr>
-
-        <div class="form-group">
-            <label>Text-Vorverarbeitung:</label>
-            <div class="checkbox-group">
-                <input type="checkbox" id="remove_quotes" name="vorverarbeitung" value="entferne_anfuehrungszeichen">
-                <label for="remove_quotes">entferne Anführungszeichen</label>                
-                <input type="checkbox" id="remove_double_spaces" name="vorverarbeitung" value="entferne_doppelte_leerzeilen">
-                <label for="remove_double_spaces">entferne doppelte Leerzeilen</label>
+        <form id="ai-form">
+            <h3>Kontext & Modell</h3>
+            <div class="form-group">
+                <label>Forschungsfrage / Kontext ({context}):</label>
+                <textarea id="ai_context">${SETTINGS.context}</textarea>
             </div>
-        </div>
-        
-        <hr>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>LLM Modell Name:</label>
+                    <input type="text" id="ai_model" value="${SETTINGS.model}">
+                </div>
+                <div class="form-group">
+                    <label>API Endpunkt URL:</label>
+                    <input type="text" id="ai_url" value="${SETTINGS.url}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>API Key (Optional):</label>
+                <input type="text" id="ai_key" value="${SETTINGS.apiKey}">
+            </div>
 
-        <h3>Implementierung</h3>
-        
-        <div class="form-group">
-             <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Analyse starten</button>
-        </div>
-        <small><p><strong>Wichtig:</strong> <i>Bitte beachten Sie, dass die KI-generierten Antworten nach Fischer (2025) im Zuge der <strong>Implementierung</strong> kontinulierlich überwacht und im Zuge einer abschließenden <strong>Evaluation</strong> durch Menschen ausgewertet, berichtet und verantwortet werden sollten. Bei Bedarf besteht die Möglichkeit, die Analyse iterativ anzupassen. Mit Blick auf die Validität der Analyse wird außerdem empfohlen, abschließend möglichst alle KI-generierten Antworten zu überprüfen.</i></p></small>
+            <h3>Methodik & Parameter</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Analysetechnik:</label>
+                    <select id="ai_verfahren">
+                        <option value="Induktion" ${SETTINGS.verfahren==='Induktion'?'selected':''}>Induktion</option>
+                        <option value="Deduktion" ${SETTINGS.verfahren==='Deduktion'?'selected':''}>Deduktion</option>
+                        <option value="Zusammenfassung" ${SETTINGS.verfahren==='Zusammenfassung'?'selected':''}>Zusammenfassung</option>
+                        <option value="Explikation" ${SETTINGS.verfahren==='Explikation'?'selected':''}>Explikation</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Verarbeitungseinheit:</label>
+                    <select id="ai_granularitaet">
+                        <option value="Korpus" ${SETTINGS.granularitaet==='Korpus'?'selected':''}>Korpus</option>
+                        <option value="Dokument" ${SETTINGS.granularitaet==='Dokument'?'selected':''}>Dokument</option>
+                        <option value="Segment" ${SETTINGS.granularitaet==='Segment'?'selected':''}>Segment</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Temperature (0.0 - 1.0):</label>
+                    <input type="number" step="0.1" id="ai_temp" value="${SETTINGS.temperature}">
+                </div>
+                <div class="form-group">
+                    <label>Top_P:</label>
+                    <input type="number" step="0.1" id="ai_topp" value="${SETTINGS.top_p}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Prompt-Template:</label>
+                <textarea id="ai_prompt" style="height:150px;">${SETTINGS.promptTemplate}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label><input type="checkbox" id="ai_streaming" ${SETTINGS.useStreaming?'checked':''}> Live-Streaming (SSE) aktivieren</label><br>
+                <label><input type="checkbox" id="ai_quotes" ${SETTINGS.removeQuotes?'checked':''}> Anführungszeichen entfernen</label><br>
+                <label><input type="checkbox" id="ai_spaces" ${SETTINGS.removeDoubleSpaces?'checked':''}> Doppelte Leerzeichen entfernen</label><br>
+                <label><input type="checkbox" id="ai_json_prep" ${SETTINGS.useLabeledJSON?'checked':''}> Verarbeitungseinheiten mit Label (JSON) übergeben</label>
+            </div>
+
+            <button type="submit" style="background-color: var(--accent-purple); width:100%; padding: 10px;">Analyse starten</button>
+        </form>
     `;
 
-    // 4. Logik für die automatische Prompt-Generierung
-    const select = form.querySelector('#analyseverfahren');
-    const promptTextarea = form.querySelector('#prompt_anweisung');
-    const promptVorschlag = form.querySelector('#prompt_vorschlag');
+    openModalWithHTML(html);
 
-    function updatePrompt() {
-        const selectedValue = select.value;
-        let defaultPrompt = "";
-
-        switch (selectedValue) {
-            case 'Zusammenfassung':
-                defaultPrompt = "Fasse den folgenden Text stichpunktartig zusammen: '{text}'";
-                break;
-            case 'Explikation':
-                defaultPrompt = "Erläutere die Impliationen des Textes '{text}' für die Forschungsfrage '{context}'.";
-                break;
-            case 'Induktion':
-                defaultPrompt = "Gegeben sei der folgende Text '{text}' Welche Kategorien lassen sich aus dem Text ableiten?";
-                break;
-            case 'Deduktion':
-                defaultPrompt = "Wende das Kodierschema {context} auf den folgenden Text an und extrahiere relevante Segmente: '{text}'";
-                break;
-        }
-
-        // Setzt den Standard-Prompt nur, wenn die Textarea noch leer ist, 
-        // andernfalls zeigt es den Vorschlag an.
-        if (promptTextarea.value.trim() === "") {
-            promptTextarea.value = defaultPrompt;
-        } else {
-            promptVorschlag.innerHTML = `Vorschlag für "${selectedValue}":<br>"${defaultPrompt}"`;
-        }
-    }
-
-    // Initialen Prompt setzen
-    newWindow.document.body.appendChild(form);
-
-            form.querySelector('#llm_model').value=SETTINGS.model
-            form.querySelector('#llm_url').value=SETTINGS.url
-            form.querySelector('#llm_key').value=SETTINGS.apiKey
-            form.querySelector('#context').value=SETTINGS.context
-            form.querySelector('#analyseverfahren').value=SETTINGS.verfahren
-            form.querySelector('#granularitaet').value=SETTINGS.granularitaet
-            form.querySelector('#prompt_anweisung').value=SETTINGS.promptTemplate
-            form.querySelector('#remove_quotes').checked=SETTINGS.removeQuotes
-            form.querySelector('#remove_double_spaces').checked=SETTINGS.removeDoubleSpaces
-
-    updatePrompt(); 
-
-    // Event-Listener für Änderungen im Dropdown
-    select.addEventListener('change', updatePrompt);
-
-    // Event-Listener, um den Vorschlag auszublenden, wenn der Benutzer selbst tippt
-    promptTextarea.addEventListener('input', () => {
-         if (promptTextarea.value.trim() !== "") {
-            promptVorschlag.textContent = "";
+    document.getElementById('ai_verfahren').addEventListener('change', (e) => {
+        const val = e.target.value;
+        const promptEl = document.getElementById('ai_prompt');
+        if (PROMPT_TEMPLATES[val]) {
+            promptEl.value = PROMPT_TEMPLATES[val];
         }
     });
 
-    // Event-Listener für das Absenden im Popup
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
+    document.getElementById('ai-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        SETTINGS.context = document.getElementById('ai_context').value;
+        SETTINGS.model = document.getElementById('ai_model').value;
+        SETTINGS.url = document.getElementById('ai_url').value;
+        SETTINGS.apiKey = document.getElementById('ai_key').value;
+        SETTINGS.verfahren = document.getElementById('ai_verfahren').value;
+        SETTINGS.granularitaet = document.getElementById('ai_granularitaet').value;
+        const tempVal = parseFloat(document.getElementById('ai_temp').value);
+        SETTINGS.temperature = isNaN(tempVal) ? 0.0 : tempVal;
+        const topPVal = parseFloat(document.getElementById('ai_topp').value);
+        SETTINGS.top_p = isNaN(topPVal) ? 0.95 : topPVal;
+        SETTINGS.promptTemplate = document.getElementById('ai_prompt').value;
+        SETTINGS.useStreaming = document.getElementById('ai_streaming').checked;
+        SETTINGS.removeQuotes = document.getElementById('ai_quotes').checked;
+        SETTINGS.removeDoubleSpaces = document.getElementById('ai_spaces').checked;
+        SETTINGS.useLabeledJSON = document.getElementById('ai_json_prep').checked;
 
-        // Parameter aus dem Popup-Formular auslesen
-        const config = {
-            model: form.querySelector('#llm_model').value.trim(),
-            url: form.querySelector('#llm_url').value.trim(),
-            apiKey: form.querySelector('#llm_key').value.trim(), 
-            context: form.querySelector('#context').value,
-            verfahren: form.querySelector('#analyseverfahren').value,
-            granularitaet: form.querySelector('#granularitaet').value,
-            promptTemplate: form.querySelector('#prompt_anweisung').value,
-            removeQuotes: form.querySelector('#remove_quotes').checked,
-            removeDoubleSpaces: form.querySelector('#remove_double_spaces').checked
-        };
-
-	// Übetrage Settings
-        SETTINGS=config;
-
-        // Formular-Button deaktiveren
-        const submitBtn = form.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Analyse läuft im Hauptfenster...";
-
-        // Hauptfunktion zur Analyse ausführen und Popup schließen
-        runAIAnalysis(config);
-        newWindow.close();
+        saveSettings();
+        closeModal();
+        runAIAnalysis(SETTINGS);
     });
 }
 
-
+// KI-Analyse mit echtem Live-Streaming und anschließender Validierung
 async function runAIAnalysis(config) {
-    // 1. Neues Ziel-Dokument direkt zu Beginn erstellen
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('de-DE');
-    const timeStr = now.toLocaleTimeString('de-DE');
-    
-    const resultDocName = `KI-basierte Inhaltsanalyse ${config.verfahren} ${Date.now().toString().slice(-4)}`;
-    let currentContent = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren})</h2><p><i>Analyse gestartet am ${dateStr} um ${timeStr} (dies kann einige Minuten dauern)...</i></p><hr>`;
+    const resultDocName = `KI-Analyse (${config.verfahren}) ${new Date().toLocaleTimeString('de-DE')}`;
+    let currentContent = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren}) nach Fischer (2025)</h2><p><i>Gestartet...</i></p><hr>`;
 
-    const newDoc = {
-        id: DOCUMENTS.length + 1,
-        name: resultDocName,
-        content: currentContent
-    };
-
-    // Dokument zum Array hinzufügen und UI sofort aktualisieren
+    const newDoc = { id: Date.now(), name: resultDocName, content: currentContent };
     DOCUMENTS.push(newDoc);
     updateInterface();
     selectListItem(document.getElementById(`document-${newDoc.id}`), 'document-list');
 
-    // Hilfsfunktion zum schrittweisen Aktualisieren der UI & Datenstruktur
+    // KORREKTUR 1: Aktualisiert strikt das newDoc-Objekt. 
+    // Das DOM (textDisplay) wird NUR aktualisiert, wenn der Nutzer aktuell auch dieses Dokument ansieht.
     const updateDocContent = (addedHtml) => {
         currentContent += addedHtml;
         newDoc.content = currentContent;
@@ -1105,424 +813,454 @@ async function runAIAnalysis(config) {
         }
     };
 
-    // 2. Zu verarbeitende Texte ermitteln (KI-Dokumente ignorieren)
+    const validDocs = getCorpusDocuments();
     let textsToAnalyze = [];
-    
-    // Alle Dokumente filtern, die nicht mit "KI-basierte Inhaltsanalyse" beginnen
-    const validDocs = DOCUMENTS.filter(d => !d.name.startsWith("KI-basierte Inhaltsanalyse"));
-    
+
     if (config.granularitaet === 'Dokument') {
         validDocs.forEach(doc => {
-                textsToAnalyze.push({ title: doc.name, content: doc.content });
+            let clean = doc.content.replace(/<[^>]*>/g, '');
+            if (config.removeQuotes) clean = clean.replace(/["'„“]/g, '');
+            if (config.removeDoubleSpaces) clean = clean.replace(/\s+/g, ' ');
+
+            const textPayload = config.useLabeledJSON
+                ? JSON.stringify({ title: doc.name, content: clean })
+                : clean;
+
+            textsToAnalyze.push({ title: doc.name, payload: textPayload });
         });
     } else if (config.granularitaet === 'Korpus') {
-        const combinedContent = validDocs.map(d => d.content).join("\n\n");
-        textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dokumente)`, content: combinedContent });
+        if (config.useLabeledJSON) {
+            const corpusArray = validDocs.map(d => {
+                let clean = d.content.replace(/<[^>]*>/g, '');
+                if (config.removeQuotes) clean = clean.replace(/["'„“]/g, '');
+                if (config.removeDoubleSpaces) clean = clean.replace(/\s+/g, ' ');
+                return { title: d.name, content: clean };
+            });
+            textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dok.)`, payload: JSON.stringify(corpusArray) });
+        } else {
+            let combined = validDocs.map(d => d.content.replace(/<[^>]*>/g, '')).join("\n\n");
+            if (config.removeQuotes) combined = combined.replace(/["'„“]/g, '');
+            if (config.removeDoubleSpaces) combined = combined.replace(/\s+/g, ' ');
+            textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dok.)`, payload: combined });
+        }
     } else if (config.granularitaet === 'Segment') {
-        
-        // Regulärer Ausdruck für ALLE Annotation-Spans
-        const annotationRegex = /<span\s+[^>]*?class=["']annotation["'][^>]*?>(.*?)<\/span>/gi;
-    
-        // 2.1. Alle Annotationen korpusweit sammeln
+        const regex = /<span\s+[^>]*?class=["']annotation["'][^>]*?data-code=["'](\d+)["'][^>]*?>(.*?)<\/span>/gi;
         validDocs.forEach(doc => {
-            if (doc.content) {
-                annotationRegex.lastIndex = 0;
-                let segIdx = 1;
-                let match;
-                
-                while ((match = annotationRegex.exec(doc.content)) !== null) {
-                    const cleanAnnotationText = match[1].replace(/<[^>]*>/g, '').trim();
-    
-                    if (cleanAnnotationText !== '') {
-                        textsToAnalyze.push({
-                            title: `${doc.name} - Segment ${segIdx}`,
-                            content: cleanAnnotationText
-                        });
-                        segIdx++;
-                    }
+            let match, idx = 1;
+            while ((match = regex.exec(doc.content)) !== null) {
+                const codeId = match[1];
+                let text = match[2].replace(/<[^>]*>/g, '').trim();
+                if (config.removeQuotes) text = text.replace(/["'„“]/g, '');
+                if (config.removeDoubleSpaces) text = text.replace(/\s+/g, ' ');
+
+                if (text) {
+                    const codeObj = CODES.find(c => c.id == codeId);
+                    const codeName = codeObj ? codeObj.name : "Unbekannt";
+
+                    const textPayload = config.useLabeledJSON
+                        ? JSON.stringify({ code: codeName, text: text })
+                        : text;
+
+                    textsToAnalyze.push({ title: `${doc.name} - Seg ${idx++} [${codeName}]`, payload: textPayload });
                 }
             }
         });
-    
-    	// 2.2. Fallback: Absätze als Segmente nutzen mit fortlaufendem Zähler
-        if (textsToAnalyze.length === 0) {
-            validDocs.forEach(doc => {
-                if (doc.content) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = doc.content;
-                    
-                    // P- und DIV-Tags selektieren
-                    let paragraphElements = Array.from(tempDiv.querySelectorAll('p, div'))
-                        // Nur Elemente berücksichtigen, die direkt Text oder Inline-Tags enthalten (keine Container-Divs)
-                        .filter(el => !el.querySelector('p, div'))
-                        .map(el => el.innerText.trim())
-                        .filter(text => text !== '');
-    
-                    // Falls weder <p> noch <div> Tags vorhanden sind, am Zeilenumbruch trennen
-                    if (paragraphElements.length === 0) {
-                        paragraphElements = tempDiv.innerText
-                            .split(/\r?\n+/)
-                            .map(p => p.trim())
-                            .filter(p => p !== '');
-                    }
-                    
-                    // Korrekte Indexierung pro Absatz im jeweiligen Dokument
-                    paragraphElements.forEach((p, idx) => {
-                        textsToAnalyze.push({
-                            title: `${doc.name} - Absatz${idx + 1}`,
-                            content: p
-                        });
-                    });
-                }
-            });
-        }
-
     }
 
     if (textsToAnalyze.length === 0) {
-        updateDocContent(`<p style="color:red;"><strong>Abgebrochen:</strong> Keine Texte zur spezifizierten Analyse vorhanden.</p>`);
+        updateDocContent(`<p style="color:red;">Keine Analyseobjekte im Korpus vorhanden.</p>`);
         return;
     }
 
-    // 3. Header aufbauen (Authorization nur falls Key vorhanden)
     const headers = { 'Content-Type': 'application/json' };
-    if (config.apiKey !== "") {
-        headers['Authorization'] = `Bearer ${config.apiKey}`;
-    }
+    if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
 
-    updateDocContent(`<small><p>⏳ <i>Spezifiziere Eckdaten:</i></p><ul><li>KI-Endpunkt "${config.url}"</li><li>Technik "${config.verfahren}"</li><li>Verarbeitungseinheit "${config.granularitaet}"</li></ul></small>`);
-
-
-    // 4. Sequentielle Verarbeitung mit Live-Updates im Dokument
     for (let i = 0; i < textsToAnalyze.length; i++) {
-        updateDocContent(`<small>`);
         const item = textsToAnalyze[i];
-        
-        // Status-Update vor dem Request schreiben
-        updateDocContent(`<p>⏳ <i>Verarbeite ${item.title} (${i + 1}/${textsToAnalyze.length})...</i></p>`);
 
-        let cleanText = item.content.replace(/<[^>]*>/g, '');
-        if (config.removeQuotes) { 
-		cleanText = cleanText.replace(/["'„“]/g, '');
-        	updateDocContent(`<p>⏳ <i>Entferne Anführungszeichen ("'„“)...</i></p>`);
-	}
-        if (config.removeDoubleSpaces){ 
-		cleanText = cleanText.replace(/\s+/g, ' ');
-		updateDocContent(`<p>⏳ <i>Entferne doppelte Anführungszeichen...</i></p>`);
-	}
-        let finalPrompt = config.promptTemplate
-            .replace('{text}', cleanText)
+        // Parameter-Dokumentation & Fortschritt
+        const settingsDocHtml = `
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-left: 4px solid var(--primary); padding: 12px 15px; margin: 10px 0 15px 0; border-radius: 4px; font-size: 0.9em;">
+                <h4 style="margin: 0 0 8px 0; color: var(--primary);">⚙️ Angewendete Analyse-Einstellungen:</h4>
+                <ul style="margin: 0; padding-left: 20px; color: var(--text-dark); line-height: 1.5;">
+                    <li><strong>Forschungsfrage / Kontext:</strong> ${config.context || '<i>Keiner angegeben</i>'}</li>
+                    <li><strong>Verfahren:</strong> ${config.verfahren} | <strong>Granularität:</strong> ${config.granularitaet}</li>
+                    <li><strong>Modell:</strong> ${config.model} (Temp: ${config.temperature}, Top_P: ${config.top_p})</li>
+                    <li><strong>Optionen:</strong> 
+                        Anführungszeichen entfernen: ${config.removeQuotes ? 'Ja' : 'Nein'} | 
+                        Doppelte Leerzeichen entfernen: ${config.removeDoubleSpaces ? 'Ja' : 'Nein'} | 
+                        Labeled JSON: ${config.useLabeledJSON ? 'Ja' : 'Nein'}
+                    </li>
+                </ul>
+            </div>
+            <p>⏳ <i>Verarbeite ${item.title}...</i></p>
+        `;
+        updateDocContent(settingsDocHtml);
+
+        const finalPrompt = config.promptTemplate
+            .replace('{text}', item.payload)
             .replace('{context}', config.context);
 
+        const requestBody = {
+            messages: [
+                { role: "system", content: "Du bist ein präziser Assistent für qualitative Inhaltsanalyse." },
+                { role: "user", content: finalPrompt }
+            ],
+            temperature: config.temperature,
+            top_p: config.top_p,
+            stream: config.useStreaming
+        };
+        if (config.model) requestBody.model = config.model;
+
         try {
-            // Request-Body dynamisch aufbauen
-            const requestBody = {
-                messages: [
-                    { role: "system", content: "Du bist ein präziser wissenschaftlicher Assistent für qualitative Inhaltsanalyse." },
-                    { role: "user", content: finalPrompt }
-                ],
-                temperature: 0.0
-            };
-
-            // Eigenschaft 'model' nur hinzufügen, wenn im Formular ein Wert eingegeben wurde
-            if (config.model && config.model.trim() !== "") {
-                requestBody.model = config.model.trim();
-                updateDocContent(`<p>⏳ <i>Setze Modell ${config.model.trim()} als Parameter...</i></p>`);
-
-            }
-
-	    // Halte Body im Detail fest
-	    updateDocContent(`<p>⏳ <i>Sende Anfrage zu folgendem Material an LLM:<br>${JSON.stringify(requestBody)}...</i></p>`);
-
-            // Antwort anfragen
             const response = await fetch(config.url, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(requestBody)
             });
 
-            if (!response.ok) {
-                throw new Error(`Server antwortete mit Status ${response.status}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            let aiAnswer = "";
+
+            if (config.useStreaming) {
+                const boxId = `stream-box-${i}`;
+                const targetId = `stream-target-${i}`;
+                
+                updateDocContent(`
+                    <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        <pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>
+                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
+                `);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop(); 
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
+                            try {
+                                const parsed = JSON.parse(trimmed.substring(6));
+                                const content = parsed.choices?.[0]?.delta?.content || "";
+                                if (content) {
+                                    aiAnswer += content;
+                                    
+                                    // Live-Streaming ins DOM nur vornehmen, wenn das Dokument noch aktiv offen ist
+                                    const targetEl = document.getElementById(targetId);
+                                    if (targetEl && selectedDocument && selectedDocument.id === newDoc.id) {
+                                        targetEl.innerText = aiAnswer;
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+
+                // KORREKTUR 2: Stream-Ende verarbeiten.
+                // Das gerenderte HTML wird direkt erzeugt und im Hintergrund-String ausgetauscht.
+                const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
+                const finalBoxContent = `
+                    <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        ${renderedHtml}
+                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
+                `;
+
+                // Ersetze die temporäre Streaming-Box im Hintergrund-Inhalt durch die finalen Karten
+                const placeholderHtml = `
+                    <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        <pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>
+                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
+                `;
+                
+                // Text-Substitution im echten Daten-Objekt
+                currentContent = currentContent.replace(placeholderHtml, finalBoxContent);
+                newDoc.content = currentContent;
+
+                // Falls der Nutzer gerade in diesem Dokument steht, auch im DOM austauschen
+                if (selectedDocument && selectedDocument.id === newDoc.id) {
+                    textDisplay.innerHTML = currentContent;
+                }
+
             } else {
-		 updateDocContent(`<p>⏳ <i>Extrahiere Antwort des LLM...</i></p>`);
-	    }
+                const data = await response.json();
+                aiAnswer = data.choices?.[0]?.message?.content || "Keine Antwort erhalten.";
 
-            const data = await response.json();
-            const aiAnswer = data.choices?.[0]?.message?.content || "Kein Inhalt von der KI zurückgemeldet.";
+                const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
 
-            // Teilergebnis im Dokument ergänzen
-            updateDocContent(`</small>`);
-            updateDocContent(`<hr><h3>KI-generiertes Ergebnis für ${item.title}</h3><p>${aiAnswer.replace(/\n/g, '<br>')}</p><hr>`);
+                updateDocContent(`
+                    <div style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        ${renderedHtml}
+                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
+                `);
+            }
 
         } catch (err) {
-            console.error(err);
-	    updateDocContent(`</small>`);
-            updateDocContent(`<hr><h3>Fehler bei: ${item.title}</h3><p style="color:red;"><strong>Fehler:</strong> ${err.message}</p><hr>`);
+            updateDocContent(`<p style="color:#e11d48;">Fehler bei ${item.title}: ${err.message}</p>`);
         }
     }
-
-    // Abschlussmeldung ergänzen
-    const dateStr2 = now.toLocaleDateString('de-DE');
-    const timeStr2 = now.toLocaleTimeString('de-DE');
-    updateDocContent(`<p><b>Analyse vollständig abgeschlossen am ${dateStr2} um ${timeStr2}!</b></p>`);
+    updateDocContent(`<p style="color:var(--accent-green); font-weight:bold;">Analyse vollständig beendet!</p>`);
 }
 
-// Initialisierung
+// Validierungsfunktion für KI JSON Struktur
+function validateAIResultStructure(parsedData, verfahren) {
+    if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) return false;
+
+    return parsedData.every(item => {
+        if (typeof item !== 'object' || item === null) return false;
+
+        const hasQuotes = Array.isArray(item.textstellen);
+        if (!hasQuotes) return false;
+
+        if (verfahren === 'Induktion' || verfahren === 'Deduktion') {
+            return typeof item.code === 'string' && item.code.trim().length > 0;
+        } else if (verfahren === 'Zusammenfassung') {
+            return (typeof item.paraphrase === 'string' && item.paraphrase.trim().length > 0) ||
+                   (typeof item.summary === 'string' && item.summary.trim().length > 0);
+        } else if (verfahren === 'Explikation') {
+            return (typeof item.assoziation === 'string' && item.assoziation.trim().length > 0) ||
+                   (typeof item.explikation === 'string' && item.explikation.trim().length > 0);
+        }
+        return false;
+    });
+}
+
+// Render-Funktion für Analyseergebnisse: Einheitlich für Induktion, Deduktion, Zusammenfassung und Explikation
+function renderAIResult(text, verfahren) {
+    const parsedData = parseAIResponseJSON(text);
+    const isValid = validateAIResultStructure(parsedData, verfahren);
+
+    let html = "";
+
+    if (!isValid) {
+        html += `<div class="validation-warning">⚠️ <strong>Hinweis:</strong> Die KI-Antwort entspricht nicht exakt dem geforderten JSON-Schema. Interaktive Schaltflächen wurden ausgeblendet.</div>`;
+    }
+
+    if (parsedData && Array.isArray(parsedData) && parsedData.length > 0) {
+        parsedData.forEach(item => {
+            let label = "";
+            let description = "";
+
+            if (verfahren === 'Induktion' || verfahren === 'Deduktion') {
+                label = item.code || item.kategorie || "Unbenannter Code";
+                description = item.description || item.beschreibung || "";
+            } else if (verfahren === 'Zusammenfassung') {
+                label = item.paraphrase || item.summary || "Zusammenfassung";
+            } else if (verfahren === 'Explikation') {
+                label = item.assoziation || item.explikation || "Explikation";
+            }
+
+            const quotes = item.textstellen || item.quotes || [];
+            const cardId = 'card-' + Math.random().toString(36).substr(2, 9);
+            const cardBorderColor = (verfahren === 'Induktion' || verfahren === 'Deduktion') ? 'var(--accent-purple)' : '#0284c7';
+
+            html += `
+                <div class="category-card" id="${cardId}" style="border-left-color: ${cardBorderColor};">
+                    <h4>🏷️ ${label}</h4>
+                    ${description ? `<p>${description}</p>` : ''}
+                    ${quotes.length > 0 ? `<p><strong>Textstellen:</strong></p><ul class="quotes-list">${quotes.map(q=>`<li>${q}</li>`).join('')}</ul>` : ''}
+                    ${isValid ? `
+                        <button class="ai-action-btn" onclick="addSingleCodeFromCard('${cardId}')">🏷️ Als Code übernehmen</button>
+                        <button class="ai-action-btn-auto" onclick="annotateTextstellenCorpusFromCard('${cardId}')">⚡ Automatisch annotieren</button>
+                    ` : ''}
+                </div>
+            `;
+        });
+        return html;
+    }
+
+    // Fallback: Ausgabe als Roh-Text/JSON
+    return html + `<pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 5px; border: 1px solid var(--border-color);">${text}</pre>`;
+}
+
+function parseAIResponseJSON(text) {
+    try {
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    } catch(e) {}
+    return null;
+}
+
+function extractCardData(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return { codeName: '', quotes: [] };
+
+    const h4 = card.querySelector('h4');
+    let codeName = h4 ? h4.innerText.replace(/^🏷️\s*/, '').trim() : '';
+
+    const quotesList = card.querySelectorAll('.quotes-list li');
+    const quotes = Array.from(quotesList).map(li => {
+        let text = li.innerText.trim();
+        if (text.startsWith('"') && text.endsWith('"') && text.length >= 2) {
+            text = text.substring(1, text.length - 1).trim();
+        }
+        return text;
+    }).filter(q => q.length > 0);
+
+    return { codeName, quotes };
+}
+
+function addSingleCodeFromCard(cardId) {
+    const { codeName } = extractCardData(cardId);
+    if (!codeName) return alert("Kein gültiger Code-Name gefunden.");
+
+    let existing = CODES.find(c => c.name.toLowerCase() === codeName.toLowerCase());
+    if (!existing) {
+        const newCode = {
+            id: Date.now(),
+            name: codeName,
+            color: "#" + Math.floor(Math.random()*16777215).toString(16)
+        };
+        CODES.push(newCode);
+        updateInterface();
+        alert(`Code "${codeName}" wurde angelegt!`);
+    } else {
+        alert(`Der Code "${codeName}" existiert bereits.`);
+    }
+}
+
+function addSingleCode(encodedCode) {
+    const codeName = decodeURIComponent(encodedCode);
+    let existing = CODES.find(c => c.name.toLowerCase() === codeName.toLowerCase());
+    if (!existing) {
+        const newCode = {
+            id: Date.now(),
+            name: codeName,
+            color: "#" + Math.floor(Math.random()*16777215).toString(16)
+        };
+        CODES.push(newCode);
+        updateInterface();
+        alert(`Code "${codeName}" wurde angelegt!`);
+    } else {
+        alert(`Der Code "${codeName}" existiert bereits.`);
+    }
+}
+
+function annotateTextstellenCorpusFromCard(cardId) {
+    const { codeName, quotes } = extractCardData(cardId);
+    if (!codeName) return alert("Kein gültiger Code-Name gefunden.");
+    executeAnnotation(codeName, quotes);
+}
+
+function annotateTextstellenCorpus(encodedCode, encodedQuotes) {
+    const codeName = decodeURIComponent(encodedCode);
+    let quotes = [];
+    try {
+        quotes = JSON.parse(decodeURIComponent(encodedQuotes));
+    } catch(e) {}
+    executeAnnotation(codeName, quotes);
+}
+
+function executeAnnotation(codeName, quotes) {
+    if (!Array.isArray(quotes) || quotes.length === 0) {
+        return alert(`Keine konkreten Textstellen für den Code "${codeName}" vorhanden.`);
+    }
+
+    let codeObj = CODES.find(c => c.name.toLowerCase() === codeName.toLowerCase());
+    if (!codeObj) {
+        codeObj = {
+            id: Date.now(),
+            name: codeName,
+            color: "#" + Math.floor(Math.random()*16777215).toString(16)
+        };
+        CODES.push(codeObj);
+        updateInterface();
+    }
+
+    const corpusDocs = getCorpusDocuments();
+    let totalMatches = 0;
+    let affectedDocsCount = 0;
+
+    corpusDocs.forEach(docObj => {
+        let content = docObj.content;
+        let matchesInDoc = 0;
+
+        quotes.forEach(quote => {
+            let trimmedQuote = quote.trim();
+            if (trimmedQuote.length < 3) return;
+
+            // 1. Strikter Abgleich (exakte Übereinstimmung)
+            const escaped = trimmedQuote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regexStrict = new RegExp(`(?![^<]*>)${escaped}`, 'gi');
+
+            if (regexStrict.test(content)) {
+                content = content.replace(regexStrict, (match) => {
+                    totalMatches++;
+                    matchesInDoc++;
+                    return `<span class="annotation" data-code="${codeObj.id}" title="Code: ${codeObj.name}" style="background-color: ${codeObj.color}33; border: 1px solid ${codeObj.color};">${match}</span>`;
+                });
+            } else {
+                // 2. Toleranter Abgleich (falls KI leichte Abweichungen erzeugte)
+                const fuzzyPattern = trimmedQuote
+                    .split(/\s+/)
+                    .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                    .join('\\s+[^<]*?');
+                
+                const regexFuzzy = new RegExp(`(?![^<]*>)(${fuzzyPattern})`, 'gi');
+                content = content.replace(regexFuzzy, (match) => {
+                    totalMatches++;
+                    matchesInDoc++;
+                    return `<span class="annotation" data-code="${codeObj.id}" title="Code: ${codeObj.name}" style="background-color: ${codeObj.color}33; border: 1px solid ${codeObj.color};">${match}</span>`;
+                });
+            }
+        });
+
+        if (matchesInDoc > 0) {
+            affectedDocsCount++;
+        }
+        docObj.content = content;
+    });
+
+    if (selectedDocument) loadDocumentText(selectedDocument);
+    alert(`Code "${codeName}" zugewiesen!\nEs wurden ${totalMatches} konkrete Textstellen in ${affectedDocsCount} Dokument(en) erfolgreich annotiert.`);
+}
+
+async function handleFileSelection() {
+    const data = await openAndReadJsonFile();
+    if (data && data[0]) {
+        DOCUMENTS = data[0]["DOCUMENTS"] || [];
+        CODES = data[0]["CODES"] || [];
+        SETTINGS = data[0]["SETTINGS"] || DEFAULT_SETTINGS;
+        saveSettings();
+        updateInterface();
+    }
+}
+
+function openAndReadJsonFile() {
+    return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return resolve(null);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try { resolve(JSON.parse(e.target.result)); } 
+                catch (err) { alert('Ungültiges JSON'); resolve(null); }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     renderLists();
-    //updateSelectedCodeDisplay();
     updateInterface(); 
 });
 </script>
-
-
-
-
-
-
-
-<style>
-
-/* Removes default list styling */
-nav ul {
-  list-style-type: none; /* Removes the bullets */
-  margin: 0;
-  padding: 0;
-  background-color: #333; /* Adds a background color to the bar */
-  overflow: hidden; /* Ensures any floats are contained */
-}
-
-/* Makes the list items display side-by-side */
-nav li {
-  float: left; /* Floats the list items horizontally */
-}
-
-/* Styles the actual links */
-nav li a {
-  display: block; /* Makes the entire <li> area clickable */
-  color: white;
-  cursor: pointer;
-  text-align: center;
-  padding: 14px 16px; /* Adds spacing around the text */
-  text-decoration: none; /* Removes the underline from links */
-}
-
-/* Changes color on hover for feedback */
-nav li a:hover {
-  background-color: #555;
-}
-
-/* Grund-Layout */
-html, body {
-    height: 100%;
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f9;
-    font-size: 12px;
-}
-
-#app-container {
-    display: flex;
-    height: calc(100vh - 50px);
-    /* min-height: 100vh; Mindesthöhe ist Viewporthöhe */
-}
-
-/* Linke Sidebar (1/3 Breite) */
-#left-sidebar {
-    display: flex;
-    flex-direction: column;
-    width: 30%;
-    min-width: 250px; /* Mindestbreite */
-    border-right: 1px solid #ccc;
-    background-color: #fff;
-}
-
-#title {
-    padding-left: 15px;
-}
-
-.panel {
-    padding: 15px;
-    border-bottom: 1px solid #eee;
-    overflow: hidden; /* Für Scroll-Bereich */
-    flex-grow: 1;     
-    display: flex;
-    flex-direction: column;
-}
-
-#code-panel {
-    border-bottom: none;
-    flex-grow: 1;
-}
-
-#document-panel {
-    border-bottom: none;
-    flex-grow: 1;
-}
-
-/* Rechtes Hauptpanel (2/3 Breite) */
-#main-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    background-color: #fafafa;
-}
-
-/* List- und Control-Styles */
-.panel-controls {
-    margin-bottom: 10px;
-}
-
-.list-container {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto; /* Scrollbar für Listen */
-    flex-grow: 1; /* Nimmt den restlichen Platz im Panel ein */
-}
-
-.list-container li {
-    padding: 8px 10px;
-    margin-bottom: 2px;
-    cursor: pointer;
-    border-radius: 4px;
-    border: 1px solid transparent;
-    transition: background-color 0.15s, border 0.15s;
-}
-
-.list-container li:hover {
-    background-color: #f0f0f5;
-}
-
-/* Selektierter Eintrag */
-.list-container li.selected {
-    background-color: #3498db;
-    color: white;
-    border: 1px solid #2980b9;
-    font-weight: bold;
-}
-
-/* Text-Anzeige-Bereich */
-#text-display {
-    border: 1px solid #ccc;
-    padding: 15px;
-    flex-grow: 1;
-    overflow-y: auto; /* Scrollbar für den Text */
-    line-height: 1.6;
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Style für annotierten Text */
-.annotation {
-    padding: 1px 3px;
-    margin: 0 1px;
-    border-radius: 3px;
-    font-weight: 500;
-    cursor: default;
-    /* Beispiel-Stil: Farbe wird dynamisch in JS gesetzt */
-}
-
-/* Layout für den Button-Container */
-.button-row {
-    display: flex;
-    justify-content: space-between; /* Links- und Rechts-Gruppe auseinanderschieben */
-    align-items: center;
-    gap: 10px;
-    margin-top: 15px; /* Ersetzt die unsauberen <br>-Tags */
-}
-
-/* Flexbox für die beiden Button-Gruppen */
-.buttons-left,
-.buttons-right {
-    display: flex;
-    gap: 8px; /* Abstand zwischen den einzelnen Buttons */
-}
-
-/* Control-Button Annotieren */
-#annotate-button {
-    background-color: #2ecc71;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s;
-}
-
-#annotate-button:hover {
-    background-color: #27ae60;
-}
-
-#document-header, #code-header, button:hover { cursor: pointer; }
-
-/* Control-Button Annotation Löschen */
-#remove-annotation-button {
-    background-color: #e74c68;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s;
-}
-
-#remove-annotation-button:hover {
-    background-color: #c0392b;
-}
-
-/* Control-Button Annotationen Anzeigen */
-#show-annotations-button {
-    background-color: #3498db; //#1abc9c; //#9b59b6;		
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s;
-}
-
-#show-annotations-button:hover {
-    background-color: #2980b9; //#16a085; //#8e44ad;
-}
-
-
-/* Control-Button Annotationen Zählen */
-#count-annotations-button {
-    background-color: #1abc9c; //#9b59b6;		
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s;
-}
-
-#count-annotations-button:hover {
-    background-color: #16a085; //#8e44ad;
-}
-
-
-
-/* Control-Button Annotationen Zählen */
-#ai-content-analysis-button {
-    background-color: #9b59b6;		
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s;
-}
-
-#ai-content-analysis-button:hover {
-    background-color: #8e44ad;
-}
-
-</style>
+</body>
+</html>
