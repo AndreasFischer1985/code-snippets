@@ -1008,7 +1008,7 @@ async function runAIAnalysis(config) {
             }
 
         } catch (err) {
-            updateDocContent(`<p style="color:#e11d48;">Fehler bei ${item.title}: ${err.message}</p>`);
+            updateDocContent(`<p style="color:#e11d48;">Prüfe Funktionalität des gewählten KI-Systems zur Auswertung von ${item.title}:<br>${err.message}</p>`);
         }
     }
     updateDocContent(`<p style="color:var(--accent-green); font-weight:bold;">Analyse vollständig beendet!</p>`);
