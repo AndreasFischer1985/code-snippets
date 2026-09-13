@@ -252,6 +252,11 @@
             margin-bottom: 12px;
             font-size: 0.9em;
         }
+
+        #context_info_box td.val {
+            text-align: right;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -320,7 +325,7 @@ let DOCUMENTS = [
     { 
         id: 1, 
         name: "Text_A_Interview", 
-        content: "Interviewer: Welche Erfahrungen haben Sie bisher mit der KI-basierten Inhaltsanalyse nach Fischer (2025) gemacht?<br><br>Befragte Person: Ich bin wirklich begeistert. Die strukturierte Extraktion mit MyQDA spart uns enorm viel Zeit bei der Aufbereitung des Korpus, und die Nachvollziehbarkeit der Kodierungen ist hervorragend.<br><br>Interviewer: Sieht das Ihr gesamtes Forschungsteam so?<br><br>Befragte Person: Absolut, die Akzeptanz im Team ist extrem hoch, weil die Validitätsprüfung durch die direkte Verknüpfung von Zitaten und Kategoriensystem enorm profitiert. Aber natürlich setzt diese Art der Analyse auch erhebliche Kompetenzen im Umgang mit KI und qualitativer Datenauswertung voraus." 
+        content: "Interviewer: Welche Erfahrungen haben Sie bisher mit der KI-basierten Inhaltsanalyse nach Fischer (2025) gemacht?<br><br>Befragte Person: Ich bin wirklich begeistert. Die strukturierte Extraktion mit MyQDA spart uns enorm viel Zeit bei der Aufbereitung des Korpus, und die Nachvollziehbarkeit der Kodierungen ist hervorragend.<br><br>Interviewer: Sieht das Ihr gesamtes Forschungsteam so?<br><br>Befragte Person: Absolut, die Akzeptanz im Team ist extrem hoch, weil die Validitätsprüfung durch die direkte Verknüpfung von Zitaten und Kategoriensystem enorm profitiert. Aber natürlich setzt diese Art der Analyse auch erhebliche Kompetenzen im Umgang mit KI und qualitativem Datenauswertung voraus." 
     },
     { 
         id: 2, 
@@ -684,6 +689,74 @@ function countAnnotationsModal() {
     openModalWithHTML(tableHtml);
 }
 
+function calculateTextStats() {
+    const corpusDocs = getCorpusDocuments();
+    let totalCorpusLen = 0;
+    let maxDocLen = 0;
+
+    corpusDocs.forEach(doc => {
+        const plainText = doc.content ? doc.content.replace(/<[^>]*>/g, '') : '';
+        const len = plainText.length;
+        totalCorpusLen += len;
+        if (len > maxDocLen) {
+            maxDocLen = len;
+        }
+    });
+
+    return { maxDocLen, totalCorpusLen };
+}
+
+async function fetchModelInfoAndUpdateStats() {
+    try {
+        const baseUrl = SETTINGS.url.split('/v1/')[0];
+        const info_url = `${baseUrl}/api/v1/models`;
+
+        const headers = {};
+        if (SETTINGS.apiKey) headers['Authorization'] = `Bearer ${SETTINGS.apiKey}`;
+
+        const response = await fetch(info_url, { headers });
+        if (!response.ok) throw new Error('Netzwerk-Fehler beim Abrufen der Modellinfo');
+        const data = await response.json();
+
+        let maxTokens = 4096;
+        if (Array.isArray(data.models)) {
+            const currentModel = data.models.find(m => m.key === SETTINGS.model || m.id === SETTINGS.model);
+            if (currentModel && currentModel.max_context_length) {
+                maxTokens = currentModel.max_context_length;
+            }
+        } else if (data.max_tokens) {
+            maxTokens = data.max_tokens;
+        }
+
+        const estMaxChars = maxTokens * 4;
+        const stats = calculateTextStats();
+
+        const infoBox = document.getElementById('context_info_box');
+        if (infoBox) {
+            let warnMsg = '';
+            if (stats.totalCorpusLen > estMaxChars) {
+                warnMsg = `<div style="color: #b45309; margin-top: 6px; font-weight: 600;">⚠️ Hinweis: Der Gesamtkorpus überschreitet die geschätzte Zeichenzahl des Kontextfensters. Für Analysen auf Korpus-Ebene empfiehlt sich eine Segmentierung oder ein Modell mit größerem Kontext.</div>`;
+            }
+
+            infoBox.innerHTML = `
+                <strong>📊 Kontext-Länge & Textstatistiken:</strong>
+                <table style="width:100%; font-size:0.9em; margin-top:5px;">
+                    <tr><td>Max. Kontext-Länge (LLM):</td><td class="val">${maxTokens.toLocaleString('de-DE')} Token</td></tr>
+                    <tr><td>Schätzung max. Zeichenzahl (~4 Ch/Tok):</td><td class="val">${estMaxChars.toLocaleString('de-DE')} Zeichen</td></tr>
+                    <tr><td>Tatsächliche Zeichenzahl (a) Längstes Dokument:</td><td class="val">${stats.maxDocLen.toLocaleString('de-DE')} Zeichen</td></tr>
+                    <tr><td>Tatsächliche Zeichenzahl (b) Gesamter Korpus:</td><td class="val">${stats.totalCorpusLen.toLocaleString('de-DE')} Zeichen</td></tr>
+                </table>
+                ${warnMsg}
+            `;
+        }
+    } catch (e) {
+        const infoBox = document.getElementById('context_info_box');
+        if (infoBox) {
+            infoBox.innerHTML = `<span>Keine Modell-Informationen zum gewählten KI-Modell/-Endpunkt verfügbar (${e.message})</span>`;
+        }
+    }
+}
+
 function openAIModal() {
     const html = `
         <h2>KI-basierte Inhaltsanalyse nach Fischer (2025)</h2>
@@ -708,6 +781,10 @@ function openAIModal() {
             <div class="form-group">
                 <label>API Key (Optional):</label>
                 <input type="text" id="ai_key" value="${SETTINGS.apiKey}">
+            </div>
+
+            <div id="context_info_box" style="background:#f1f5f9; padding:10px; border-radius:5px; margin-bottom:15px; border: 1px solid var(--border-color);">
+                ⏳ Lade Modell-Informationen...
             </div>
 
             <h3>Methodik & Parameter</h3>
@@ -754,11 +831,29 @@ function openAIModal() {
                 <label><input type="checkbox" id="ai_json_prep" ${SETTINGS.useLabeledJSON?'checked':''}> Verarbeitungseinheiten mit Label (JSON) übergeben</label>
             </div>
 
+
             <button type="submit" style="background-color: var(--accent-purple); width:100%; padding: 10px;">Analyse starten</button>
         </form>
     `;
 
     openModalWithHTML(html);
+    fetchModelInfoAndUpdateStats();
+
+    // Event-Listener für Echtzeit-Aktualisierung der Modell-Info bei Parameteränderung
+    const updateModelInfoLive = () => {
+        SETTINGS.model = document.getElementById('ai_model').value;
+        SETTINGS.url = document.getElementById('ai_url').value;
+        SETTINGS.apiKey = document.getElementById('ai_key').value;
+        
+        const infoBox = document.getElementById('context_info_box');
+        if (infoBox) infoBox.innerHTML = '⏳ Lade Modell-Informationen...';
+        
+        fetchModelInfoAndUpdateStats();
+    };
+
+    document.getElementById('ai_model').addEventListener('change', updateModelInfoLive);
+    document.getElementById('ai_url').addEventListener('change', updateModelInfoLive);
+    document.getElementById('ai_key').addEventListener('change', updateModelInfoLive);
 
     document.getElementById('ai_verfahren').addEventListener('change', (e) => {
         const val = e.target.value;
@@ -803,8 +898,6 @@ async function runAIAnalysis(config) {
     updateInterface();
     selectListItem(document.getElementById(`document-${newDoc.id}`), 'document-list');
 
-    // KORREKTUR 1: Aktualisiert strikt das newDoc-Objekt. 
-    // Das DOM (textDisplay) wird NUR aktualisiert, wenn der Nutzer aktuell auch dieses Dokument ansieht.
     const updateDocContent = (addedHtml) => {
         currentContent += addedHtml;
         newDoc.content = currentContent;
@@ -878,7 +971,6 @@ async function runAIAnalysis(config) {
     for (let i = 0; i < textsToAnalyze.length; i++) {
         const item = textsToAnalyze[i];
 
-        // Parameter-Dokumentation & Fortschritt
         const settingsDocHtml = `
             <div style="background: #f8fafc; border: 1px solid var(--border-color); border-left: 4px solid var(--primary); padding: 12px 15px; margin: 10px 0 15px 0; border-radius: 4px; font-size: 0.9em;">
                 <h4 style="margin: 0 0 8px 0; color: var(--primary);">⚙️ Angewendete Analyse-Einstellungen:</h4>
@@ -955,7 +1047,6 @@ async function runAIAnalysis(config) {
                                 if (content) {
                                     aiAnswer += content;
                                     
-                                    // Live-Streaming ins DOM nur vornehmen, wenn das Dokument noch aktiv offen ist
                                     const targetEl = document.getElementById(targetId);
                                     if (targetEl && selectedDocument && selectedDocument.id === newDoc.id) {
                                         targetEl.innerText = aiAnswer;
@@ -966,8 +1057,6 @@ async function runAIAnalysis(config) {
                     }
                 }
 
-                // KORREKTUR 2: Stream-Ende verarbeiten.
-                // Das gerenderte HTML wird direkt erzeugt und im Hintergrund-String ausgetauscht.
                 const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
                 const finalBoxContent = `
                     <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
@@ -976,7 +1065,6 @@ async function runAIAnalysis(config) {
                     </div><hr style="border:0; border-top:1px solid #e2e8f0;">
                 `;
 
-                // Ersetze die temporäre Streaming-Box im Hintergrund-Inhalt durch die finalen Karten
                 const placeholderHtml = `
                     <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                         <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
@@ -984,11 +1072,9 @@ async function runAIAnalysis(config) {
                     </div><hr style="border:0; border-top:1px solid #e2e8f0;">
                 `;
                 
-                // Text-Substitution im echten Daten-Objekt
                 currentContent = currentContent.replace(placeholderHtml, finalBoxContent);
                 newDoc.content = currentContent;
 
-                // Falls der Nutzer gerade in diesem Dokument steht, auch im DOM austauschen
                 if (selectedDocument && selectedDocument.id === newDoc.id) {
                     textDisplay.innerHTML = currentContent;
                 }
@@ -1008,13 +1094,12 @@ async function runAIAnalysis(config) {
             }
 
         } catch (err) {
-            updateDocContent(`<p style="color:#e11d48;">Prüfe Funktionalität des gewählten KI-Systems zur Auswertung von ${item.title}:<br>${err.message}</p>`);
+            updateDocContent(`<p style="color:#e11d48;">Prüfe Funktionalität des ausgewählten KI-Systems zur Auswertung von ${item.title}:<br>${err.message}</p>`);
         }
     }
     updateDocContent(`<p style="color:var(--accent-green); font-weight:bold;">Analyse vollständig beendet!</p>`);
 }
 
-// Validierungsfunktion für KI JSON Struktur
 function validateAIResultStructure(parsedData, verfahren) {
     if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) return false;
 
@@ -1037,7 +1122,6 @@ function validateAIResultStructure(parsedData, verfahren) {
     });
 }
 
-// Render-Funktion für Analyseergebnisse: Einheitlich für Induktion, Deduktion, Zusammenfassung und Explikation
 function renderAIResult(text, verfahren) {
     const parsedData = parseAIResponseJSON(text);
     const isValid = validateAIResultStructure(parsedData, verfahren);
@@ -1081,7 +1165,6 @@ function renderAIResult(text, verfahren) {
         return html;
     }
 
-    // Fallback: Ausgabe als Roh-Text/JSON
     return html + `<pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 5px; border: 1px solid var(--border-color);">${text}</pre>`;
 }
 
@@ -1191,7 +1274,6 @@ function executeAnnotation(codeName, quotes) {
             let trimmedQuote = quote.trim();
             if (trimmedQuote.length < 3) return;
 
-            // 1. Strikter Abgleich (exakte Übereinstimmung)
             const escaped = trimmedQuote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regexStrict = new RegExp(`(?![^<]*>)${escaped}`, 'gi');
 
@@ -1202,7 +1284,6 @@ function executeAnnotation(codeName, quotes) {
                     return `<span class="annotation" data-code="${codeObj.id}" title="Code: ${codeObj.name}" style="background-color: ${codeObj.color}33; border: 1px solid ${codeObj.color};">${match}</span>`;
                 });
             } else {
-                // 2. Toleranter Abgleich (falls KI leichte Abweichungen erzeugte)
                 const fuzzyPattern = trimmedQuote
                     .split(/\s+/)
                     .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
