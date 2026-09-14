@@ -263,6 +263,7 @@
 
     <nav>
       <ul>
+        <li><a id="erase">New Project</a></li>
         <li><a id="export">Save Project</a></li>
         <li><a id="import">Load Project</a></li>
       </ul>
@@ -401,6 +402,16 @@ document.getElementById('export').addEventListener('click', () => {
     dlAnchorElem.setAttribute("href", dataStr);
     dlAnchorElem.setAttribute("download", "project_" + Date.now() + ".json");
     dlAnchorElem.click();
+}); 
+
+document.getElementById('erase').addEventListener('click', () => {
+    SETTINGS=DEFAULT_SETTINGS;
+    documentList.innerHTML = '';
+    DOCUMENTS=[]; //[{ id: 1, name: "Text", content: "" }];
+    codeList.innerHTML = '';
+    CODES=[]; //[{ id: 1, name: "Code", color: "#22c55e" }];
+    updateInterface(); 
+    alert();   
 }); 
 
 textDisplay.addEventListener('input', () => {
