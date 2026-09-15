@@ -1405,6 +1405,185 @@ function openAndReadJsonFile() {
     });
 }
 
+/**
+ * Konvertiert das Eingabe-JSON in eine REFI-QDA (.qdpx) Datei und löst den Download aus.
+ * Benötigt JSZip (https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js)
+ * 
+ * @param {Array} inputData Das übergebene JSON-Array
+ */
+async function exportToQDPX(inputData) {
+  if (!inputData || !inputData[0]) return;
+  
+  const data = inputData[0];
+  const codes = data.CODES || [];
+  const documents = data.DOCUMENTS || [];
+  const settings = data.SETTINGS || {};
+
+  // IDs und GUID-Helper
+  const generateGUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+
+  const escapeXml = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  };
+
+  const projectGuid = generateGUID();
+  const zip = new JSZip();
+
+  // 1. DOMParser vorbereiten zum Extrahieren von Plain Text & Kodiersegmenten aus HTML
+  const parser = new DOMParser();
+  
+  const processedDocs = [];
+  const allCodings = [];
+
+  documents.forEach((doc) => {
+    const docGuid = generateGUID();
+    const docFileName = `Sources/doc_${doc.id}.txt`;
+    
+    const htmlDoc = parser.parseFromString(`<div>${doc.content}</div>`, 'text/html');
+    const container = htmlDoc.body.firstChild;
+
+    let plainText = '';
+    
+    // Traversiere Knoten, um exakte Plaintext-Offsets für REFI-QDA zu berechnen
+    function processNode(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        plainText += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.tagName.toLowerCase() === 'br') {
+          plainText += '\n';
+        } else if (node.classList.contains('annotation')) {
+          const codeId = parseInt(node.getAttribute('data-code'), 10);
+          const startPosition = plainText.length;
+          
+          // Rekursiv Inhalt des Span-Elements auslesen
+          for (let child of node.childNodes) {
+            processNode(child);
+          }
+          
+          const endPosition = plainText.length;
+          
+          allCodings.push({
+            guid: generateGUID(),
+            codeId: codeId,
+            docGuid: docGuid,
+            startPosition: startPosition,
+            endPosition: endPosition
+          });
+        } else {
+          for (let child of node.childNodes) {
+            processNode(child);
+          }
+        }
+      }
+    }
+
+    processNode(container);
+
+    processedDocs.push({
+      id: doc.id,
+      guid: docGuid,
+      name: doc.name,
+      plainText: plainText,
+      path: docFileName
+    });
+
+    // Plaintext-Datei im Quellenordner der ZIP anlegen
+    zip.file(docFileName, plainText);
+  });
+
+  // 2. Codebook-Lookup (ID -> GUID)
+  const codeGuidMap = {};
+  codes.forEach(c => {
+    codeGuidMap[c.id] = generateGUID();
+  });
+
+  // 3. XML-Generierung: Codebook-Segment
+  let codesXml = '';
+  codes.forEach(c => {
+    codesXml += `
+    <Code guid="${codeGuidMap[c.id]}" name="${escapeXml(c.name)}" color="${c.color}" isNote="false" />`;
+  });
+
+  // 4. XML-Generierung: Dokumente & Selections (Kodierungen)
+  let sourcesXml = '';
+  processedDocs.forEach(d => {
+    const docCodings = allCodings.filter(c => c.docGuid === d.guid);
+    
+    let selectionsXml = '';
+    docCodings.forEach(coding => {
+      const codeGuid = codeGuidMap[coding.codeId];
+      if (!codeGuid) return;
+
+      selectionsXml += `
+        <PlainTextSelection guid="${coding.guid}" startPosition="${coding.startPosition}" endPosition="${coding.endPosition}">
+          <Coding guid="${generateGUID()}">
+            <CodeRef targetGUID="${codeGuid}" />
+          </Coding>
+        </PlainTextSelection>`;
+    });
+
+    sourcesXml += `
+      <TextSource guid="${d.guid}" name="${escapeXml(d.name)}" path="internal://${d.path}">
+        ${selectionsXml}
+      </TextSource>`;
+  });
+
+  // 5. XML-Generierung: SETTINGS als Projekt-Memo/Note sichern
+  let notesXml = '';
+  if (Object.keys(settings).length > 0) {
+    const noteGuid = generateGUID();
+    const formattedSettings = Object.entries(settings)
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+      .join('\n');
+
+    notesXml = `
+  <Notes>
+    <Note guid="${noteGuid}" name="Analyse-Einstellungen (KI/MyQDA)">
+      <PlainText>${escapeXml(formattedSettings)}</PlainText>
+    </Note>
+  </Notes>`;
+  }
+
+  // 6. Hauptdatei: project.qde (REFI-QDA XML)
+  const projectXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns="http://www.qraconso.org/refi-qda/Project" 
+         guid="${projectGuid}" 
+         name="MyQDA_Export" 
+         origin="MyQDA Fischer2025" 
+         creatingUser="System">
+  <Codes>
+    ${codesXml}
+  </Codes>
+  <Sources>
+    ${sourcesXml}
+  </Sources>
+  ${notesXml}
+</Project>`;
+
+  zip.file("project.qde", projectXml);
+
+  // 7. ZIP als .qdpx komprimieren und Download auslösen
+  const blob = await zip.generateAsync({ type: "blob" });
+  const downloadUrl = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `Export_MAXQDA_${new Date().toISOString().slice(0, 10)}.qdpx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(downloadUrl);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     renderLists();
     updateInterface(); 
