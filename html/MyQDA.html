@@ -1277,46 +1277,102 @@ function executeAnnotation(codeName, quotes) {
     let totalMatches = 0;
     let affectedDocsCount = 0;
 
-    corpusDocs.forEach(docObj => {
-        let content = docObj.content;
-        let matchesInDoc = 0;
+    const stats = {
+        fuzzyOnly: [],       // Zitate, die nur via Fuzzy gematcht wurden
+        notAnnotated: [],    // Zitate, die gar nicht gematcht wurden
+        multiAnnotated: []   // Zitate mit Mehrfach-Treffern (mit Doku-Zuordnung)
+    };
 
-        quotes.forEach(quote => {
-            let trimmedQuote = quote.trim();
-            if (trimmedQuote.length < 3) return;
+    quotes.forEach(quote => {
+        let trimmedQuote = quote.trim();
+        if (trimmedQuote.length < 3) return;
 
-            const escaped = trimmedQuote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regexStrict = new RegExp(`(?![^<]*>)${escaped}`, 'gi');
+        let totalQuoteMatches = 0;
+        let strictMatched = false;
+        let fuzzyMatched = false;
+        let foundInDocs = [];
 
+        const escaped = trimmedQuote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regexStrict = new RegExp(`(?![^<]*>)${escaped}`, 'gi');
+
+        const fuzzyPattern = trimmedQuote
+            .split(/\s+/)
+            .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .join('\\s+[^<]*?');
+        const regexFuzzy = new RegExp(`(?![^<]*>)(${fuzzyPattern})`, 'gi');
+
+        corpusDocs.forEach(docObj => {
+            let content = docObj.content;
+            let docMatchCount = 0;
+
+            // 1. Exakter Match-Versuch
             if (regexStrict.test(content)) {
+                strictMatched = true;
                 content = content.replace(regexStrict, (match) => {
-                    totalMatches++;
-                    matchesInDoc++;
+                    docMatchCount++;
                     return `<span class="annotation" data-code="${codeObj.id}" title="Code: ${codeObj.name}" style="background-color: ${codeObj.color}33; border: 1px solid ${codeObj.color};">${match}</span>`;
                 });
-            } else {
-                const fuzzyPattern = trimmedQuote
-                    .split(/\s+/)
-                    .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-                    .join('\\s+[^<]*?');
-                
-                const regexFuzzy = new RegExp(`(?![^<]*>)(${fuzzyPattern})`, 'gi');
+            } 
+            // 2. Fuzzy Match-Versuch (nur wenn exakt fehlschlug)
+            else if (regexFuzzy.test(content)) {
+                fuzzyMatched = true;
                 content = content.replace(regexFuzzy, (match) => {
-                    totalMatches++;
-                    matchesInDoc++;
+                    docMatchCount++;
                     return `<span class="annotation" data-code="${codeObj.id}" title="Code: ${codeObj.name}" style="background-color: ${codeObj.color}33; border: 1px solid ${codeObj.color};">${match}</span>`;
                 });
             }
+
+            if (docMatchCount > 0) {
+                totalMatches += docMatchCount;
+                totalQuoteMatches += docMatchCount;
+                foundInDocs.push(`${docObj.title || docObj.id || 'Unbekanntes Dok'} (${docMatchCount}x)`);
+            }
+
+            docObj.content = content;
         });
 
-        if (matchesInDoc > 0) {
-            affectedDocsCount++;
+        // Auswertung pro Zitat
+        if (totalQuoteMatches === 0) {
+            stats.notAnnotated.push(trimmedQuote);
+        } else {
+            if (!strictMatched && fuzzyMatched) {
+                stats.fuzzyOnly.push(trimmedQuote);
+            }
+            if (totalQuoteMatches > 1) {
+                stats.multiAnnotated.push({
+                    quote: trimmedQuote,
+                    count: totalQuoteMatches,
+                    docs: foundInDocs
+                });
+            }
         }
-        docObj.content = content;
     });
 
+    // Zähle betroffene Dokumente für die Statistik
+    affectedDocsCount = corpusDocs.filter(d => d.content.includes(`data-code="${codeObj.id}"`)).length;
+
     if (selectedDocument) loadDocumentText(selectedDocument);
-    alert(`Code "${codeName}" zugewiesen!\nEs wurden ${totalMatches} konkrete Textstellen in ${affectedDocsCount} Dokument(en) erfolgreich annotiert.`);
+
+    // Detaillierter Bericht als Konsolenausgabe und Alert
+    let report = `Code "${codeName}" zugewiesen!\nEs wurden ${totalMatches} Textstelle(n) in ${affectedDocsCount} Dokument(en) annotiert.\n\n`;
+    
+    if (stats.multiAnnotated.length > 0) {
+        report += `⚠️ Mehrfach annotierte Textstellen (${stats.multiAnnotated.length}):\n` +
+            stats.multiAnnotated.map(m => ` - "${m.quote.substring(0, 30)}..." (${m.count}x in: ${m.docs.join(', ')})`).join('\n') + '\n\n';
+    }
+    
+    if (stats.fuzzyOnly.length > 0) {
+        report += `🔍 Nur via Fuzzy-Matching annotiert (${stats.fuzzyOnly.length}):\n` +
+            stats.fuzzyOnly.map(q => ` - "${q.substring(0, 30)}..."`).join('\n') + '\n\n';
+    }
+
+    if (stats.notAnnotated.length > 0) {
+        report += `❌ Gar nicht annotiert (${stats.notAnnotated.length}):\n` +
+            stats.notAnnotated.map(q => ` - "${q.substring(0, 30)}..."`).join('\n');
+    }
+
+    console.log("Detaillierter Annotationsbericht:", stats);
+    alert(report);
 }
 
 async function handleFileSelection() {
