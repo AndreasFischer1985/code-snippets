@@ -73,11 +73,25 @@
 
         .panel {
             padding: 15px;
-            border-bottom: 1px solid var(--border-color);
             overflow: hidden;
-            flex-grow: 1;     
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
+            height: 50%; /* Standardmäßig 50/50 Aufteilung */
+            min-height: 80px; /* Verhindert vollständiges Kollabieren */
+        }
+
+        #panel-resizer {
+            height: 8px;
+            background-color: var(--border-color);
+            cursor: row-resize;
+            user-select: none;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+
+        #panel-resizer:hover, #panel-resizer:active {
+            background-color: var(--accent-blue);
         }
 
         #main-content {
@@ -111,8 +125,8 @@
         .list-container li:hover { background-color: #e2e8f0; }
 
         .list-container li.selected {
-            background-color: #475569;
-            color: white;
+            background-color: white;
+            color: black;
             border: 1px solid #334155;
             font-weight: 600;
         }
@@ -257,6 +271,36 @@
             text-align: right;
             font-weight: 600;
         }
+        .edit-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .fixed-input {
+            height: 38px;
+            box-sizing: border-box;
+        }
+        .fixed-textarea {
+            height: 100px;
+            resize: none;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-picker-wrapper input[type="color"] {
+            width: 40px;
+            height: 38px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 2px;
+            cursor: pointer;
+            background: #fff;
     </style>
 </head>
 <body>
@@ -264,8 +308,9 @@
     <nav>
       <ul>
         <li><a id="erase">New Project</a></li>
-        <li><a id="export">Save Project</a></li>
         <li><a id="import">Load Project</a></li>
+        <li><a id="save">Save Project</a></li>
+        <li><a id="export">Export QDPX</a></li>
       </ul>
     </nav>
 
@@ -276,17 +321,19 @@
             <div id="document-panel" class="panel">
                 <h3 id="document-header">Dokumente 📑</h3>
                 <div class="panel-controls">
-                    <button onclick="addListItem('document-list', 'Neues Dokument')" style="background-color: #0284c7;">➕ Hinzufügen</button>
-                    <button onclick="deleteSelected('document-list')" style="background-color: #e11d48;">🗑️ Löschen</button>
+                    <button onclick="addListItem('document-list', 'Neues Dokument')" style="color:black;">➕ Hinzufügen</button>
+                    <button onclick="deleteSelected('document-list')" style="color:black;">🗑️ Löschen</button>
                 </div>
                 <ul id="document-list" class="list-container"></ul>
             </div>
 
+            <div id="panel-resizer"></div>
+
             <div id="code-panel" class="panel">
                 <h3 id="code-header">Codes 🏷️</h3>
                 <div class="panel-controls">
-                    <button onclick="addListItem('code-list', 'Neuer Code')" style="background-color: #0284c7;">➕ Hinzufügen</button>
-                    <button onclick="deleteSelected('code-list')" style="background-color: #e11d48;">🗑️ Löschen</button>
+                    <button onclick="addListItem('code-list', 'Neuer Code')" style="color:black;">➕ Hinzufügen</button>
+                    <button onclick="deleteSelected('code-list')" style="color:black;">🗑️ Löschen</button>
                 </div>
                 <ul id="code-list" class="list-container"></ul>
             </div>
@@ -298,7 +345,7 @@
                 <div class="button-row">
                     <div class="buttons-left">
                         <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
-                        <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Unannotieren</button> 
+                        <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Deannotieren</button> 
                     </div>
                     <div class="buttons-right">
                         <button id="show-annotations-button" onclick="showAnnotationsModal()">🔍 Textstellen</button> 
@@ -392,9 +439,11 @@ function closeModal() {
     document.getElementById('app-modal').style.display = 'none';
 }
 
-document.getElementById('import').addEventListener('click', handleFileSelection);
-
 document.getElementById('export').addEventListener('click', () => {
+    exportToQDPX();
+}); 
+
+document.getElementById('save').addEventListener('click', () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
         JSON.stringify([{"CODES": CODES, "DOCUMENTS": DOCUMENTS, "SETTINGS": SETTINGS}])
     );	
@@ -404,14 +453,17 @@ document.getElementById('export').addEventListener('click', () => {
     dlAnchorElem.click();
 }); 
 
+document.getElementById('import').addEventListener('click', handleFileSelection);
+
 document.getElementById('erase').addEventListener('click', () => {
     SETTINGS=DEFAULT_SETTINGS;
     documentList.innerHTML = '';
-    DOCUMENTS=[]; //[{ id: 1, name: "Text", content: "" }];
+    DOCUMENTS=[{ id: 1, name: "Text", content: "" }]; 
     codeList.innerHTML = '';
     CODES=[]; //[{ id: 1, name: "Code", color: "#22c55e" }];
-    updateInterface(); 
-    alert();   
+    selectedCode = null
+    updateInterface();
+    updateSelectedCodeDisplay();
 }); 
 
 textDisplay.addEventListener('input', () => {
@@ -422,23 +474,134 @@ textDisplay.addEventListener('input', () => {
 }); 
 
 document.getElementById('document-header').addEventListener('click', () => {
-    var json = prompt("Dokumente (JSON):", JSON.stringify(DOCUMENTS));
-    if(json !== null){
-        try { DOCUMENTS = JSON.parse(json); updateInterface(); } catch(e) { alert("Ungültiges JSON"); }
-    }
+    openDocumentEditModal();
 }); 
 
 document.getElementById('code-header').addEventListener('click', () => {
-    var json = prompt("Codes (JSON):", JSON.stringify(CODES));
-    if(json !== null){
-        try {
-            const parsed = JSON.parse(json);
-            updateChangedCodes(CODES, parsed, updateAnnotationLabels, DOCUMENTS);
-            CODES = parsed;
-            updateInterface();
-        } catch(e) { alert("Ungültiges JSON"); }
-    }
+    openCodeEditModal();
 }); 
+
+function openDocumentEditModal() {
+    let html = `<h2>Dokumente bearbeiten 📑</h2><form id="doc-edit-form">`;
+    DOCUMENTS.forEach((doc, idx) => {
+        html += `
+            <div class="edit-card">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID:</label>
+                        <input type="text" class="fixed-input doc-id" value="${doc.id}">
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label>Name:</label>
+                        <input type="text" class="fixed-input doc-name" value="${doc.name}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Inhalt (Content):</label>
+                    <textarea class="fixed-textarea doc-content">${doc.content}</textarea>
+                </div>
+            </div>
+        `;
+    });
+    html += `
+        <button type="submit" style="background-color: var(--accent-green); width: 100%; padding: 10px;">Änderungen speichern</button>
+    </form>`;
+
+    openModalWithHTML(html);
+
+    document.getElementById('doc-edit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const cards = document.querySelectorAll('#doc-edit-form .edit-card');
+        const updatedDocs = [];
+        cards.forEach(card => {
+            const rawId = card.querySelector('.doc-id').value.trim();
+            const id = isNaN(rawId) ? rawId : Number(rawId);
+            const name = card.querySelector('.doc-name').value.trim();
+            const content = card.querySelector('.doc-content').value;
+            updatedDocs.push({ id, name, content });
+        });
+        DOCUMENTS = updatedDocs;
+        updateInterface();
+        closeModal();
+    });
+}
+
+function openCodeEditModal() {
+    let html = `<h2>Codes bearbeiten 🏷️</h2><form id="code-edit-form">`;
+    CODES.forEach((code, idx) => {
+        // Sicherstellen, dass Hex-Format für Color Picker 7 Stellen hat (#rrggbb)
+        let hexColor = code.color || '#000000';
+        if (!hexColor.startsWith('#')) hexColor = '#' + hexColor;
+        if (hexColor.length === 4) {
+            hexColor = '#' + hexColor[1] + hexColor[1] + hexColor[2] + hexColor[2] + hexColor[3] + hexColor[3];
+        } else if (hexColor.length > 7) {
+            hexColor = hexColor.substring(0, 7);
+        }
+
+        html += `
+            <div class="edit-card">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID:</label>
+                        <input type="text" class="fixed-input code-id" value="${code.id}">
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label>Name:</label>
+                        <input type="text" class="fixed-input code-name" value="${code.name}">
+                    </div>
+                    <div class="form-group" style="flex: 1.5;">
+                        <label>Farbe (Hex / Picker):</label>
+                        <div class="color-picker-wrapper">
+                            <input type="text" class="fixed-input code-color-text" value="${code.color}">
+                            <input type="color" class="code-color-picker" value="${hexColor}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += `
+        <button type="submit" style="background-color: var(--accent-green); width: 100%; padding: 10px;">Änderungen speichern</button>
+    </form>`;
+
+    openModalWithHTML(html);
+
+    // Binde Event-Listener für synchrone Farbauswahl ein
+    const cards = document.querySelectorAll('#code-edit-form .edit-card');
+    cards.forEach(card => {
+        const textInput = card.querySelector('.code-color-text');
+        const pickerInput = card.querySelector('.code-color-picker');
+
+        pickerInput.addEventListener('input', () => {
+            textInput.value = pickerInput.value;
+        });
+
+        textInput.addEventListener('input', () => {
+            let val = textInput.value.trim();
+            if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+                pickerInput.value = val;
+            }
+        });
+    });
+
+    document.getElementById('code-edit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const updatedCodes = [];
+        cards.forEach(card => {
+            const rawId = card.querySelector('.code-id').value.trim();
+            const id = isNaN(rawId) ? rawId : Number(rawId);
+            const name = card.querySelector('.code-name').value.trim();
+            const color = card.querySelector('.code-color-text').value.trim();
+            updatedCodes.push({ id, name, color });
+        });
+
+        updateChangedCodes(CODES, updatedCodes, updateAnnotationLabels, DOCUMENTS);
+        CODES = updatedCodes;
+        updateInterface();
+        closeModal();
+    });
+}
+
 
 function updateInterface(){
     documentList.innerHTML = '';
@@ -453,11 +616,11 @@ function updateInterface(){
 
     codeList.innerHTML = '';
     CODES.forEach(code => codeList.appendChild(createListItem(code, 'code-list')));
-    
-    if(!selectedCode && CODES.length > 0) selectedCode = CODES[0];
-    if(selectedCode) {
-        selectedCode = CODES.find(c => c.id == selectedCode.id) || CODES[0];
-        selectListItem(document.getElementById(`code-${selectedCode.id}`), 'code-list');
+    if(CODES.length>0){
+      selectedCode = CODES.find(c => c.id == selectedCode?.id) ?? CODES[0] ?? null;
+      if(selectedCode) {
+         selectListItem(document.getElementById(`code-${selectedCode.id}`), 'code-list');
+      }
     }
     updateSelectedCodeDisplay();
 }
@@ -505,10 +668,10 @@ function selectListItem(element, containerId) {
     const itemId = element.getAttribute('data-id');
 
     if (containerId === 'document-list') {
-        selectedDocument = DOCUMENTS.find(doc => doc.id == itemId);
+        selectedDocument = DOCUMENTS.find(doc => doc.id == itemId) ?? null;
         loadDocumentText(selectedDocument);
     } else if (containerId === 'code-list') {        
-        selectedCode = CODES.find(code => code.id == itemId);
+        selectedCode = CODES.find(code => code.id == itemId) ?? null;
         updateSelectedCodeDisplay();
     }
 }
@@ -525,11 +688,9 @@ function loadDocumentText(doc) {
 }
 
 function updateSelectedCodeDisplay() {
-    if (selectedCode) {
-        selectedCodeDisplay.innerHTML = `Aktueller Code: <strong style="color: ${selectedCode.color};">${selectedCode.name}</strong>`;
-    } else {
-        selectedCodeDisplay.innerHTML = `Aktueller Code: <strong>Kein Code gewählt</strong>`;
-    }
+    const codeName = selectedCode?.name ?? "Kein Code gewählt";
+    const codeColor = selectedCode?.color ?? "black";
+    selectedCodeDisplay.innerHTML = `Aktueller Code: <strong style="color: ${codeColor};">${codeName}</strong>`;
 }
 
 function addListItem(containerId, defaultName) {
@@ -1277,6 +1438,7 @@ function executeAnnotation(codeName, quotes) {
     let totalMatches = 0;
     let affectedDocsCount = 0;
 
+    // Tracking-Objekte für die Auswertung
     const stats = {
         fuzzyOnly: [],       // Zitate, die nur via Fuzzy gematcht wurden
         notAnnotated: [],    // Zitate, die gar nicht gematcht wurden
@@ -1405,184 +1567,243 @@ function openAndReadJsonFile() {
     });
 }
 
-/**
- * Konvertiert das Eingabe-JSON in eine REFI-QDA (.qdpx) Datei und löst den Download aus.
- * Benötigt JSZip (https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js)
- * 
- * @param {Array} inputData Das übergebene JSON-Array
- */
-async function exportToQDPX(inputData) {
-  if (!inputData || !inputData[0]) return;
-  
-  const data = inputData[0];
-  const codes = data.CODES || [];
-  const documents = data.DOCUMENTS || [];
-  const settings = data.SETTINGS || {};
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    // Prüfen, ob das Skript bereits geladen wurde (verhindert Mehrfach-Injektionen)
+    if (document.querySelector(`script[src="${url}"]`)) {
+      resolve();
+      return;
+    }
 
-  // IDs und GUID-Helper
-  const generateGUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
+    const script = document.createElement('script');
+    script.src = url;
+    script.async = true;
+
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Fehler beim Laden von ${url}`));
+
+    document.head.appendChild(script);
   });
+}
 
-  const escapeXml = (str) => {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
-  };
+async function exportToQDPX() {
+  inputData=[{"CODES": CODES, "DOCUMENTS": DOCUMENTS, "SETTINGS": SETTINGS}]
+  if (!inputData || !inputData[0]) return;
+  const scriptUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js';
+  try {
+    // Skript wird nur dann geladen, wenn der User die Funktion triggert
+    await loadScript(scriptUrl);
 
-  const projectGuid = generateGUID();
-  const zip = new JSZip();
 
-  // 1. DOMParser vorbereiten zum Extrahieren von Plain Text & Kodiersegmenten aus HTML
-  const parser = new DOMParser();
+    const data = inputData[0];
+    const codes = data.CODES || [];
+    const documents = data.DOCUMENTS || [];
+    const settings = data.SETTINGS || {};
+
+    // IDs und GUID-Helper
+    const generateGUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+
+    const escapeXml = (str) => {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+
+    const projectGuid = generateGUID();
+    const zip = new JSZip();
+
+    // 1. DOMParser vorbereiten zum Extrahieren von Plain Text & Kodiersegmenten aus HTML
+    const parser = new DOMParser();
   
-  const processedDocs = [];
-  const allCodings = [];
+    const processedDocs = [];
+    const allCodings = [];
 
-  documents.forEach((doc) => {
-    const docGuid = generateGUID();
-    const docFileName = `Sources/doc_${doc.id}.txt`;
+    documents.forEach((doc) => {
+      const docGuid = generateGUID();
+      const docFileName = `Sources/doc_${doc.id}.txt`;
     
-    const htmlDoc = parser.parseFromString(`<div>${doc.content}</div>`, 'text/html');
-    const container = htmlDoc.body.firstChild;
+      const htmlDoc = parser.parseFromString(`<div>${doc.content}</div>`, 'text/html');
+      const container = htmlDoc.body.firstChild;
 
-    let plainText = '';
+      let plainText = '';
     
-    // Traversiere Knoten, um exakte Plaintext-Offsets für REFI-QDA zu berechnen
-    function processNode(node) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        plainText += node.textContent;
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        if (node.tagName.toLowerCase() === 'br') {
-          plainText += '\n';
-        } else if (node.classList.contains('annotation')) {
-          const codeId = parseInt(node.getAttribute('data-code'), 10);
-          const startPosition = plainText.length;
+      // Traversiere Knoten, um exakte Plaintext-Offsets für REFI-QDA zu berechnen
+      function processNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          plainText += node.textContent;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.tagName.toLowerCase() === 'br') {
+            plainText += '\n';
+          } else if (node.classList.contains('annotation')) {
+            const codeId = parseInt(node.getAttribute('data-code'), 10);
+            const startPosition = plainText.length;
           
-          // Rekursiv Inhalt des Span-Elements auslesen
-          for (let child of node.childNodes) {
-            processNode(child);
-          }
+            // Rekursiv Inhalt des Span-Elements auslesen
+            for (let child of node.childNodes) {
+              processNode(child);
+            }
           
-          const endPosition = plainText.length;
+            const endPosition = plainText.length;
           
-          allCodings.push({
-            guid: generateGUID(),
-            codeId: codeId,
-            docGuid: docGuid,
-            startPosition: startPosition,
-            endPosition: endPosition
-          });
-        } else {
-          for (let child of node.childNodes) {
-            processNode(child);
+            allCodings.push({
+              guid: generateGUID(),
+              codeId: codeId,
+              docGuid: docGuid,
+              startPosition: startPosition,
+              endPosition: endPosition
+            });
+          } else {
+            for (let child of node.childNodes) {
+              processNode(child);
+            }
           }
         }
       }
+
+      processNode(container);
+
+      processedDocs.push({
+        id: doc.id,
+        guid: docGuid,
+        name: doc.name,
+        plainText: plainText,
+        path: docFileName
+      });
+
+      // Plaintext-Datei im Quellenordner der ZIP anlegen
+      zip.file(docFileName, plainText);
+    });
+
+    // 2. Codebook-Lookup (ID -> GUID)
+    const codeGuidMap = {};
+    codes.forEach(c => {
+      codeGuidMap[c.id] = generateGUID();
+    });
+
+    // 3. XML-Generierung: Codebook-Segment
+    let codesXml = '';
+    codes.forEach(c => {
+      codesXml += `
+      <Code guid="${codeGuidMap[c.id]}" name="${escapeXml(c.name)}" color="${c.color}" isNote="false" />`;
+    });
+
+    // 4. XML-Generierung: Dokumente & Selections (Kodierungen)
+    let sourcesXml = '';
+    processedDocs.forEach(d => {
+      const docCodings = allCodings.filter(c => c.docGuid === d.guid);
+    
+      let selectionsXml = '';
+      docCodings.forEach(coding => {
+        const codeGuid = codeGuidMap[coding.codeId];
+        if (!codeGuid) return;
+
+        selectionsXml += `
+          <PlainTextSelection guid="${coding.guid}" startPosition="${coding.startPosition}" endPosition="${coding.endPosition}">
+            <Coding guid="${generateGUID()}">
+              <CodeRef targetGUID="${codeGuid}" />
+            </Coding>
+          </PlainTextSelection>`;
+      });
+
+      sourcesXml += `
+        <TextSource guid="${d.guid}" name="${escapeXml(d.name)}" path="internal://${d.path}">
+          ${selectionsXml}
+        </TextSource>`;
+    });
+
+    // 5. XML-Generierung: SETTINGS als Projekt-Memo/Note sichern
+    let notesXml = '';
+    if (Object.keys(settings).length > 0) {
+      const noteGuid = generateGUID();
+      const formattedSettings = Object.entries(settings)
+        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+        .join('\n');
+
+      notesXml = `
+    <Notes>
+      <Note guid="${noteGuid}" name="Analyse-Einstellungen (KI/MyQDA)">
+        <PlainText>${escapeXml(formattedSettings)}</PlainText>
+      </Note>
+    </Notes>`;
     }
 
-    processNode(container);
-
-    processedDocs.push({
-      id: doc.id,
-      guid: docGuid,
-      name: doc.name,
-      plainText: plainText,
-      path: docFileName
-    });
-
-    // Plaintext-Datei im Quellenordner der ZIP anlegen
-    zip.file(docFileName, plainText);
-  });
-
-  // 2. Codebook-Lookup (ID -> GUID)
-  const codeGuidMap = {};
-  codes.forEach(c => {
-    codeGuidMap[c.id] = generateGUID();
-  });
-
-  // 3. XML-Generierung: Codebook-Segment
-  let codesXml = '';
-  codes.forEach(c => {
-    codesXml += `
-    <Code guid="${codeGuidMap[c.id]}" name="${escapeXml(c.name)}" color="${c.color}" isNote="false" />`;
-  });
-
-  // 4. XML-Generierung: Dokumente & Selections (Kodierungen)
-  let sourcesXml = '';
-  processedDocs.forEach(d => {
-    const docCodings = allCodings.filter(c => c.docGuid === d.guid);
-    
-    let selectionsXml = '';
-    docCodings.forEach(coding => {
-      const codeGuid = codeGuidMap[coding.codeId];
-      if (!codeGuid) return;
-
-      selectionsXml += `
-        <PlainTextSelection guid="${coding.guid}" startPosition="${coding.startPosition}" endPosition="${coding.endPosition}">
-          <Coding guid="${generateGUID()}">
-            <CodeRef targetGUID="${codeGuid}" />
-          </Coding>
-        </PlainTextSelection>`;
-    });
-
-    sourcesXml += `
-      <TextSource guid="${d.guid}" name="${escapeXml(d.name)}" path="internal://${d.path}">
-        ${selectionsXml}
-      </TextSource>`;
-  });
-
-  // 5. XML-Generierung: SETTINGS als Projekt-Memo/Note sichern
-  let notesXml = '';
-  if (Object.keys(settings).length > 0) {
-    const noteGuid = generateGUID();
-    const formattedSettings = Object.entries(settings)
-      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-      .join('\n');
-
-    notesXml = `
-  <Notes>
-    <Note guid="${noteGuid}" name="Analyse-Einstellungen (KI/MyQDA)">
-      <PlainText>${escapeXml(formattedSettings)}</PlainText>
-    </Note>
-  </Notes>`;
-  }
-
-  // 6. Hauptdatei: project.qde (REFI-QDA XML)
-  const projectXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Project xmlns="http://www.qraconso.org/refi-qda/Project" 
-         guid="${projectGuid}" 
-         name="MyQDA_Export" 
-         origin="MyQDA Fischer2025" 
-         creatingUser="System">
-  <Codes>
-    ${codesXml}
-  </Codes>
-  <Sources>
-    ${sourcesXml}
-  </Sources>
-  ${notesXml}
-</Project>`;
+    // 6. Hauptdatei: project.qde (REFI-QDA XML)
+    const projectXml = `<?xml version="1.0" encoding="UTF-8"?>
+  <Project xmlns="http://www.qraconso.org/refi-qda/Project" 
+           guid="${projectGuid}" 
+           name="MyQDA_Export" 
+           origin="MyQDA - KI-basierte Inhaltsanalyse nach Fischer (2025)" 
+           creatingUser="System">
+    <Codes>
+      ${codesXml}
+    </Codes>
+    <Sources>
+      ${sourcesXml}
+    </Sources>
+    ${notesXml}
+  </Project>`;
 
   zip.file("project.qde", projectXml);
 
-  // 7. ZIP als .qdpx komprimieren und Download auslösen
-  const blob = await zip.generateAsync({ type: "blob" });
-  const downloadUrl = URL.createObjectURL(blob);
+    // 7. ZIP als .qdpx komprimieren und Download auslösen
+    const blob = await zip.generateAsync({ type: "blob" });
+    const downloadUrl = URL.createObjectURL(blob);
   
-  const a = document.createElement('a');
-  a.href = downloadUrl;
-  a.download = `Export_MAXQDA_${new Date().toISOString().slice(0, 10)}.qdpx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(downloadUrl);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `Export_MAXQDA_${new Date().toISOString().slice(0, 10)}.qdpx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+  }catch (error) {
+    console.error("JSZip konnte nicht geladen werden:", error);
+  }
 }
+
+// Variable Panel-Größen Steuerung (Drag & Drop Resizer)
+const resizer = document.getElementById('panel-resizer');
+const topPanel = document.getElementById('document-panel');
+const bottomPanel = document.getElementById('code-panel');
+const sidebar = document.getElementById('left-sidebar');
+
+resizer.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    
+    const onMouseMove = (moveEvent) => {
+        const sidebarRect = sidebar.getBoundingClientRect();
+        // Höhe des oberen Panels basierend auf der Mausposition im Sidebar-Container berechnen
+        let newTopHeight = moveEvent.clientY - sidebarRect.top;
+        
+        // Minimal- und Maximalgrenzen einhalten (z. B. mind. 80px Höhe pro Panel)
+        const minHeight = 80;
+        const maxHeight = sidebarRect.height - minHeight - resizer.offsetHeight;
+
+        if (newTopHeight < minHeight) newTopHeight = minHeight;
+        if (newTopHeight > maxHeight) newTopHeight = maxHeight;
+
+        const topPercentage = (newTopHeight / sidebarRect.height) * 100;
+        const bottomPercentage = 100 - topPercentage - ((resizer.offsetHeight / sidebarRect.height) * 100);
+
+        topPanel.style.height = `${topPercentage}%`;
+        bottomPanel.style.height = `${bottomPercentage}%`;
+    };
+
+    const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     renderLists();
