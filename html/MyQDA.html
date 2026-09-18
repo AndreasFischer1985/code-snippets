@@ -301,6 +301,7 @@
             padding: 2px;
             cursor: pointer;
             background: #fff;
+        }
     </style>
 </head>
 <body>
@@ -1272,6 +1273,7 @@ async function runAIAnalysis(config) {
     updateDocContent(`<p style="color:var(--accent-green); font-weight:bold;">Analyse vollständig beendet!</p>`);
 }
 
+
 function validateAIResultStructure(parsedData, verfahren) {
     if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) return false;
 
@@ -1295,7 +1297,7 @@ function validateAIResultStructure(parsedData, verfahren) {
 }
 
 function renderAIResult(text, verfahren) {
-    const parsedData = parseAIResponseJSON(text);
+    const parsedData = cleanAndParseJSON(text);
     const isValid = validateAIResultStructure(parsedData, verfahren);
 
     let html = "";
@@ -1340,12 +1342,117 @@ function renderAIResult(text, verfahren) {
     return html + `<pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 5px; border: 1px solid var(--border-color);">${text}</pre>`;
 }
 
+
 function parseAIResponseJSON(text) {
     try {
         const jsonMatch = text.match(/\[[\s\S]*\]/);
         if (jsonMatch) return JSON.parse(jsonMatch[0]);
     } catch(e) {}
     return null;
+}
+
+function cleanAndParseJSON(jsonString) {
+    if (!jsonString) return null;
+
+    // 1. Markdown-Blöcke & Steuerzeichen säubern
+    let clean = jsonString.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+    // Direkter Parsing-Versuch
+    try {
+        const parsed = JSON.parse(clean);
+        return normalizeDataKeys(parsed);
+    } catch (e) {}
+
+    // 2. Erweiterte Syntax-Reparatur für defekte SSE- / LLM-Strings
+    try {
+        let repaired = clean;
+
+        // A) Dreifache/Mehrfache Anführungszeichen aufräumen (z.B. "Teamakzeptanz""")
+        repaired = repaired.replace(/"+/g, '"');
+
+        // B) Leere Keys korrigieren (z.B. "": "Die des Menschen..." -> "description": "Die des Menschen...")
+        repaired = repaired.replace(/"":\s*"/g, '"description": "');
+
+        // C) Fehlende Doppelpunkte zwischen Key und Value korrigieren (z.B. "description "Notwendigkeit..." -> "description": "Notwendigkeit...")
+        repaired = repaired.replace(/"([a-zA-ZÄÖÜäöüß0-9_]+)"\s+([{\["a-zA-ZÄÖÜäöüß])/g, '"$1": $2');          
+        
+        // D) Fehlendes Anführungszeichen vor Keys korrigieren (z.B. code": -> "code":)         
+        repaired = repaired.replace(/([{,]\s*)([a-zA-ZÄÖÜäöüß0-9_]+)":/g, '$1"$2":');          
+ 
+        // E) Fehlende Anführungszeichen nach Doppelpunkt korrigieren         
+        repaired = repaired.replace(/(:\s*)([a-zA-ZÄÖÜäöüß][^"\n,}\]]*)/g, (match, p1, p2) => {
+            const trimmed = p2.trim();
+            if (['true', 'false', 'null'].includes(trimmed) || !isNaN(trimmed)) return match;
+            // Falls bereits ein schließendes Anführungszeichen am Ende steht
+            if (trimmed.endsWith('"')) return `${p1}"${trimmed}`;
+            return `${p1}"${trimmed}"`;
+        });
+
+        // F) Unvollständig geschlossene Strings in Zeilen vervollständigen
+        let lines = repaired.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            const quoteCount = (line.match(/"/g) || []).length;
+            if (quoteCount % 2 !== 0) {
+                if (line.endsWith(',')) {
+                    lines[i] = line.slice(0, -1) + '",';
+                } else if (!/[{\[}\]]/.test(line.slice(-1))) {
+                    lines[i] = line + '"';
+                }
+            }
+        }
+        repaired = lines.join('\n');
+
+        // G) Trailing Commas vor schließenden Klammern entfernen
+        repaired = repaired.replace(/,\s*([\}\]])/g, '$1');
+
+        // H) Unvollständige Objekte / Arrays schließen
+        const openBraces = (repaired.match(/\{/g) || []).length;
+        const closeBraces = (repaired.match(/\}/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length;                           
+        const closeBrackets = (repaired.match(/\]/g) || []).length;
+
+        for (let i = 0; i < openBraces - closeBraces; i++) repaired += '\n}';
+        for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += '\n]';
+ 
+        const parsed = JSON.parse(repaired);
+        return normalizeDataKeys(parsed);
+
+    } catch (e2) {
+        console.error("JSON-Parsing endgültig fehlgeschlagen:", e2);
+        return null;
+    }
+}
+
+function normalizeDataKeys(data) {
+    if (!Array.isArray(data)) return null;
+
+    return data.map(item => {
+        if (typeof item !== 'object' || item === null) return null;
+
+        let textstellen = item.textstellen || item.stellen || item.zitate || item.quotes || [];
+        if (!Array.isArray(textstellen)) {
+            textstellen = typeof textstellen === 'string' && textstellen.trim() ? [textstellen.trim()] : [];
+        }
+
+        const normalizedItem = { textstellen };
+
+        const mainKey = item.code || item.kategorie || item.category || item.paraphrase || item.summary || item.assoziation;
+        
+        if (item.paraphrase || item.summary) {
+            normalizedItem.paraphrase = String(mainKey).trim();
+        } else if (item.assoziation) {
+            normalizedItem.assoziation = String(mainKey).trim();
+        } else {
+            normalizedItem.code = mainKey ? String(mainKey).trim() : "Unbenannter Code";
+        }
+
+        if (item.description || item.beschreibung) {
+            normalizedItem.description = String(item.description || item.beschreibung).trim();
+        }
+
+        return normalizedItem;
+    }).filter(Boolean);
 }
 
 function extractCardData(cardId) {
