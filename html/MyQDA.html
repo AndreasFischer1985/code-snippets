@@ -6,7 +6,7 @@
     <meta name="author" content="Dr. Andreas Fischer">
     <meta name="copyright" content="Dr. Andreas Fischer">
     <meta name="reply-to" content="andreasfischer1985@web.de">
-    <title>MyQDA - Text-Annotation-Tool (Textstellenbasierte Annotation)</title>
+    <title>MyQDA - Text-Annotation-Tool (Textstellenbasierte Annotation) v1.16</title>
     <style>
         :root {
             --bg-main: #f4f6f8;
@@ -77,8 +77,8 @@
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
-            height: 50%; /* Standardmäßig 50/50 Aufteilung */
-            min-height: 80px; /* Verhindert vollständiges Kollabieren */
+            height: 50%;
+            min-height: 80px;
         }
 
         #panel-resizer {
@@ -136,19 +136,20 @@
             padding: 20px;
             flex-grow: 1;
             overflow-y: auto;
-            line-height: 1.7;
+            line-height: 1.6;
             background-color: var(--bg-card);
             border-radius: 6px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             font-size: 1.05em;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
-        .annotation {
-            padding: 2px 4px;
-            margin: 0 1px;
-            border-radius: 3px;
-            font-weight: 500;
-            cursor: default;
+        .annotation-span {
+            border-radius: 2px;
+            padding: 1px 0;
+            cursor: pointer;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
         }
 
         .button-row {
@@ -236,6 +237,7 @@
             padding: 12px 15px;
             margin-bottom: 12px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            white-space: normal;
         }
         .category-card h4 { margin: 0 0 6px 0; color: #1e293b; font-size: 1.05em; }
         .category-card p { margin: 0 0 8px 0; color: #475569; font-size: 0.95em; }
@@ -345,7 +347,7 @@
                 <span id="selected-code-display">Aktueller Code: <i>Kein Code gewählt</i></span>
                 <div class="button-row">
                     <div class="buttons-left">
-                        <button id="annotate-button" onclick="annotateSelectedText()">✅ Annotieren</button>
+                        <button id="annotate-button" onmousedown="event.preventDefault()" onclick="annotateSelectedText()">✅ Annotieren</button>
                         <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Deannotieren</button> 
                     </div>
                     <div class="buttons-right">
@@ -374,12 +376,14 @@ let DOCUMENTS = [
     { 
         id: 1, 
         name: "Text_A_Interview", 
-        content: "Interviewer: Welche Erfahrungen haben Sie bisher mit der KI-basierten Inhaltsanalyse nach Fischer (2025) gemacht?<br><br>Befragte Person: Ich bin wirklich begeistert. Die strukturierte Extraktion mit MyQDA spart uns enorm viel Zeit bei der Aufbereitung des Korpus, und die Nachvollziehbarkeit der Kodierungen ist hervorragend.<br><br>Interviewer: Sieht das Ihr gesamtes Forschungsteam so?<br><br>Befragte Person: Absolut, die Akzeptanz im Team ist extrem hoch, weil die Validitätsprüfung durch die direkte Verknüpfung von Zitaten und Kategoriensystem enorm profitiert. Aber natürlich setzt diese Art der Analyse auch erhebliche Kompetenzen im Umgang mit KI und qualitativer Datenauswertung voraus." 
+        plainText: "Interviewer: Welche Erfahrungen haben Sie bisher mit der KI-basierten Inhaltsanalyse nach Fischer (2025) gemacht?\n\nBefragte Person: Ich bin wirklich begeistert. Die strukturierte Extraktion mit MyQDA spart uns enorm viel Zeit bei der Aufbereitung des Korpus, und die Nachvollziehbarkeit der Kodierungen ist hervorragend.\n\nInterviewer: Sieht das Ihr gesamtes Forschungsteam so?\n\nBefragte Person: Absolut, die Akzeptanz im Team ist extrem hoch, weil die Validitätsprüfung durch die direkte Verknüpfung von Zitaten und Kategoriensystem enorm profitiert. Aber natürlich setzt diese Art der Analyse auch erhebliche Kompetenzen im Umgang mit KI und qualitativer Datenauswertung voraus.",
+        annotations: []
     },
     { 
         id: 2, 
         name: "Text_B_Interview", 
-        content: "Interviewer: Wie bewerten Sie die Umsetzbarkeit des methodischen Ansatzes von Fischer (2025) in der Praxis?<br><br>Befragte Person: Die praktische Umsetzung verläuft verblüffend reibungslos. Insbesondere die Kombination aus automatisierter Unterstützung und manueller Kontrolle gibt uns maximale Sicherheit.<br><br>Interviewer: Gibt es Aspekte, die Sie besonders hervorheben möchten?<br><br>Befragte Person: Ja, der Mensch bleibt im Mittelpunkt und verantwortlich für seine Analysen - aber KI kann diese Analysen erleichtern und bereichern, wenn man sie kompetent einsetzt." 
+        plainText: "Interviewer: Wie bewerten Sie die Umsetzbarkeit des methodischen Ansatzes von Fischer (2025) in der Praxis?\n\nBefragte Person: Die praktische Umsetzung verläuft verblüffend reibungslos. Insbesondere die Kombination aus automatisierter Unterstützung und manueller Kontrolle gibt uns maximale Sicherheit.\n\nInterviewer: Gibt es Aspekte, die Sie besonders hervorheben möchten?\n\nBefragte Person: Ja, der Mensch bleibt im Mittelpunkt und verantwortlich für seine Analysen - aber KI kann diese Analysen erleichtern und bereichern, wenn man sie kompetent einsetzt.",
+        annotations: []
     }
 ];
 
@@ -428,7 +432,7 @@ const textDisplay = document.getElementById('text-display');
 const selectedCodeDisplay = document.getElementById('selected-code-display');
 
 function getCorpusDocuments() {
-    return DOCUMENTS.filter(d => !d.name.startsWith("KI-Analyse"));
+    return DOCUMENTS.filter(d => !d.isAIDoc && !d.name.startsWith("KI-Analyse"));
 }
 
 function openModalWithHTML(html) {
@@ -457,22 +461,78 @@ document.getElementById('save').addEventListener('click', () => {
 document.getElementById('import').addEventListener('click', handleFileSelection);
 
 document.getElementById('erase').addEventListener('click', () => {
-    SETTINGS=DEFAULT_SETTINGS;
+    SETTINGS = DEFAULT_SETTINGS;
     documentList.innerHTML = '';
-    DOCUMENTS=[{ id: 1, name: "Text", content: "" }]; 
+    DOCUMENTS = [{ id: 1, name: "Text", plainText: "", annotations: [] }]; 
     codeList.innerHTML = '';
-    CODES=[]; //[{ id: 1, name: "Code", color: "#22c55e" }];
-    selectedCode = null
+    CODES = [];
+    selectedCode = null;
+    selectedDocument = DOCUMENTS[0];
     updateInterface();
     updateSelectedCodeDisplay();
 }); 
 
+// KORREKTUR: Dynamische Anpassung der Annotationen bei Textänderungen
+textDisplay.addEventListener('beforeinput', (e) => {
+    if (!selectedDocument || selectedDocument.isAIDoc) return;
+
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    const start = getTextOffsetInContainer(textDisplay, range.startContainer, range.startOffset);
+    const end = getTextOffsetInContainer(textDisplay, range.endContainer, range.endOffset);
+
+    if (start === -1 || end === -1) return;
+
+    let insertedText = e.data || '';
+    if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
+        insertedText = '\n';
+    }
+
+    const removedLength = end - start;
+    const addedLength = insertedText.length;
+    const diff = addedLength - removedLength;
+
+    if (!selectedDocument.annotations) selectedDocument.annotations = [];
+
+    // Indizes aller Annotationen anpassen
+    selectedDocument.annotations = selectedDocument.annotations.map(a => {
+        let newStart = a.start;
+        let newEnd = a.end;
+
+        if (a.start >= end) {
+            newStart += diff;
+        } else if (a.start > start && a.start < end) {
+            newStart = start + addedLength;
+        }
+
+        if (a.end >= end) {
+            newEnd += diff;
+        } else if (a.end > start && a.end < end) {
+            newEnd = start + addedLength;
+        }
+
+        return { ...a, start: newStart, end: newEnd };
+    }).filter(a => a.start < a.end); // Ungültige Annotationen entfernen
+});
+
 textDisplay.addEventListener('input', () => {
-    if(selectedDocument !== null){ 
-        const doc = DOCUMENTS.find(d => d.id === selectedDocument.id);
-        if(doc) doc.content = textDisplay.innerHTML;
+    if (selectedDocument) { 
+        if (selectedDocument.isAIDoc) {
+            selectedDocument.htmlContent = textDisplay.innerHTML;
+        } else {
+            selectedDocument.plainText = textDisplay.innerText;
+        }
     }
 }); 
+
+// Annotationen nach Ende der Textbearbeitung neu visualisieren
+textDisplay.addEventListener('blur', () => {
+    if (selectedDocument && !selectedDocument.isAIDoc) {
+        loadDocumentText(selectedDocument);
+    }
+});
 
 document.getElementById('document-header').addEventListener('click', () => {
     openDocumentEditModal();
@@ -484,7 +544,8 @@ document.getElementById('code-header').addEventListener('click', () => {
 
 function openDocumentEditModal() {
     let html = `<h2>Dokumente bearbeiten 📑</h2><form id="doc-edit-form">`;
-    DOCUMENTS.forEach((doc, idx) => {
+    DOCUMENTS.forEach((doc) => {
+        const textVal = doc.isAIDoc ? (doc.htmlContent || '') : (doc.plainText || '');
         html += `
             <div class="edit-card">
                 <div class="form-row">
@@ -494,12 +555,12 @@ function openDocumentEditModal() {
                     </div>
                     <div class="form-group" style="flex: 2;">
                         <label>Name:</label>
-                        <input type="text" class="fixed-input doc-name" value="${doc.name}">
+                        <input type="text" class="fixed-input doc-name" value="${escapeHTML(doc.name)}">
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Inhalt (Content):</label>
-                    <textarea class="fixed-textarea doc-content">${doc.content}</textarea>
+                    <textarea class="fixed-textarea doc-content">${escapeHTML(textVal)}</textarea>
                 </div>
             </div>
         `;
@@ -513,15 +574,22 @@ function openDocumentEditModal() {
     document.getElementById('doc-edit-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const cards = document.querySelectorAll('#doc-edit-form .edit-card');
-        const updatedDocs = [];
-        cards.forEach(card => {
+        cards.forEach((card, idx) => {
             const rawId = card.querySelector('.doc-id').value.trim();
             const id = isNaN(rawId) ? rawId : Number(rawId);
             const name = card.querySelector('.doc-name').value.trim();
             const content = card.querySelector('.doc-content').value;
-            updatedDocs.push({ id, name, content });
+            
+            if (DOCUMENTS[idx]) {
+                DOCUMENTS[idx].id = id;
+                DOCUMENTS[idx].name = name;
+                if (DOCUMENTS[idx].isAIDoc) {
+                    DOCUMENTS[idx].htmlContent = content;
+                } else {
+                    DOCUMENTS[idx].plainText = content;
+                }
+            }
         });
-        DOCUMENTS = updatedDocs;
         updateInterface();
         closeModal();
     });
@@ -529,8 +597,7 @@ function openDocumentEditModal() {
 
 function openCodeEditModal() {
     let html = `<h2>Codes bearbeiten 🏷️</h2><form id="code-edit-form">`;
-    CODES.forEach((code, idx) => {
-        // Sicherstellen, dass Hex-Format für Color Picker 7 Stellen hat (#rrggbb)
+    CODES.forEach((code) => {
         let hexColor = code.color || '#000000';
         if (!hexColor.startsWith('#')) hexColor = '#' + hexColor;
         if (hexColor.length === 4) {
@@ -548,7 +615,7 @@ function openCodeEditModal() {
                     </div>
                     <div class="form-group" style="flex: 2;">
                         <label>Name:</label>
-                        <input type="text" class="fixed-input code-name" value="${code.name}">
+                        <input type="text" class="fixed-input code-name" value="${escapeHTML(code.name)}">
                     </div>
                     <div class="form-group" style="flex: 1.5;">
                         <label>Farbe (Hex / Picker):</label>
@@ -567,7 +634,6 @@ function openCodeEditModal() {
 
     openModalWithHTML(html);
 
-    // Binde Event-Listener für synchrone Farbauswahl ein
     const cards = document.querySelectorAll('#code-edit-form .edit-card');
     cards.forEach(card => {
         const textInput = card.querySelector('.code-color-text');
@@ -596,13 +662,11 @@ function openCodeEditModal() {
             updatedCodes.push({ id, name, color });
         });
 
-        updateChangedCodes(CODES, updatedCodes, updateAnnotationLabels, DOCUMENTS);
         CODES = updatedCodes;
         updateInterface();
         closeModal();
     });
 }
-
 
 function updateInterface(){
     documentList.innerHTML = '';
@@ -611,16 +675,18 @@ function updateInterface(){
     if(!selectedDocument && DOCUMENTS.length > 0) selectedDocument = DOCUMENTS[0];
     if(selectedDocument) {
         selectedDocument = DOCUMENTS.find(doc => doc.id == selectedDocument.id) || DOCUMENTS[0];
-        selectListItem(document.getElementById(`document-${selectedDocument.id}`), 'document-list');
+        const selectedEl = document.getElementById(`document-${selectedDocument.id}`);
+        if (selectedEl) selectListItem(selectedEl, 'document-list');
         loadDocumentText(selectedDocument);
     }
 
     codeList.innerHTML = '';
     CODES.forEach(code => codeList.appendChild(createListItem(code, 'code-list')));
-    if(CODES.length>0){
+    if(CODES.length > 0){
       selectedCode = CODES.find(c => c.id == selectedCode?.id) ?? CODES[0] ?? null;
       if(selectedCode) {
-         selectListItem(document.getElementById(`code-${selectedCode.id}`), 'code-list');
+         const selectedCodeEl = document.getElementById(`code-${selectedCode.id}`);
+         if (selectedCodeEl) selectListItem(selectedCodeEl, 'code-list');
       }
     }
     updateSelectedCodeDisplay();
@@ -652,11 +718,7 @@ function createListItem(item, containerId) {
             }
         });  
         li.addEventListener('blur', () => {         
-            const code = CODES.find(el => el.id == item.id);
-            if(code) {
-                updateAnnotationLabels(code.id, code.name, code.color, DOCUMENTS); 
-                if (selectedDocument) loadDocumentText(selectedDocument);
-            }
+            if (selectedDocument) loadDocumentText(selectedDocument);
         });
     }
     return li;
@@ -683,15 +745,97 @@ function renderLists() {
 }
 
 function loadDocumentText(doc) {
-    if (doc) {
-        textDisplay.innerHTML = doc.content; 
+    if (!doc) return;
+    if (doc.isAIDoc) {
+        textDisplay.style.whiteSpace = 'normal';
+        textDisplay.innerHTML = doc.htmlContent || '';
+    } else {
+        textDisplay.style.whiteSpace = 'pre-wrap';
+        renderDocumentWithAnnotations(doc);
     }
+}
+
+function hexToRgba(hex, alpha) {
+    let c = hex.replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    const num = parseInt(c, 16);
+    return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+}
+
+function escapeHTML(str) {
+    return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderDocumentWithAnnotations(doc) {
+    if (!doc.plainText) {
+        textDisplay.innerHTML = '';
+        return;
+    }
+
+    const text = doc.plainText;
+    const annotations = doc.annotations || [];
+
+    if (annotations.length === 0) {
+        textDisplay.innerHTML = escapeHTML(text);
+        return;
+    }
+
+    const points = new Set([0, text.length]);
+    annotations.forEach(a => {
+        points.add(Math.max(0, Math.min(text.length, a.start)));
+        points.add(Math.max(0, Math.min(text.length, a.end)));
+    });
+    const sortedPoints = Array.from(points).sort((a, b) => a - b);
+
+    let html = '';
+
+    for (let i = 0; i < sortedPoints.length - 1; i++) {
+        const pStart = sortedPoints[i];
+        const pEnd = sortedPoints[i + 1];
+        const sliceText = text.substring(pStart, pEnd);
+
+        if (!sliceText) continue;
+
+        const activeAnnos = annotations.filter(a => a.start < pEnd && a.end > pStart);
+
+        if (activeAnnos.length === 0) {
+            html += escapeHTML(sliceText);
+        } else {
+            const activeCodes = activeAnnos
+                .map(a => CODES.find(c => c.id === a.codeId))
+                .filter(Boolean);
+
+            let bgStyle = '';
+            if (activeCodes.length === 1) {
+                bgStyle = `background-color: ${hexToRgba(activeCodes[0].color, 0.35)}; border-bottom: 2px solid ${activeCodes[0].color};`;
+            } else if (activeCodes.length > 1) {
+                const step = 100 / activeCodes.length;
+                const stops = activeCodes.map((c, idx) => {
+                    const rgba = hexToRgba(c.color, 0.45);
+                    return `${rgba} ${idx * step}%, ${rgba} ${(idx + 1) * step}%`;
+                }).join(', ');
+                bgStyle = `background: linear-gradient(to bottom, ${stops}); border-bottom: 2px solid #334155;`;
+            }
+
+            const codeNames = activeCodes.map(c => c.name).join(', ');
+            const escapedSlice = escapeHTML(sliceText);
+
+            html += `<span class="annotation-span" style="${bgStyle}" title="Code: ${escapeHTML(codeNames)}" data-start="${pStart}" data-end="${pEnd}">${escapedSlice}</span>`;
+        }
+    }
+
+    textDisplay.innerHTML = html;
 }
 
 function updateSelectedCodeDisplay() {
     const codeName = selectedCode?.name ?? "Kein Code gewählt";
     const codeColor = selectedCode?.color ?? "black";
-    selectedCodeDisplay.innerHTML = `Aktueller Code: <strong style="color: ${codeColor};">${codeName}</strong>`;
+    selectedCodeDisplay.innerHTML = `Aktueller Code: <strong style="color: ${codeColor};">${escapeHTML(codeName)}</strong>`;
 }
 
 function addListItem(containerId, defaultName) {
@@ -699,7 +843,7 @@ function addListItem(containerId, defaultName) {
     let newItem = null;
 
     if (containerId === 'document-list') {
-        newItem = { id: Date.now(), name: defaultName, content: "Inhalt eingeben..." };
+        newItem = { id: Date.now(), name: defaultName, plainText: "Inhalt eingeben...", annotations: [] };
         DOCUMENTS.push(newItem);
     } else if (containerId === 'code-list') {
         newItem = { id: Date.now(), name: defaultName, color: "#" + Math.floor(Math.random()*16777215).toString(16) };
@@ -722,78 +866,100 @@ function deleteSelected(containerId) {
         if (containerId === 'document-list') {
             DOCUMENTS = DOCUMENTS.filter(doc => doc.id != itemId);
             textDisplay.innerHTML = "";
-            selectedDocument = null;
+            selectedDocument = DOCUMENTS[0] || null;
+            if (selectedDocument) loadDocumentText(selectedDocument);
         } else if (containerId === 'code-list') {
             CODES = CODES.filter(code => code.id != itemId);
-            selectedCode = null;
+            DOCUMENTS.forEach(d => {
+                if (d.annotations) d.annotations = d.annotations.filter(a => a.codeId != itemId);
+            });
+            selectedCode = CODES[0] || null;
             updateSelectedCodeDisplay();
+            if (selectedDocument) loadDocumentText(selectedDocument);
         }
     }
+}
+
+function getTextOffsetInContainer(container, targetNode, targetOffset) {
+    let offset = 0;
+    const nodeStack = [container];
+    let node;
+    let found = false;
+
+    while ((node = nodeStack.pop())) {
+        if (node === targetNode) {
+            offset += targetOffset;
+            found = true;
+            break;
+        }
+        if (node.nodeType === 3) {
+            offset += node.nodeValue.length;
+        } else {
+            let i = node.childNodes.length;
+            while (i--) {
+                nodeStack.push(node.childNodes[i]);
+            }
+        }
+    }
+    return found ? offset : -1;
 }
 
 function annotateSelectedText() {
     if (!selectedCode) return alert("Bitte zuerst einen Code wählen.");
+    if (!selectedDocument || selectedDocument.isAIDoc) return alert("Bitte ein Quelltext-Dokument auswählen.");
+
     const selection = window.getSelection();
-    if (!selection.rangeCount || selection.isCollapsed) return alert("Bitte Text im Hauptfeld markieren.");
-
-    const range = selection.getRangeAt(0);
-    if (!textDisplay.contains(range.commonAncestorContainer)) return alert("Markierung außerhalb des Haupttextes.");
-
-    const span = document.createElement('span');
-    span.classList.add('annotation');
-    span.setAttribute('data-code', selectedCode.id); 
-    span.title = `Code: ${selectedCode.name}`;
-    span.style.backgroundColor = selectedCode.color + '33'; 
-    span.style.border = `1px solid ${selectedCode.color}`; 
-
-    try {
-        range.surroundContents(span);       
-    } catch (e) {
-        alert("Markierung über komplexe Strukturen hinweg nicht möglich.");
-        return;
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        return alert("Bitte Text im Hauptfeld markieren.");
     }
 
-    const doc = DOCUMENTS.find(d => d.id === selectedDocument.id);
-    if(doc) doc.content = textDisplay.innerHTML;
-    selection.removeAllRanges(); 
+    const range = selection.getRangeAt(0);
+    
+    // Prüfen, ob die Auswahl sich innerhalb von #text-display befindet
+    if (!textDisplay.contains(range.startContainer) || !textDisplay.contains(range.endContainer)) {
+        return alert("Markierung außerhalb des Haupttextes.");
+    }
+
+    const start = getTextOffsetInContainer(textDisplay, range.startContainer, range.startOffset);
+    const end = getTextOffsetInContainer(textDisplay, range.endContainer, range.endOffset);
+
+    if (start === -1 || end === -1 || start >= end) {
+        return alert("Ungültige Textauswahl.");
+    }
+
+    if (!selectedDocument.annotations) selectedDocument.annotations = [];
+    
+    selectedDocument.annotations.push({
+        id: Date.now(),
+        start: start,
+        end: end,
+        codeId: selectedCode.id
+    });
+
+    selection.removeAllRanges();
+    loadDocumentText(selectedDocument);
 }
 
 function removeAnnotation() {
+    if (!selectedDocument || selectedDocument.isAIDoc) return;
+
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
 
-    let commonNode = selection.getRangeAt(0).commonAncestorContainer;
-    if (commonNode.nodeType === 3) commonNode = commonNode.parentNode;
+    const range = selection.getRangeAt(0);
+    let targetSpan = range.commonAncestorContainer;
+    if (targetSpan.nodeType === 3) targetSpan = targetSpan.parentNode;
 
-    const annotationSpan = commonNode.closest('.annotation');
-    if (annotationSpan) {
-        const fragment = document.createDocumentFragment();
-        while (annotationSpan.firstChild) fragment.appendChild(annotationSpan.firstChild);
-        annotationSpan.parentNode.replaceChild(fragment, annotationSpan);
+    if (targetSpan && targetSpan.classList.contains('annotation-span')) {
+        const start = parseInt(targetSpan.getAttribute('data-start'), 10);
+        const end = parseInt(targetSpan.getAttribute('data-end'), 10);
+
+        selectedDocument.annotations = (selectedDocument.annotations || []).filter(a => !(a.start < end && a.end > start));
         selection.removeAllRanges();
-
-        const doc = DOCUMENTS.find(d => d.id === selectedDocument.id);
-        if(doc) doc.content = textDisplay.innerHTML;
+        loadDocumentText(selectedDocument);
     } else {
         alert("Keine Annotation an Auswahlstelle.");
     }
-}
-
-function updateAnnotationLabels(codeId, newLabel, newColor, DOCUMENTS) {
-    const regex = new RegExp(`(<span\\s+[^>]*?class=["']annotation["'][^>]*?data-code=["']${codeId}["'][^>]*?)title=["']([^"']*?)["']`, 'g');
-    DOCUMENTS.forEach(doc => {
-        if (doc.content) doc.content = doc.content.replace(regex, `$1title="${newLabel}"`);
-    });
-}
-
-function updateChangedCodes(CODES, CODES_updated, updateAnnotationLabels, DOCUMENTS) {
-    const updatedMap = CODES_updated.reduce((m, c) => { m[c.id] = c; return m; }, {});
-    CODES.forEach(orig => {
-        const up = updatedMap[orig.id];
-        if (up && (orig.name !== up.name || orig.color !== up.color)) {
-            updateAnnotationLabels(orig.id, up.name, up.color, DOCUMENTS);
-        }
-    });
 }
 
 function showAnnotationsModal() {
@@ -801,32 +967,26 @@ function showAnnotationsModal() {
     const grouped = {};
     CODES.forEach(c => grouped[c.id] = []);
 
-    const regex = /<span\s+[^>]*?class=["']annotation["'][^>]*?data-code=["'](\d+)["'][^>]*?>(.*?)<\/span>/g;
-
     getCorpusDocuments().forEach(doc => {
-        if (doc.content) {
-            let match;
-            regex.lastIndex = 0;
-            while ((match = regex.exec(doc.content)) !== null) {
-                const codeId = match[1];
-                if (grouped[codeId]) {
-                    grouped[codeId].push({ docName: doc.name, text: match[2].replace(/<[^>]*>/g, '').trim() });
-                    totalCount++;
-                }
+        (doc.annotations || []).forEach(a => {
+            if (grouped[a.codeId]) {
+                const text = doc.plainText.substring(a.start, a.end);
+                grouped[a.codeId].push({ docName: doc.name, text });
+                totalCount++;
             }
-        }
+        });
     });
 
-    let html = `<h2>Übersicht aller Korpus-Annotationen</h2><p><strong>Gesamtzahl der Fundstellen:</strong> ${totalCount}</p><hr>`;
+    let html = `刻2>Übersicht aller Korpus-Annotationen</h2><p><strong>Gesamtzahl der Fundstellen:</strong> ${totalCount}</p><hr>`;
     CODES.forEach(code => {
         const items = grouped[code.id] || [];
         html += `<div style="border-left: 4px solid ${code.color}; padding-left: 10px; margin-bottom: 15px;">
-            <h4 style="margin: 0; color: ${code.color};">${code.name} (${items.length} Treffer)</h4>`;
+            <h4 style="margin: 0; color: ${code.color};">${escapeHTML(code.name)} (${items.length} Treffer)</h4>`;
         if(items.length === 0) {
             html += `<i>Keine Treffer im Korpus</i>`;
         } else {
             items.forEach(it => {
-                html += `<div class="hit-item"><strong>${it.docName}:</strong> <i>"...${it.text}..."</i></div>`;
+                html += `<div class="hit-item"><strong>${escapeHTML(it.docName)}:</strong> <i>"...${escapeHTML(it.text)}..."</i></div>`;
             });
         }
         html += `</div>`;
@@ -836,17 +996,13 @@ function showAnnotationsModal() {
 }
 
 function countAnnotationsModal() {
-    const corpusDocs = getCorpusDocuments();
-    const htmlString = corpusDocs.map(doc => doc.content || '').join('');
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlString, 'text/html');
-    const allSpans = doc.body.querySelectorAll('span[data-code]');
-
     const counts = {};
     CODES.forEach(c => counts[c.id] = 0);
-    allSpans.forEach(s => {
-        const id = s.getAttribute('data-code');
-        if(counts[id] !== undefined) counts[id]++;
+
+    getCorpusDocuments().forEach(doc => {
+        (doc.annotations || []).forEach(a => {
+            if (counts[a.codeId] !== undefined) counts[a.codeId]++;
+        });
     });
 
     let tableHtml = `<h2>Statistik der Korpus-Annotationen</h2>
@@ -855,7 +1011,7 @@ function countAnnotationsModal() {
             <thead><tr style="background:#f1f5f9;"><th>ID</th><th>Code</th><th>Anzahl</th></tr></thead><tbody>`;
 
     CODES.forEach(c => {
-        tableHtml += `<tr><td>${c.id}</td><td>${c.name}</td><td>${counts[c.id]}</td></tr>`;
+        tableHtml += `<tr><td>${c.id}</td><td>${escapeHTML(c.name)}</td><td>${counts[c.id]}</td></tr>`;
     });
 
     tableHtml += `</tbody></table>`;
@@ -868,8 +1024,7 @@ function calculateTextStats() {
     let maxDocLen = 0;
 
     corpusDocs.forEach(doc => {
-        const plainText = doc.content ? doc.content.replace(/<[^>]*>/g, '') : '';
-        const len = plainText.length;
+        const len = (doc.plainText || '').length;
         totalCorpusLen += len;
         if (len > maxDocLen) {
             maxDocLen = len;
@@ -933,27 +1088,27 @@ async function fetchModelInfoAndUpdateStats() {
 function openAIModal() {
     const html = `
         <h2>KI-basierte Inhaltsanalyse nach Fischer (2025)</h2>
-        <p><small><i>Anpassungen & Modellparameter zur Erhöhung der Validität und Reliabilität vornehmen! Weitere Informationen bei Fischer (2025) unter <a href="https://doi.org/10.25656/01:34405">https://doi.org/10.25656/01:34405</a></i></small></p>
+        <p><small><i>Anpassungen & Modellparameter zur Erhöhung der Validität und Reliabilität vornehmen! Weitere Informationen bei Fischer (2025) unter <a href="https://doi.org/10.25656/01:34405" target="_blank">https://doi.org/10.25656/01:34405</a></i></small></p>
 
         <form id="ai-form">
             <h3>Kontext & Modell</h3>
             <div class="form-group">
                 <label>Forschungsfrage / Kontext ({context}):</label>
-                <textarea id="ai_context">${SETTINGS.context}</textarea>
+                <textarea id="ai_context">${escapeHTML(SETTINGS.context)}</textarea>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>LLM Modell Name:</label>
-                    <input type="text" id="ai_model" value="${SETTINGS.model}">
+                    <input type="text" id="ai_model" value="${escapeHTML(SETTINGS.model)}">
                 </div>
                 <div class="form-group">
                     <label>API Endpunkt URL:</label>
-                    <input type="text" id="ai_url" value="${SETTINGS.url}">
+                    <input type="text" id="ai_url" value="${escapeHTML(SETTINGS.url)}">
                 </div>
             </div>
             <div class="form-group">
                 <label>API Key (Optional):</label>
-                <input type="text" id="ai_key" value="${SETTINGS.apiKey}">
+                <input type="text" id="ai_key" value="${escapeHTML(SETTINGS.apiKey)}">
             </div>
 
             <div id="context_info_box" style="background:#f1f5f9; padding:10px; border-radius:5px; margin-bottom:15px; border: 1px solid var(--border-color);">
@@ -994,7 +1149,7 @@ function openAIModal() {
 
             <div class="form-group">
                 <label>Prompt-Template:</label>
-                <textarea id="ai_prompt" style="height:150px;">${SETTINGS.promptTemplate}</textarea>
+                <textarea id="ai_prompt" style="height:150px;">${escapeHTML(SETTINGS.promptTemplate)}</textarea>
             </div>
 
             <div class="form-group">
@@ -1004,7 +1159,6 @@ function openAIModal() {
                 <label><input type="checkbox" id="ai_json_prep" ${SETTINGS.useLabeledJSON?'checked':''}> Verarbeitungseinheiten mit Label (JSON) übergeben</label>
             </div>
 
-
             <button type="submit" style="background-color: var(--accent-purple); width:100%; padding: 10px;">Analyse starten</button>
         </form>
     `;
@@ -1012,7 +1166,6 @@ function openAIModal() {
     openModalWithHTML(html);
     fetchModelInfoAndUpdateStats();
 
-    // Event-Listener für Echtzeit-Aktualisierung der Modell-Info bei Parameteränderung
     const updateModelInfoLive = () => {
         SETTINGS.model = document.getElementById('ai_model').value;
         SETTINGS.url = document.getElementById('ai_url').value;
@@ -1061,21 +1214,25 @@ function openAIModal() {
     });
 }
 
-// KI-Analyse mit echtem Live-Streaming und anschließender Validierung
 async function runAIAnalysis(config) {
     const resultDocName = `KI-Analyse (${config.verfahren}) ${new Date().toLocaleTimeString('de-DE')}`;
-    let currentContent = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren}) nach Fischer (2025)</h2><p><i>Gestartet...</i></p><hr>`;
+    let currentHtml = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren}) nach Fischer (2025)</h2><p><i>Gestartet...</i></p><hr>`;
 
-    const newDoc = { id: Date.now(), name: resultDocName, content: currentContent };
+    const newDoc = { 
+        id: Date.now(), 
+        name: resultDocName, 
+        isAIDoc: true, 
+        htmlContent: currentHtml 
+    };
     DOCUMENTS.push(newDoc);
     updateInterface();
     selectListItem(document.getElementById(`document-${newDoc.id}`), 'document-list');
 
     const updateDocContent = (addedHtml) => {
-        currentContent += addedHtml;
-        newDoc.content = currentContent;
+        currentHtml += addedHtml;
+        newDoc.htmlContent = currentHtml;
         if (selectedDocument && selectedDocument.id === newDoc.id) {
-            textDisplay.innerHTML = currentContent;
+            textDisplay.innerHTML = currentHtml;
         }
     };
 
@@ -1084,7 +1241,7 @@ async function runAIAnalysis(config) {
 
     if (config.granularitaet === 'Dokument') {
         validDocs.forEach(doc => {
-            let clean = doc.content.replace(/<[^>]*>/g, '');
+            let clean = doc.plainText || '';
             if (config.removeQuotes) clean = clean.replace(/["'„“]/g, '');
             if (config.removeDoubleSpaces) clean = clean.replace(/\s+/g, ' ');
 
@@ -1097,30 +1254,28 @@ async function runAIAnalysis(config) {
     } else if (config.granularitaet === 'Korpus') {
         if (config.useLabeledJSON) {
             const corpusArray = validDocs.map(d => {
-                let clean = d.content.replace(/<[^>]*>/g, '');
+                let clean = d.plainText || '';
                 if (config.removeQuotes) clean = clean.replace(/["'„“]/g, '');
                 if (config.removeDoubleSpaces) clean = clean.replace(/\s+/g, ' ');
                 return { title: d.name, content: clean };
             });
             textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dok.)`, payload: JSON.stringify(corpusArray) });
         } else {
-            let combined = validDocs.map(d => d.content.replace(/<[^>]*>/g, '')).join("\n\n");
+            let combined = validDocs.map(d => d.plainText || '').join("\n\n");
             if (config.removeQuotes) combined = combined.replace(/["'„“]/g, '');
             if (config.removeDoubleSpaces) combined = combined.replace(/\s+/g, ' ');
             textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dok.)`, payload: combined });
         }
     } else if (config.granularitaet === 'Segment') {
-        const regex = /<span\s+[^>]*?class=["']annotation["'][^>]*?data-code=["'](\d+)["'][^>]*?>(.*?)<\/span>/gi;
         validDocs.forEach(doc => {
-            let match, idx = 1;
-            while ((match = regex.exec(doc.content)) !== null) {
-                const codeId = match[1];
-                let text = match[2].replace(/<[^>]*>/g, '').trim();
+            let idx = 1;
+            (doc.annotations || []).forEach(a => {
+                let text = doc.plainText.substring(a.start, a.end).trim();
                 if (config.removeQuotes) text = text.replace(/["'„“]/g, '');
                 if (config.removeDoubleSpaces) text = text.replace(/\s+/g, ' ');
 
                 if (text) {
-                    const codeObj = CODES.find(c => c.id == codeId);
+                    const codeObj = CODES.find(c => c.id == a.codeId);
                     const codeName = codeObj ? codeObj.name : "Unbekannt";
 
                     const textPayload = config.useLabeledJSON
@@ -1129,7 +1284,7 @@ async function runAIAnalysis(config) {
 
                     textsToAnalyze.push({ title: `${doc.name} - Seg ${idx++} [${codeName}]`, payload: textPayload });
                 }
-            }
+            });
         });
     }
 
@@ -1148,7 +1303,7 @@ async function runAIAnalysis(config) {
             <div style="background: #f8fafc; border: 1px solid var(--border-color); border-left: 4px solid var(--primary); padding: 12px 15px; margin: 10px 0 15px 0; border-radius: 4px; font-size: 0.9em;">
                 <h4 style="margin: 0 0 8px 0; color: var(--primary);">⚙️ Angewendete Analyse-Einstellungen:</h4>
                 <ul style="margin: 0; padding-left: 20px; color: var(--text-dark); line-height: 1.5;">
-                    <li><strong>Forschungsfrage / Kontext:</strong> ${config.context || '<i>Keiner angegeben</i>'}</li>
+                    <li><strong>Forschungsfrage / Kontext:</strong> ${escapeHTML(config.context) || '<i>Keiner angegeben</i>'}</li>
                     <li><strong>Verfahren:</strong> ${config.verfahren} | <strong>Granularität:</strong> ${config.granularitaet}</li>
                     <li><strong>Modell:</strong> ${config.model} (Temp: ${config.temperature}, Top_P: ${config.top_p})</li>
                     <li><strong>Optionen:</strong> 
@@ -1158,7 +1313,7 @@ async function runAIAnalysis(config) {
                     </li>
                 </ul>
             </div>
-            <p>⏳ <i>Verarbeite ${item.title}...</i></p>
+            <p>⏳ <i>Verarbeite ${escapeHTML(item.title)}...</i></p>
         `;
         updateDocContent(settingsDocHtml);
 
@@ -1194,7 +1349,7 @@ async function runAIAnalysis(config) {
                 
                 updateDocContent(`
                     <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
                         <pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>
                     </div><hr style="border:0; border-top:1px solid #e2e8f0;">
                 `);
@@ -1219,7 +1374,6 @@ async function runAIAnalysis(config) {
                                 const content = parsed.choices?.[0]?.delta?.content || "";
                                 if (content) {
                                     aiAnswer += content;
-                                    
                                     const targetEl = document.getElementById(targetId);
                                     if (targetEl && selectedDocument && selectedDocument.id === newDoc.id) {
                                         targetEl.innerText = aiAnswer;
@@ -1233,23 +1387,23 @@ async function runAIAnalysis(config) {
                 const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
                 const finalBoxContent = `
                     <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
                         ${renderedHtml}
                     </div><hr style="border:0; border-top:1px solid #e2e8f0;">
                 `;
 
                 const placeholderHtml = `
                     <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
                         <pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>
                     </div><hr style="border:0; border-top:1px solid #e2e8f0;">
                 `;
                 
-                currentContent = currentContent.replace(placeholderHtml, finalBoxContent);
-                newDoc.content = currentContent;
+                currentHtml = currentHtml.replace(placeholderHtml, finalBoxContent);
+                newDoc.htmlContent = currentHtml;
 
                 if (selectedDocument && selectedDocument.id === newDoc.id) {
-                    textDisplay.innerHTML = currentContent;
+                    textDisplay.innerHTML = currentHtml;
                 }
 
             } else {
@@ -1260,19 +1414,18 @@ async function runAIAnalysis(config) {
 
                 updateDocContent(`
                     <div style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${item.title}</h3>
+                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
                         ${renderedHtml}
                     </div><hr style="border:0; border-top:1px solid #e2e8f0;">
                 `);
             }
 
         } catch (err) {
-            updateDocContent(`<p style="color:#e11d48;">Prüfe Funktionalität des ausgewählten KI-Systems zur Auswertung von ${item.title}:<br>${err.message}</p>`);
+            updateDocContent(`<p style="color:#e11d48;">Prüfe Funktionalität des ausgewählten KI-Systems zur Auswertung von ${escapeHTML(item.title)}:<br>${escapeHTML(err.message)}</p>`);
         }
     }
     updateDocContent(`<p style="color:var(--accent-green); font-weight:bold;">Analyse vollständig beendet!</p>`);
 }
-
 
 function validateAIResultStructure(parsedData, verfahren) {
     if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) return false;
@@ -1326,9 +1479,9 @@ function renderAIResult(text, verfahren) {
 
             html += `
                 <div class="category-card" id="${cardId}" style="border-left-color: ${cardBorderColor};">
-                    <h4>🏷️ ${label}</h4>
-                    ${description ? `<p>${description}</p>` : ''}
-                    ${quotes.length > 0 ? `<p><strong>Textstellen:</strong></p><ul class="quotes-list">${quotes.map(q=>`<li>${q}</li>`).join('')}</ul>` : ''}
+                    <h4>🏷️ ${escapeHTML(label)}</h4>
+                    ${description ? `<p>${escapeHTML(description)}</p>` : ''}
+                    ${quotes.length > 0 ? `<p><strong>Textstellen:</strong></p><ul class="quotes-list">${quotes.map(q=>`<li>${escapeHTML(q)}</li>`).join('')}</ul>` : ''}
                     ${isValid ? `
                         <button class="ai-action-btn" onclick="addSingleCodeFromCard('${cardId}')">🏷️ Als Code übernehmen</button>
                         <button class="ai-action-btn-auto" onclick="annotateTextstellenCorpusFromCard('${cardId}')">⚡ Automatisch annotieren</button>
@@ -1339,56 +1492,30 @@ function renderAIResult(text, verfahren) {
         return html;
     }
 
-    return html + `<pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 5px; border: 1px solid var(--border-color);">${text}</pre>`;
-}
-
-
-function parseAIResponseJSON(text) {
-    try {
-        const jsonMatch = text.match(/\[[\s\S]*\]/);
-        if (jsonMatch) return JSON.parse(jsonMatch[0]);
-    } catch(e) {}
-    return null;
+    return html + `<pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 5px; border: 1px solid var(--border-color);">${escapeHTML(text)}</pre>`;
 }
 
 function cleanAndParseJSON(jsonString) {
     if (!jsonString) return null;
 
-    // 1. Markdown-Blöcke & Steuerzeichen säubern
     let clean = jsonString.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-    // Direkter Parsing-Versuch
     try {
         const parsed = JSON.parse(clean);
         return normalizeDataKeys(parsed);
     } catch (e) {}
 
-    // 2. Erweiterte Syntax-Reparatur für defekte SSE- / LLM-Strings
     try {
         let repaired = clean;
-
-        // A) Dreifache/Mehrfache Anführungszeichen aufräumen (z.B. "Teamakzeptanz""")
         repaired = repaired.replace(/"+/g, '"');
-
-        // B) Leere Keys korrigieren (z.B. "": "Die des Menschen..." -> "description": "Die des Menschen...")
         repaired = repaired.replace(/"":\s*"/g, '"description": "');
-
-        // C) Fehlende Doppelpunkte zwischen Key und Value korrigieren (z.B. "description "Notwendigkeit..." -> "description": "Notwendigkeit...")
-        repaired = repaired.replace(/"([a-zA-ZÄÖÜäöüß0-9_]+)"\s+([{\["a-zA-ZÄÖÜäöüß])/g, '"$1": $2');          
-        
-        // D) Fehlendes Anführungszeichen vor Keys korrigieren (z.B. code": -> "code":)         
-        repaired = repaired.replace(/([{,]\s*)([a-zA-ZÄÖÜäöüß0-9_]+)":/g, '$1"$2":');          
- 
-        // E) Fehlende Anführungszeichen nach Doppelpunkt korrigieren         
-        repaired = repaired.replace(/(:\s*)([a-zA-ZÄÖÜäöüß][^"\n,}\]]*)/g, (match, p1, p2) => {
+        repaired = repaired.replace(/"([a-zA-ZÄÖÜäöüß0-9_]+)"\s+([{\["a-zA-ZÄÖÜäöüß])/g, '"$1": $2');                            repaired = repaired.replace(/([{,]\s*)([a-zA-ZÄÖÜäöüß0-9_]+)":/g, '$1"$2":');                              repaired = repaired.replace(/(:\s*)([a-zA-ZÄÖÜäöüß][^"\n,}\]]*)/g, (match, p1, p2) => {
             const trimmed = p2.trim();
             if (['true', 'false', 'null'].includes(trimmed) || !isNaN(trimmed)) return match;
-            // Falls bereits ein schließendes Anführungszeichen am Ende steht
             if (trimmed.endsWith('"')) return `${p1}"${trimmed}`;
             return `${p1}"${trimmed}"`;
         });
 
-        // F) Unvollständig geschlossene Strings in Zeilen vervollständigen
         let lines = repaired.split('\n');
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i].trim();
@@ -1402,24 +1529,21 @@ function cleanAndParseJSON(jsonString) {
             }
         }
         repaired = lines.join('\n');
-
-        // G) Trailing Commas vor schließenden Klammern entfernen
         repaired = repaired.replace(/,\s*([\}\]])/g, '$1');
 
-        // H) Unvollständige Objekte / Arrays schließen
         const openBraces = (repaired.match(/\{/g) || []).length;
         const closeBraces = (repaired.match(/\}/g) || []).length;
-        const openBrackets = (repaired.match(/\[/g) || []).length;                           
+        const openBrackets = (repaired.match(/\[/g) || []).length;
         const closeBrackets = (repaired.match(/\]/g) || []).length;
 
         for (let i = 0; i < openBraces - closeBraces; i++) repaired += '\n}';
         for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += '\n]';
- 
+
         const parsed = JSON.parse(repaired);
         return normalizeDataKeys(parsed);
 
     } catch (e2) {
-        console.error("JSON-Parsing endgültig fehlgeschlagen:", e2);
+        console.error("JSON-Parsing fehlgeschlagen:", e2);
         return null;
     }
 }
@@ -1436,7 +1560,6 @@ function normalizeDataKeys(data) {
         }
 
         const normalizedItem = { textstellen };
-
         const mainKey = item.code || item.kategorie || item.category || item.paraphrase || item.summary || item.assoziation;
         
         if (item.paraphrase || item.summary) {
@@ -1493,35 +1616,9 @@ function addSingleCodeFromCard(cardId) {
     }
 }
 
-function addSingleCode(encodedCode) {
-    const codeName = decodeURIComponent(encodedCode);
-    let existing = CODES.find(c => c.name.toLowerCase() === codeName.toLowerCase());
-    if (!existing) {
-        const newCode = {
-            id: Date.now(),
-            name: codeName,
-            color: "#" + Math.floor(Math.random()*16777215).toString(16)
-        };
-        CODES.push(newCode);
-        updateInterface();
-        alert(`Code "${codeName}" wurde angelegt!`);
-    } else {
-        alert(`Der Code "${codeName}" existiert bereits.`);
-    }
-}
-
 function annotateTextstellenCorpusFromCard(cardId) {
     const { codeName, quotes } = extractCardData(cardId);
     if (!codeName) return alert("Kein gültiger Code-Name gefunden.");
-    executeAnnotation(codeName, quotes);
-}
-
-function annotateTextstellenCorpus(encodedCode, encodedQuotes) {
-    const codeName = decodeURIComponent(encodedCode);
-    let quotes = [];
-    try {
-        quotes = JSON.parse(decodeURIComponent(encodedQuotes));
-    } catch(e) {}
     executeAnnotation(codeName, quotes);
 }
 
@@ -1545,11 +1642,10 @@ function executeAnnotation(codeName, quotes) {
     let totalMatches = 0;
     let affectedDocsCount = 0;
 
-    // Tracking-Objekte für die Auswertung
     const stats = {
-        fuzzyOnly: [],       // Zitate, die nur via Fuzzy gematcht wurden
-        notAnnotated: [],    // Zitate, die gar nicht gematcht wurden
-        multiAnnotated: []   // Zitate mit Mehrfach-Treffern (mit Doku-Zuordnung)
+        fuzzyOnly: [],
+        notAnnotated: [],
+        multiAnnotated: []
     };
 
     quotes.forEach(quote => {
@@ -1561,46 +1657,48 @@ function executeAnnotation(codeName, quotes) {
         let fuzzyMatched = false;
         let foundInDocs = [];
 
-        const escaped = trimmedQuote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regexStrict = new RegExp(`(?![^<]*>)${escaped}`, 'gi');
-
-        const fuzzyPattern = trimmedQuote
-            .split(/\s+/)
-            .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-            .join('\\s+[^<]*?');
-        const regexFuzzy = new RegExp(`(?![^<]*>)(${fuzzyPattern})`, 'gi');
-
         corpusDocs.forEach(docObj => {
-            let content = docObj.content;
-            let docMatchCount = 0;
+            const text = docObj.plainText || '';
+            let idx = text.indexOf(trimmedQuote);
+            let docMatches = 0;
 
-            // 1. Exakter Match-Versuch
-            if (regexStrict.test(content)) {
+            if (idx !== -1) {
                 strictMatched = true;
-                content = content.replace(regexStrict, (match) => {
-                    docMatchCount++;
-                    return `<span class="annotation" data-code="${codeObj.id}" title="Code: ${codeObj.name}" style="background-color: ${codeObj.color}33; border: 1px solid ${codeObj.color};">${match}</span>`;
-                });
-            } 
-            // 2. Fuzzy Match-Versuch (nur wenn exakt fehlschlug)
-            else if (regexFuzzy.test(content)) {
-                fuzzyMatched = true;
-                content = content.replace(regexFuzzy, (match) => {
-                    docMatchCount++;
-                    return `<span class="annotation" data-code="${codeObj.id}" title="Code: ${codeObj.name}" style="background-color: ${codeObj.color}33; border: 1px solid ${codeObj.color};">${match}</span>`;
-                });
+                while (idx !== -1) {
+                    docMatches++;
+                    if (!docObj.annotations) docObj.annotations = [];
+                    docObj.annotations.push({
+                        id: Date.now() + Math.random(),
+                        start: idx,
+                        end: idx + trimmedQuote.length,
+                        codeId: codeObj.id
+                    });
+                    idx = text.indexOf(trimmedQuote, idx + trimmedQuote.length);
+                }
+            } else {
+                const words = trimmedQuote.split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                const regexFuzzy = new RegExp(words.join('\\s+'), 'gi');
+                let match;
+                while ((match = regexFuzzy.exec(text)) !== null) {
+                    fuzzyMatched = true;
+                    docMatches++;
+                    if (!docObj.annotations) docObj.annotations = [];
+                    docObj.annotations.push({
+                        id: Date.now() + Math.random(),
+                        start: match.index,
+                        end: match.index + match[0].length,
+                        codeId: codeObj.id
+                    });
+                }
             }
 
-            if (docMatchCount > 0) {
-                totalMatches += docMatchCount;
-                totalQuoteMatches += docMatchCount;
-                foundInDocs.push(`${docObj.title || docObj.id || 'Unbekanntes Dok'} (${docMatchCount}x)`);
+            if (docMatches > 0) {
+                totalMatches += docMatches;
+                totalQuoteMatches += docMatches;
+                foundInDocs.push(`${docObj.name} (${docMatches}x)`);
             }
-
-            docObj.content = content;
         });
 
-        // Auswertung pro Zitat
         if (totalQuoteMatches === 0) {
             stats.notAnnotated.push(trimmedQuote);
         } else {
@@ -1617,12 +1715,10 @@ function executeAnnotation(codeName, quotes) {
         }
     });
 
-    // Zähle betroffene Dokumente für die Statistik
-    affectedDocsCount = corpusDocs.filter(d => d.content.includes(`data-code="${codeObj.id}"`)).length;
+    affectedDocsCount = corpusDocs.filter(d => (d.annotations || []).some(a => a.codeId === codeObj.id)).length;
 
     if (selectedDocument) loadDocumentText(selectedDocument);
 
-    // Detaillierter Bericht als Konsolenausgabe und Alert
     let report = `Code "${codeName}" zugewiesen!\nEs wurden ${totalMatches} Textstelle(n) in ${affectedDocsCount} Dokument(en) annotiert.\n\n`;
     
     if (stats.multiAnnotated.length > 0) {
@@ -1640,7 +1736,6 @@ function executeAnnotation(codeName, quotes) {
             stats.notAnnotated.map(q => ` - "${q.substring(0, 30)}..."`).join('\n');
     }
 
-    console.log("Detaillierter Annotationsbericht:", stats);
     alert(report);
 }
 
@@ -1650,6 +1745,17 @@ async function handleFileSelection() {
         DOCUMENTS = data[0]["DOCUMENTS"] || [];
         CODES = data[0]["CODES"] || [];
         SETTINGS = data[0]["SETTINGS"] || DEFAULT_SETTINGS;
+
+        // Abwärtskompatibilität
+        DOCUMENTS.forEach(d => {
+            if (!d.plainText && d.content) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = d.content;
+                d.plainText = tempDiv.innerText || tempDiv.textContent || '';
+                d.annotations = [];
+            }
+        });
+
         saveSettings();
         updateInterface();
     }
@@ -1676,105 +1782,50 @@ function openAndReadJsonFile() {
 
 function loadScript(url) {
   return new Promise((resolve, reject) => {
-    // Prüfen, ob das Skript bereits geladen wurde (verhindert Mehrfach-Injektionen)
     if (document.querySelector(`script[src="${url}"]`)) {
       resolve();
       return;
     }
-
     const script = document.createElement('script');
     script.src = url;
     script.async = true;
-
     script.onload = () => resolve();
     script.onerror = () => reject(new Error(`Fehler beim Laden von ${url}`));
-
     document.head.appendChild(script);
   });
 }
 
 async function exportToQDPX() {
-  inputData=[{"CODES": CODES, "DOCUMENTS": DOCUMENTS, "SETTINGS": SETTINGS}]
-  if (!inputData || !inputData[0]) return;
+  if (!DOCUMENTS || DOCUMENTS.length === 0) return;
   const scriptUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js';
   try {
-    // Skript wird nur dann geladen, wenn der User die Funktion triggert
     await loadScript(scriptUrl);
 
-
-    const data = inputData[0];
-    const codes = data.CODES || [];
-    const documents = data.DOCUMENTS || [];
-    const settings = data.SETTINGS || {};
-
-    // IDs und GUID-Helper
     const generateGUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
 
-    const escapeXml = (str) => {
-      if (!str) return '';
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-    };
-
     const projectGuid = generateGUID();
     const zip = new JSZip();
 
-    // 1. DOMParser vorbereiten zum Extrahieren von Plain Text & Kodiersegmenten aus HTML
-    const parser = new DOMParser();
-  
     const processedDocs = [];
     const allCodings = [];
 
-    documents.forEach((doc) => {
+    getCorpusDocuments().forEach((doc) => {
       const docGuid = generateGUID();
       const docFileName = `Sources/doc_${doc.id}.txt`;
-    
-      const htmlDoc = parser.parseFromString(`<div>${doc.content}</div>`, 'text/html');
-      const container = htmlDoc.body.firstChild;
+      const plainText = doc.plainText || '';
 
-      let plainText = '';
-    
-      // Traversiere Knoten, um exakte Plaintext-Offsets für REFI-QDA zu berechnen
-      function processNode(node) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          plainText += node.textContent;
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          if (node.tagName.toLowerCase() === 'br') {
-            plainText += '\n';
-          } else if (node.classList.contains('annotation')) {
-            const codeId = parseInt(node.getAttribute('data-code'), 10);
-            const startPosition = plainText.length;
-          
-            // Rekursiv Inhalt des Span-Elements auslesen
-            for (let child of node.childNodes) {
-              processNode(child);
-            }
-          
-            const endPosition = plainText.length;
-          
-            allCodings.push({
-              guid: generateGUID(),
-              codeId: codeId,
-              docGuid: docGuid,
-              startPosition: startPosition,
-              endPosition: endPosition
-            });
-          } else {
-            for (let child of node.childNodes) {
-              processNode(child);
-            }
-          }
-        }
-      }
-
-      processNode(container);
+      (doc.annotations || []).forEach(a => {
+        allCodings.push({
+            guid: generateGUID(),
+            codeId: a.codeId,
+            docGuid: docGuid,
+            startPosition: a.start,
+            endPosition: a.end
+        });
+      });
 
       processedDocs.push({
         id: doc.id,
@@ -1784,24 +1835,19 @@ async function exportToQDPX() {
         path: docFileName
       });
 
-      // Plaintext-Datei im Quellenordner der ZIP anlegen
       zip.file(docFileName, plainText);
     });
 
-    // 2. Codebook-Lookup (ID -> GUID)
     const codeGuidMap = {};
-    codes.forEach(c => {
+    CODES.forEach(c => {
       codeGuidMap[c.id] = generateGUID();
     });
 
-    // 3. XML-Generierung: Codebook-Segment
     let codesXml = '';
-    codes.forEach(c => {
-      codesXml += `
-      <Code guid="${codeGuidMap[c.id]}" name="${escapeXml(c.name)}" color="${c.color}" isNote="false" />`;
+    CODES.forEach(c => {
+      codesXml += `\n      <Code guid="${codeGuidMap[c.id]}" name="${escapeHTML(c.name)}" color="${c.color}" isNote="false" />`;
     });
 
-    // 4. XML-Generierung: Dokumente & Selections (Kodierungen)
     let sourcesXml = '';
     processedDocs.forEach(d => {
       const docCodings = allCodings.filter(c => c.docGuid === d.guid);
@@ -1820,36 +1866,33 @@ async function exportToQDPX() {
       });
 
       sourcesXml += `
-        <TextSource guid="${d.guid}" name="${escapeXml(d.name)}" path="internal://${d.path}">
+        <TextSource guid="${d.guid}" name="${escapeHTML(d.name)}" path="internal://${d.path}">
           ${selectionsXml}
         </TextSource>`;
     });
 
-    // 5. XML-Generierung: SETTINGS als Projekt-Memo/Note sichern
     let notesXml = '';
-    if (Object.keys(settings).length > 0) {
+    if (Object.keys(SETTINGS).length > 0) {
       const noteGuid = generateGUID();
-      const formattedSettings = Object.entries(settings)
+      const formattedSettings = Object.entries(SETTINGS)
         .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
         .join('\n');
 
       notesXml = `
     <Notes>
       <Note guid="${noteGuid}" name="Analyse-Einstellungen (KI/MyQDA)">
-        <PlainText>${escapeXml(formattedSettings)}</PlainText>
+        <PlainText>${escapeHTML(formattedSettings)}</PlainText>
       </Note>
     </Notes>`;
     }
 
-    // 6. Hauptdatei: project.qde (REFI-QDA XML)
     const projectXml = `<?xml version="1.0" encoding="UTF-8"?>
   <Project xmlns="http://www.qraconso.org/refi-qda/Project" 
            guid="${projectGuid}" 
            name="MyQDA_Export" 
            origin="MyQDA - KI-basierte Inhaltsanalyse nach Fischer (2025)" 
            creatingUser="System">
-    <Codes>
-      ${codesXml}
+    <Codes>${codesXml}
     </Codes>
     <Sources>
       ${sourcesXml}
@@ -1859,7 +1902,6 @@ async function exportToQDPX() {
 
   zip.file("project.qde", projectXml);
 
-    // 7. ZIP als .qdpx komprimieren und Download auslösen
     const blob = await zip.generateAsync({ type: "blob" });
     const downloadUrl = URL.createObjectURL(blob);
   
@@ -1870,12 +1912,12 @@ async function exportToQDPX() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(downloadUrl);
-  }catch (error) {
+  } catch (error) {
     console.error("JSZip konnte nicht geladen werden:", error);
   }
 }
 
-// Variable Panel-Größen Steuerung (Drag & Drop Resizer)
+// Resizer Steuerungs-Logik
 const resizer = document.getElementById('panel-resizer');
 const topPanel = document.getElementById('document-panel');
 const bottomPanel = document.getElementById('code-panel');
@@ -1886,10 +1928,8 @@ resizer.addEventListener('mousedown', (e) => {
     
     const onMouseMove = (moveEvent) => {
         const sidebarRect = sidebar.getBoundingClientRect();
-        // Höhe des oberen Panels basierend auf der Mausposition im Sidebar-Container berechnen
         let newTopHeight = moveEvent.clientY - sidebarRect.top;
         
-        // Minimal- und Maximalgrenzen einhalten (z. B. mind. 80px Höhe pro Panel)
         const minHeight = 80;
         const maxHeight = sidebarRect.height - minHeight - resizer.offsetHeight;
 
