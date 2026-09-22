@@ -977,7 +977,7 @@ function showAnnotationsModal() {
         });
     });
 
-    let html = `刻2>Übersicht aller Korpus-Annotationen</h2><p><strong>Gesamtzahl der Fundstellen:</strong> ${totalCount}</p><hr>`;
+    let html = `<h2>Übersicht aller Korpus-Annotationen</h2><p><strong>Gesamtzahl der Fundstellen:</strong> ${totalCount}</p><hr>`;
     CODES.forEach(code => {
         const items = grouped[code.id] || [];
         html += `<div style="border-left: 4px solid ${code.color}; padding-left: 10px; margin-bottom: 15px;">
