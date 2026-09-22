@@ -348,7 +348,7 @@
                 <div class="button-row">
                     <div class="buttons-left">
                         <button id="annotate-button" onmousedown="event.preventDefault()" onclick="annotateSelectedText()">✅ Annotieren</button>
-                        <button id="remove-annotation-button" onclick="removeAnnotation()">🚫 Deannotieren</button> 
+                        <button id="remove-annotation-button" onmousedown="event.preventDefault()" onclick="removeAnnotation()">🚫 Deannotieren</button> 
                     </div>
                     <div class="buttons-right">
                         <button id="show-annotations-button" onclick="showAnnotationsModal()">🔍 Textstellen</button> 
