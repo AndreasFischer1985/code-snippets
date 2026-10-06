@@ -6,7 +6,7 @@
     <meta name="author" content="Dr. Andreas Fischer">
     <meta name="copyright" content="Dr. Andreas Fischer">
     <meta name="reply-to" content="andreasfischer1985@web.de">
-    <title>MyQDA - Text-Annotation-Tool (Textstellenbasierte Annotation) v1.16</title>
+    <title>MyQDA - Text-Annotation-Tool (Textstellenbasierte Annotation) v1.17</title>
     <style>
         :root {
             --bg-main: #f4f6f8;
@@ -1637,48 +1637,43 @@ function executeAnnotation(codeName, quotes) {
         CODES.push(codeObj);
         updateInterface();
     }
-
     const corpusDocs = getCorpusDocuments();
     let totalMatches = 0;
     let affectedDocsCount = 0;
-
     const stats = {
         fuzzyOnly: [],
         notAnnotated: [],
         multiAnnotated: []
     };
-
     quotes.forEach(quote => {
         let trimmedQuote = quote.trim();
         if (trimmedQuote.length < 3) return;
-
         let totalQuoteMatches = 0;
         let strictMatched = false;
         let fuzzyMatched = false;
         let foundInDocs = [];
-
         corpusDocs.forEach(docObj => {
             const text = docObj.plainText || '';
-            let idx = text.indexOf(trimmedQuote);
             let docMatches = 0;
-
-            if (idx !== -1) {
+            // 1. Exakte Suche (unabhängig von Groß-/Kleinschreibung via 'i'-Flag)
+            const escapedQuote = trimmedQuote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regexExact = new RegExp(escapedQuote, 'gi');
+            let match;
+            while ((match = regexExact.exec(text)) !== null) {
                 strictMatched = true;
-                while (idx !== -1) {
-                    docMatches++;
-                    if (!docObj.annotations) docObj.annotations = [];
-                    docObj.annotations.push({
-                        id: Date.now() + Math.random(),
-                        start: idx,
-                        end: idx + trimmedQuote.length,
-                        codeId: codeObj.id
-                    });
-                    idx = text.indexOf(trimmedQuote, idx + trimmedQuote.length);
-                }
-            } else {
+                docMatches++;
+                if (!docObj.annotations) docObj.annotations = [];
+                docObj.annotations.push({
+                    id: Date.now() + Math.random(),
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    codeId: codeObj.id
+                });
+            }
+            // 2. Fallback: Fuzzy-Matching (flexibel bei Leerzeichen/Zeilenumbrüchen, ebenfalls case-insensitive)
+            if (docMatches === 0) {
                 const words = trimmedQuote.split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                const regexFuzzy = new RegExp(words.join('\\s+'), 'gi');
-                let match;
+                const regexFuzzy = new RegExp(words.join('\\s+'), 'gi');                
                 while ((match = regexFuzzy.exec(text)) !== null) {
                     fuzzyMatched = true;
                     docMatches++;
@@ -1691,14 +1686,12 @@ function executeAnnotation(codeName, quotes) {
                     });
                 }
             }
-
             if (docMatches > 0) {
                 totalMatches += docMatches;
                 totalQuoteMatches += docMatches;
                 foundInDocs.push(`${docObj.name} (${docMatches}x)`);
             }
         });
-
         if (totalQuoteMatches === 0) {
             stats.notAnnotated.push(trimmedQuote);
         } else {
@@ -1714,28 +1707,21 @@ function executeAnnotation(codeName, quotes) {
             }
         }
     });
-
     affectedDocsCount = corpusDocs.filter(d => (d.annotations || []).some(a => a.codeId === codeObj.id)).length;
-
     if (selectedDocument) loadDocumentText(selectedDocument);
-
-    let report = `Code "${codeName}" zugewiesen!\nEs wurden ${totalMatches} Textstelle(n) in ${affectedDocsCount} Dokument(en) annotiert.\n\n`;
-    
+    let report = `Code "${codeName}" zugewiesen!\nEs wurden ${totalMatches} Textstelle(n) in ${affectedDocsCount} Dokument(en) annotiert.\n\n`;    
     if (stats.multiAnnotated.length > 0) {
         report += `⚠️ Mehrfach annotierte Textstellen (${stats.multiAnnotated.length}):\n` +
             stats.multiAnnotated.map(m => ` - "${m.quote.substring(0, 30)}..." (${m.count}x in: ${m.docs.join(', ')})`).join('\n') + '\n\n';
-    }
-    
+    }   
     if (stats.fuzzyOnly.length > 0) {
         report += `🔍 Nur via Fuzzy-Matching annotiert (${stats.fuzzyOnly.length}):\n` +
             stats.fuzzyOnly.map(q => ` - "${q.substring(0, 30)}..."`).join('\n') + '\n\n';
     }
-
     if (stats.notAnnotated.length > 0) {
         report += `❌ Gar nicht annotiert (${stats.notAnnotated.length}):\n` +
             stats.notAnnotated.map(q => ` - "${q.substring(0, 30)}..."`).join('\n');
     }
-
     alert(report);
 }
 
