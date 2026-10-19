@@ -6,7 +6,7 @@
     <meta name="author" content="Dr. Andreas Fischer">
     <meta name="copyright" content="Dr. Andreas Fischer">
     <meta name="reply-to" content="andreasfischer1985@web.de">
-    <title>MyQDA - Text-Annotation-Tool v1.18</title>    
+    <title>MyQDA - Text-Annotation-Tool v1.19</title>    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 
@@ -460,9 +460,9 @@ let DOCUMENTS = [
 ];
 
 let CODES = [
-    { id: 1, name: "Positive Äußerung", color: "#22c55e" },
-    { id: 2, name: "Negative Äußerung", color: "#06b6d4" },
-    { id: 3, name: "Neutrale Äußerung", color: "#6366f1" }
+    { id: 1, name: "Positive Äußerung", color: "#22c55e", parentId: null },
+    { id: 2, name: "Negative Äußerung", color: "#06b6d4", parentId: null },
+    { id: 3, name: "Neutrale Äußerung", color: "#6366f1", parentId: null }
 ];
 
 const PROMPT_HEADER = "Du bist ein wissenschaftlicher Assistent für qualitative Inhaltsanalysen nach Fischer (2025).\nKontext der Analyse: {context}\nText: {text}\nAufgabe: ";
@@ -498,6 +498,9 @@ function saveSettings() {
 
 let selectedCode = null;
 let selectedDocument = null;
+let draggedSelection = null;
+let draggedCodeId = null;
+
 const documentList = document.getElementById('document-list');
 const codeList = document.getElementById('code-list');
 const textDisplay = document.getElementById('text-display');
@@ -691,6 +694,23 @@ textDisplay.addEventListener('blur', () => {
     }
 });
 
+textDisplay.addEventListener('dragstart', (e) => {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && textDisplay.contains(selection.anchorNode)) {
+        const range = selection.getRangeAt(0);
+        const start = getTextOffsetInContainer(textDisplay, range.startContainer, range.startOffset);
+        const end = getTextOffsetInContainer(textDisplay, range.endContainer, range.endOffset);
+        if (start !== -1 && end !== -1 && start < end) {
+            draggedSelection = { start, end };
+            e.dataTransfer.setData('text/plain', selectedDocument.plainText.substring(start, end));
+        }
+    }
+});
+
+textDisplay.addEventListener('dragend', () => {
+    draggedSelection = null;
+});
+
 document.getElementById('document-header').addEventListener('click', () => {
     openDocumentEditModal();
 }); 
@@ -811,12 +831,13 @@ function openCodeEditModal() {
     document.getElementById('code-edit-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const updatedCodes = [];
-        cards.forEach(card => {
+        cards.forEach((card, idx) => {
             const rawId = card.querySelector('.code-id').value.trim();
             const id = isNaN(rawId) ? rawId : Number(rawId);
             const name = card.querySelector('.code-name').value.trim();
             const color = card.querySelector('.code-color-text').value.trim();
-            updatedCodes.push({ id, name, color });
+            const existing = CODES[idx];
+            updatedCodes.push({ id, name, color, parentId: existing ? existing.parentId : null });
         });
 
         CODES = updatedCodes;
@@ -837,8 +858,20 @@ function updateInterface(){
         loadDocumentText(selectedDocument);
     }
 
+    renderCodeList();
+    updateSelectedCodeDisplay();
+}
+
+function renderCodeList() {
     codeList.innerHTML = '';
-    CODES.forEach(code => codeList.appendChild(createListItem(code, 'code-list')));
+    const rootCodes = CODES.filter(c => !c.parentId);
+    if (rootCodes.length === 0 && CODES.length > 0) {
+        CODES.forEach(c => c.parentId = null);
+        CODES.forEach(code => codeList.appendChild(createCodeTreeNode(code)));
+    } else {
+        rootCodes.forEach(code => codeList.appendChild(createCodeTreeNode(code)));
+    }
+    
     if(CODES.length > 0){
       selectedCode = CODES.find(c => c.id == selectedCode?.id) ?? CODES[0] ?? null;
       if(selectedCode) {
@@ -846,8 +879,23 @@ function updateInterface(){
          if (selectedCodeEl) selectListItem(selectedCodeEl, 'code-list');
       }
     }
-    updateSelectedCodeDisplay();
 }
+
+codeList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+});
+
+codeList.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (draggedCodeId !== null && e.target === codeList) {
+        const draggedCode = CODES.find(c => c.id == draggedCodeId);
+        if (draggedCode) {
+            draggedCode.parentId = null;
+            updateInterface();
+        }
+        draggedCodeId = null;
+    }
+});
 
 function createListItem(item, containerId) {
     const li = document.createElement('li');
@@ -863,21 +911,125 @@ function createListItem(item, containerId) {
             const doc = DOCUMENTS.find(el => el.id == item.id);
             if(doc) doc.name = li.textContent;            
         }); 
-    } else if (containerId === 'code-list') {
-        li.addEventListener('input', () => {         
-            const code = CODES.find(el => el.id == item.id);
-            if(code) {
-                code.name = li.textContent; 
-                if (selectedCode && selectedCode.id === code.id) {
-                    selectedCode.name = li.textContent;
-                    updateSelectedCodeDisplay();
-                }
-            }
-        });  
-        li.addEventListener('blur', () => {         
-            if (selectedDocument) loadDocumentText(selectedDocument);
-        });
     }
+    return li;
+}
+
+function isDescendant(parentId, childId) {
+    let current = CODES.find(c => c.id == childId);
+    while (current && current.parentId) {
+        if (current.parentId == parentId) return true;
+        current = CODES.find(c => c.id == current.parentId);
+    }
+    return false;
+}
+
+function createCodeTreeNode(code) {
+    const li = document.createElement('li');
+    li.id = `code-${code.id}`;
+    li.setAttribute('data-id', code.id);
+    li.setAttribute('draggable', 'true');
+    li.style.borderLeft = `4px solid ${code.color || '#334155'}`;
+    li.style.marginBottom = '4px';
+
+    const headerDiv = document.createElement('div');
+    headerDiv.style.display = 'flex';
+    headerDiv.style.alignItems = 'center';
+    headerDiv.style.justifyContent = 'space-between';
+
+    const contentSpan = document.createElement('span');
+    contentSpan.contentEditable = true;
+    contentSpan.textContent = code.name;
+    contentSpan.style.flexGrow = '1';
+    contentSpan.style.outline = 'none';
+
+    headerDiv.appendChild(contentSpan);
+    li.appendChild(headerDiv);
+
+    li.addEventListener('click', (e) => {
+        if (e.target === contentSpan) return;
+        selectListItem(li, 'code-list');
+    });
+
+    contentSpan.addEventListener('focus', () => {
+        selectListItem(li, 'code-list');
+    });
+
+    contentSpan.addEventListener('input', () => {
+        code.name = contentSpan.textContent;
+        if (selectedCode && selectedCode.id === code.id) {
+            selectedCode.name = contentSpan.textContent;
+            updateSelectedCodeDisplay();
+        }
+    });
+
+    contentSpan.addEventListener('blur', () => {
+        if (selectedDocument) loadDocumentText(selectedDocument);
+    });
+
+    li.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        draggedCodeId = code.id;
+        e.dataTransfer.setData('text/plain', 'code-' + code.id);
+    });
+
+    li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        li.style.backgroundColor = '#e2e8f0';
+    });
+
+    li.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        li.style.backgroundColor = '#fff';
+    });
+
+    li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        li.style.backgroundColor = '#fff';
+
+        if (draggedSelection) {
+            if (selectedDocument && !selectedDocument.isAIDoc) {
+                if (!selectedDocument.annotations) selectedDocument.annotations = [];
+                selectedDocument.annotations.push({
+                    id: Date.now(),
+                    start: draggedSelection.start,
+                    end: draggedSelection.end,
+                    codeId: code.id
+                });
+                loadDocumentText(selectedDocument);
+            }
+            draggedSelection = null;
+            return;
+        }
+
+        if (draggedCodeId !== null && draggedCodeId !== code.id) {
+            if (!isDescendant(draggedCodeId, code.id)) {
+                const draggedCode = CODES.find(c => c.id == draggedCodeId);
+                if (draggedCode) {
+                    draggedCode.parentId = code.id;
+                    updateInterface();
+                }
+            } else {
+                alert("Ein Code kann nicht in einen eigenen Untercode verschoben werden.");
+            }
+            draggedCodeId = null;
+        }
+    });
+
+    const children = CODES.filter(c => c.parentId === code.id);
+    if (children.length > 0) {
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'none';
+        ul.style.paddingLeft = '15px';
+        ul.style.marginTop = '6px';
+        children.forEach(child => {
+            ul.appendChild(createCodeTreeNode(child));
+        });
+        li.appendChild(ul);
+    }
+
     return li;
 }
 
@@ -898,7 +1050,7 @@ function selectListItem(element, containerId) {
 
 function renderLists() {
     DOCUMENTS.forEach(doc => documentList.appendChild(createListItem(doc, 'document-list')));
-    CODES.forEach(code => codeList.appendChild(createListItem(code, 'code-list')));
+    renderCodeList();
 }
 
 function loadDocumentText(doc) {
@@ -1002,21 +1154,23 @@ function addListItem(containerId, defaultName) {
     if (containerId === 'document-list') {
         newItem = { id: Date.now(), name: defaultName, plainText: "Inhalt eingeben...", annotations: [] };
         DOCUMENTS.push(newItem);
+        const li = createListItem(newItem, containerId);
+        container.appendChild(li);
+        selectListItem(li, containerId);
     } else if (containerId === 'code-list') {
-        newItem = { id: Date.now(), name: defaultName, color: "#" + Math.floor(Math.random()*16777215).toString(16) };
+        newItem = { id: Date.now(), name: defaultName, color: "#" + Math.floor(Math.random()*16777215).toString(16), parentId: selectedCode ? selectedCode.id : null };
         CODES.push(newItem);
+        renderCodeList();
+        const li = document.getElementById(`code-${newItem.id}`);
+        if (li) selectListItem(li, 'code-list');
     }
-
-    const li = createListItem(newItem, containerId);
-    container.appendChild(li);
-    selectListItem(li, containerId);
 }
 
 function deleteSelected(containerId) {
     const selectedItem = document.querySelector(`#${containerId} li.selected`);
     if (!selectedItem) return alert("Bitte Eintrag auswählen.");
 
-    if (confirm(`Soll "${selectedItem.textContent}" gelöscht werden?`)) {
+    if (confirm(`Soll "${selectedItem.textContent.trim()}" gelöscht werden?`)) {
         const itemId = selectedItem.getAttribute('data-id');
         selectedItem.remove();
 
@@ -1026,11 +1180,14 @@ function deleteSelected(containerId) {
             selectedDocument = DOCUMENTS[0] || null;
             if (selectedDocument) loadDocumentText(selectedDocument);
         } else if (containerId === 'code-list') {
+            const childCodes = CODES.filter(c => c.parentId == itemId);
+            childCodes.forEach(c => c.parentId = null);
             CODES = CODES.filter(code => code.id != itemId);
             DOCUMENTS.forEach(d => {
                 if (d.annotations) d.annotations = d.annotations.filter(a => a.codeId != itemId);
             });
             selectedCode = CODES[0] || null;
+            renderCodeList();
             updateSelectedCodeDisplay();
             if (selectedDocument) loadDocumentText(selectedDocument);
         }
@@ -1761,10 +1918,11 @@ function addSingleCodeFromCard(cardId) {
         const newCode = {
             id: Date.now(),
             name: codeName,
-            color: "#" + Math.floor(Math.random()*16777215).toString(16)
+            color: "#" + Math.floor(Math.random()*16777215).toString(16),
+            parentId: null
         };
         CODES.push(newCode);
-        updateInterface();
+        renderCodeList();
         alert(`Code "${codeName}" wurde angelegt!`);
     } else {
         alert(`Der Code "${codeName}" existiert bereits.`);
@@ -1787,10 +1945,11 @@ function executeAnnotation(codeName, quotes) {
         codeObj = {
             id: Date.now(),
             name: codeName,
-            color: "#" + Math.floor(Math.random()*16777215).toString(16)
+            color: "#" + Math.floor(Math.random()*16777215).toString(16),
+            parentId: null
         };
         CODES.push(codeObj);
-        updateInterface();
+        renderCodeList();
     }
     const corpusDocs = getCorpusDocuments();
     let totalMatches = 0;
@@ -1884,6 +2043,10 @@ async function handleFileSelection() {
         DOCUMENTS = data[0]["DOCUMENTS"] || [];
         CODES = data[0]["CODES"] || [];
         SETTINGS = data[0]["SETTINGS"] || DEFAULT_SETTINGS;
+
+        CODES.forEach(c => {
+            if (c.parentId === undefined) c.parentId = null;
+        });
 
         DOCUMENTS.forEach(d => {
             if (!d.plainText && d.content) {
