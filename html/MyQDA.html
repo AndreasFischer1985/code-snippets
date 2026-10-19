@@ -6,7 +6,10 @@
     <meta name="author" content="Dr. Andreas Fischer">
     <meta name="copyright" content="Dr. Andreas Fischer">
     <meta name="reply-to" content="andreasfischer1985@web.de">
-    <title>MyQDA - Text-Annotation-Tool (Textstellenbasierte Annotation) v1.17</title>
+    <title>MyQDA - Text-Annotation-Tool v1.18</title>    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+
     <style>
         :root {
             --bg-main: #f4f6f8;
@@ -34,18 +37,25 @@
             font-size: 13px;
         }
 
+        /* Horizontale Navigation */
+        nav {
+            background-color: var(--primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
         nav ul {
             list-style-type: none;
             margin: 0;
             padding: 0;
-            background-color: var(--primary);
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: visible;
+            display: flex;
         }
 
-        nav li { float: left; }
+        nav li { 
+            position: relative; 
+        }
 
-        nav li a {
+        nav li a, nav .dropbtn {
             display: block;
             color: #f8fafc;
             cursor: pointer;
@@ -53,9 +63,45 @@
             padding: 12px 18px;
             text-decoration: none;
             font-weight: 500;
+            background: transparent;
+            border: none;
+            font-family: inherit;
+            font-size: inherit;
         }
 
-        nav li a:hover { background-color: var(--primary-hover); }
+        nav li a:hover, nav .dropbtn:hover { background-color: var(--primary-hover); }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--primary);
+            min-width: 180px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            z-index: 999;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .dropdown-content li {
+            width: 100%;
+        }
+
+        .dropdown-content li a {
+            padding: 10px 16px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .dropdown-content li a:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
 
         #app-container {
             display: flex;
@@ -161,7 +207,21 @@
             margin-bottom: 10px;
         }
 
-        .buttons-left, .buttons-right { display: flex; gap: 8px; }
+        .buttons-left, .buttons-right { display: flex; align-items: center; gap: 8px; }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.95em;
+            color: var(--text-dark);
+            background: #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
 
         button {
             padding: 7px 14px;
@@ -310,14 +370,23 @@
 
     <nav>
       <ul>
-        <li><a id="erase">New Project</a></li>
-        <li><a id="import">Load Project</a></li>
-        <li><a id="save">Save Project</a></li>
-        <li><a id="export">Export QDPX</a></li>
+        <li class="dropdown">
+          <a class="dropbtn">Projekt ▾</a>
+          <ul class="dropdown-content">
+            <li><a id="erase">New Project</a></li>
+            <li><a id="import">Load Project</a></li>
+            <li><a id="save">Save Project</a></li>
+            <li><a id="export">Export QDPX</a></li>
+            <li><a id="import-doc-menu">Import Document</a></li>
+            <li><a id="import-folder-menu">Import Folder</a></li>
+          </ul>
+        </li>
       </ul>
     </nav>
 
     <a id="downloadAnchorElem" style="display:none"></a>
+    <input type="file" id="single-file-input" accept=".txt,.pdf" style="display:none">
+    <input type="file" id="folder-file-input" webkitdirectory directory multiple style="display:none">
 
     <div id="app-container">
         <div id="left-sidebar">
@@ -349,6 +418,9 @@
                     <div class="buttons-left">
                         <button id="annotate-button" onmousedown="event.preventDefault()" onclick="annotateSelectedText()">✅ Annotieren</button>
                         <button id="remove-annotation-button" onmousedown="event.preventDefault()" onclick="removeAnnotation()">🚫 Deannotieren</button> 
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="write-protection-checkbox" onchange="toggleWriteProtection()"> Schreibschutz aktivieren
+                        </label>
                     </div>
                     <div class="buttons-right">
                         <button id="show-annotations-button" onclick="showAnnotationsModal()">🔍 Textstellen</button> 
@@ -444,11 +516,25 @@ function closeModal() {
     document.getElementById('app-modal').style.display = 'none';
 }
 
+window.addEventListener('beforeunload', (e) => {
+    e.preventDefault();
+    e.returnValue = '';
+});
+
+function toggleWriteProtection() {
+    const isProtected = document.getElementById('write-protection-checkbox').checked;
+    textDisplay.contentEditable = isProtected ? "false" : "true";
+}
+
 document.getElementById('export').addEventListener('click', () => {
     exportToQDPX();
 }); 
 
 document.getElementById('save').addEventListener('click', () => {
+    triggerSaveProject();
+}); 
+
+function triggerSaveProject() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
         JSON.stringify([{"CODES": CODES, "DOCUMENTS": DOCUMENTS, "SETTINGS": SETTINGS}])
     );	
@@ -456,9 +542,83 @@ document.getElementById('save').addEventListener('click', () => {
     dlAnchorElem.setAttribute("href", dataStr);
     dlAnchorElem.setAttribute("download", "project_" + Date.now() + ".json");
     dlAnchorElem.click();
-}); 
+}
 
 document.getElementById('import').addEventListener('click', handleFileSelection);
+
+document.getElementById('import-doc-menu').addEventListener('click', () => {
+    document.getElementById('single-file-input').click();
+});
+
+document.getElementById('import-folder-menu').addEventListener('click', () => {
+    document.getElementById('folder-file-input').click();
+});
+
+async function extractTextFromFile(file) {
+    if (file.name.endsWith('.pdf')) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfDoc = await loadingTask.promise;
+            let fullText = "";
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(" ");
+                fullText += pageText + "\n\n";
+            }
+            return fullText.trim();
+        } catch (err) {
+            console.error("Fehler beim PDF.js Einlesen:", err);
+            alert(`Fehler beim Einlesen der PDF-Datei "${file.name}": ${err.message}`);
+            return "";
+        }
+    } else {
+        return await file.text();
+    }
+}
+
+document.getElementById('single-file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await extractTextFromFile(file);
+    const newDoc = {
+        id: Date.now(),
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        plainText: text,
+        annotations: []
+    };
+    DOCUMENTS.push(newDoc);
+    updateInterface();
+    selectListItem(document.getElementById(`document-${newDoc.id}`), 'document-list');
+    e.target.value = '';
+});
+
+document.getElementById('folder-file-input').addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    let addedCount = 0;
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
+            const text = await extractTextFromFile(file);
+            const newDoc = {
+                id: Date.now() + i,
+                name: file.name.replace(/\.[^/.]+$/, ""),
+                plainText: text,
+                annotations: []
+            };
+            DOCUMENTS.push(newDoc);
+            addedCount++;
+        }
+    }
+    updateInterface();
+    if (addedCount > 0) {
+        alert(`${addedCount} Dokument(e) erfolgreich aus Ordner importiert.`);
+    }
+    e.target.value = '';
+});
 
 document.getElementById('erase').addEventListener('click', () => {
     SETTINGS = DEFAULT_SETTINGS;
@@ -472,7 +632,6 @@ document.getElementById('erase').addEventListener('click', () => {
     updateSelectedCodeDisplay();
 }); 
 
-// KORREKTUR: Dynamische Anpassung der Annotationen bei Textänderungen
 textDisplay.addEventListener('beforeinput', (e) => {
     if (!selectedDocument || selectedDocument.isAIDoc) return;
 
@@ -496,7 +655,6 @@ textDisplay.addEventListener('beforeinput', (e) => {
 
     if (!selectedDocument.annotations) selectedDocument.annotations = [];
 
-    // Indizes aller Annotationen anpassen
     selectedDocument.annotations = selectedDocument.annotations.map(a => {
         let newStart = a.start;
         let newEnd = a.end;
@@ -514,7 +672,7 @@ textDisplay.addEventListener('beforeinput', (e) => {
         }
 
         return { ...a, start: newStart, end: newEnd };
-    }).filter(a => a.start < a.end); // Ungültige Annotationen entfernen
+    }).filter(a => a.start < a.end);
 });
 
 textDisplay.addEventListener('input', () => {
@@ -527,7 +685,6 @@ textDisplay.addEventListener('input', () => {
     }
 }); 
 
-// Annotationen nach Ende der Textbearbeitung neu visualisieren
 textDisplay.addEventListener('blur', () => {
     if (selectedDocument && !selectedDocument.isAIDoc) {
         loadDocumentText(selectedDocument);
@@ -915,7 +1072,6 @@ function annotateSelectedText() {
 
     const range = selection.getRangeAt(0);
     
-    // Prüfen, ob die Auswahl sich innerhalb von #text-display befindet
     if (!textDisplay.contains(range.startContainer) || !textDisplay.contains(range.endContainer)) {
         return alert("Markierung außerhalb des Haupttextes.");
     }
@@ -1533,8 +1689,7 @@ function cleanAndParseJSON(jsonString) {
 
         const openBraces = (repaired.match(/\{/g) || []).length;
         const closeBraces = (repaired.match(/\}/g) || []).length;
-        const openBrackets = (repaired.match(/\[/g) || []).length;
-        const closeBrackets = (repaired.match(/\]/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length; const closeBrackets = (repaired.match(/\]/g) || []).length;
 
         for (let i = 0; i < openBraces - closeBraces; i++) repaired += '\n}';
         for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += '\n]';
@@ -1655,7 +1810,6 @@ function executeAnnotation(codeName, quotes) {
         corpusDocs.forEach(docObj => {
             const text = docObj.plainText || '';
             let docMatches = 0;
-            // 1. Exakte Suche (unabhängig von Groß-/Kleinschreibung via 'i'-Flag)
             const escapedQuote = trimmedQuote.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regexExact = new RegExp(escapedQuote, 'gi');
             let match;
@@ -1670,7 +1824,6 @@ function executeAnnotation(codeName, quotes) {
                     codeId: codeObj.id
                 });
             }
-            // 2. Fallback: Fuzzy-Matching (flexibel bei Leerzeichen/Zeilenumbrüchen, ebenfalls case-insensitive)
             if (docMatches === 0) {
                 const words = trimmedQuote.split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
                 const regexFuzzy = new RegExp(words.join('\\s+'), 'gi');                
@@ -1732,7 +1885,6 @@ async function handleFileSelection() {
         CODES = data[0]["CODES"] || [];
         SETTINGS = data[0]["SETTINGS"] || DEFAULT_SETTINGS;
 
-        // Abwärtskompatibilität
         DOCUMENTS.forEach(d => {
             if (!d.plainText && d.content) {
                 const tempDiv = document.createElement('div');
@@ -1941,6 +2093,7 @@ resizer.addEventListener('mousedown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     renderLists();
     updateInterface(); 
+    toggleWriteProtection();
 });
 </script>
 </body>
