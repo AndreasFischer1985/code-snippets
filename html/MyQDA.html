@@ -6,7 +6,7 @@
     <meta name="author" content="Dr. Andreas Fischer">
     <meta name="copyright" content="Dr. Andreas Fischer">
     <meta name="reply-to" content="andreasfischer1985@web.de">
-    <title>MyQDA - Text-Annotation-Tool v1.19</title>    
+    <title>MyQDA - Text-Annotation-Tool v1.20</title>    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 
@@ -16,13 +16,13 @@
             --bg-card: #ffffff;
             --sidebar-bg: #f8fafc;
             --border-color: #cbd5e1;
-            --primary: #334155;       /* Slate / Navy */
+            --primary: #334155;       
             --primary-hover: #1e293b;
-            --accent: #475569;        /* Cool Gray */
-            --accent-green: #3b7a57;  /* Soft Muted Green */
+            --accent: #475569;        
+            --accent-green: #3b7a57;  
             --accent-green-hover: #2d5e43;
-            --accent-blue: #3b82f6;   /* Soft Blue */
-            --accent-purple: #6366f1; /* Soft Indigo */
+            --accent-blue: #3b82f6;   
+            --accent-purple: #6366f1; 
             --accent-purple-hover: #4f46e5;
             --text-dark: #1e293b;
             --text-muted: #64748b;
@@ -37,7 +37,6 @@
             font-size: 13px;
         }
 
-        /* Horizontale Navigation */
         nav {
             background-color: var(--primary);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -47,13 +46,10 @@
             list-style-type: none;
             margin: 0;
             padding: 0;
-            overflow: visible;
             display: flex;
         }
 
-        nav li { 
-            position: relative; 
-        }
+        nav li { position: relative; }
 
         nav li a, nav .dropbtn {
             display: block;
@@ -85,9 +81,7 @@
             margin: 0;
         }
 
-        .dropdown-content li {
-            width: 100%;
-        }
+        .dropdown-content li { width: 100%; }
 
         .dropdown-content li a {
             padding: 10px 16px;
@@ -95,27 +89,34 @@
             white-space: nowrap;
         }
 
-        .dropdown-content li a:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
+        .dropdown-content li a:hover { background-color: var(--primary-hover); }
+        .dropdown:hover .dropdown-content { display: block; }
 
         #app-container {
             display: flex;
             height: calc(100vh - 43px);
+            overflow: hidden;
         }
 
         #left-sidebar {
             display: flex;
             flex-direction: column;
             width: 30%;
-            min-width: 270px;
-            border-right: 1px solid var(--border-color);
+            min-width: 200px;
             background-color: var(--sidebar-bg);
+            flex-shrink: 0;
         }
+
+        #sidebar-resizer {
+            width: 6px;
+            background-color: var(--border-color);
+            cursor: col-resize;
+            user-select: none;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+
+        #sidebar-resizer:hover, #sidebar-resizer:active { background-color: var(--accent-blue); }
 
         .panel {
             padding: 15px;
@@ -136,9 +137,7 @@
             flex-shrink: 0;
         }
 
-        #panel-resizer:hover, #panel-resizer:active {
-            background-color: var(--accent-blue);
-        }
+        #panel-resizer:hover, #panel-resizer:active { background-color: var(--accent-blue); }
 
         #main-content {
             flex-grow: 1;
@@ -146,6 +145,7 @@
             flex-direction: column;
             padding: 20px;
             background-color: var(--bg-main);
+            min-width: 0;
         }
 
         .panel-controls { margin-bottom: 10px; }
@@ -159,7 +159,7 @@
         }
 
         .list-container li {
-            padding: 8px 12px;
+            padding: 6px 10px;
             margin-bottom: 4px;
             cursor: pointer;
             border-radius: 5px;
@@ -218,21 +218,32 @@
             user-select: none;
             font-size: 0.95em;
             color: var(--text-dark);
-            background: #e2e8f0;
-            padding: 5px 10px;
-            border-radius: 5px;
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
         }
 
         button {
-            padding: 7px 14px;
+            padding: 6px 12px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             color: white;
-            font-size: 0.95em;
+            font-size: 0.9em;
             font-weight: 500;
             transition: background-color 0.2s;
         }
+
+        .small-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 1px 3px;
+            font-size: 0.85em;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .small-btn:hover { background-color: #cbd5e1; }
 
         #annotate-button { background-color: #2e7d32; }
         #annotate-button:hover { background-color: #1b5e20; }
@@ -244,7 +255,7 @@
         #count-annotations-button:hover { background-color: #0f766e; }
         #ai-content-analysis-button { background-color: var(--accent-purple); }
         #ai-content-analysis-button:hover { background-color: var(--accent-purple-hover); }
-        #document-header, #code-header { cursor: pointer; color: var(--primary); margin-top: 0; }
+        #document-header, #code-header { cursor: pointer; color: var(--primary); margin: 0; }
 
         .modal {
             display: none;
@@ -329,40 +340,13 @@
             font-size: 0.9em;
         }
 
-        #context_info_box td.val {
-            text-align: right;
-            font-weight: 600;
-        }
-        .edit-card {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .fixed-input {
-            height: 38px;
-            box-sizing: border-box;
-        }
-        .fixed-textarea {
-            height: 100px;
-            resize: none;
-            overflow-y: auto;
-            box-sizing: border-box;
-        }
-        .color-picker-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        #context_info_box td.val { text-align: right; font-weight: 600; }
+        .edit-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+        .fixed-input { height: 38px; box-sizing: border-box; }
+        .fixed-textarea { height: 100px; resize: none; overflow-y: auto; box-sizing: border-box; }
+        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; }
         .color-picker-wrapper input[type="color"] {
-            width: 40px;
-            height: 38px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 2px;
-            cursor: pointer;
-            background: #fff;
+            width: 40px; height: 38px; border: 1px solid var(--border-color); border-radius: 5px; padding: 2px; cursor: pointer; background: #fff;
         }
     </style>
 </head>
@@ -371,7 +355,7 @@
     <nav>
       <ul>
         <li class="dropdown">
-          <a class="dropbtn">Projekt ▾</a>
+          <a class="dropbtn"><strong>MyQDA</strong> Projekt ▾</a>
           <ul class="dropdown-content">
             <li><a id="erase">New Project</a></li>
             <li><a id="import">Load Project</a></li>
@@ -390,11 +374,17 @@
 
     <div id="app-container">
         <div id="left-sidebar">
-            <div id="document-panel" class="panel">
-                <h3 id="document-header">Dokumente 📑</h3>
-                <div class="panel-controls">
-                    <button onclick="addListItem('document-list', 'Neues Dokument')" style="color:black;">➕ Hinzufügen</button>
-                    <button onclick="deleteSelected('document-list')" style="color:black;">🗑️ Löschen</button>
+            <div id="document-panel" class="panel">               
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: relative;">
+                    <h3 id="document-header">Dokumente 📑</h3>        
+                    <div style="position: relative; display: inline-block;">
+                        <button onclick="toggleDocAddDropdown(event)" style="color:black; background: #e2e8f0; border: 1px solid var(--border-color); padding: 4px 8px; font-size: 0.85em;">➕ Hinzufügen ▾</button>
+                        <ul id="doc-add-dropdown" style="display: none; position: absolute; right: 0; top: 100%; background: white; border: 1px solid var(--border-color); list-style: none; padding: 5px 0; margin: 2px 0 0 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; border-radius: 4px;">
+                            <li><a href="#" onclick="event.preventDefault(); addListItem('document-list', 'Neues Dokument'); closeDocAddDropdown();" style="display: block; padding: 6px 12px; color: var(--text-dark); text-decoration: none;">Neues Dokument anlegen</a></li>
+                            <li><a href="#" onclick="event.preventDefault(); document.getElementById('single-file-input').click(); closeDocAddDropdown();" style="display: block; padding: 6px 12px; color: var(--text-dark); text-decoration: none;">Dokument importieren</a></li>
+                            <li><a href="#" onclick="event.preventDefault(); document.getElementById('folder-file-input').click(); closeDocAddDropdown();" style="display: block; padding: 6px 12px; color: var(--text-dark); text-decoration: none;">Ordner importieren</a></li>
+                        </ul>
+                    </div>
                 </div>
                 <ul id="document-list" class="list-container"></ul>
             </div>
@@ -402,14 +392,15 @@
             <div id="panel-resizer"></div>
 
             <div id="code-panel" class="panel">
-                <h3 id="code-header">Codes 🏷️</h3>
-                <div class="panel-controls">
-                    <button onclick="addListItem('code-list', 'Neuer Code')" style="color:black;">➕ Hinzufügen</button>
-                    <button onclick="deleteSelected('code-list')" style="color:black;">🗑️ Löschen</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 id="code-header">Codes 🏷️</h3>
+                    <button onclick="addListItem('code-list', 'Neuer Code')" style="color:black; background: #e2e8f0; border: 1px solid var(--border-color); padding: 4px 8px; font-size: 0.85em;">➕ Hinzufügen</button>
                 </div>
                 <ul id="code-list" class="list-container"></ul>
             </div>
         </div>
+
+        <div id="sidebar-resizer"></div>
 
         <div id="main-content">
             <div class="panel-controls">
@@ -449,13 +440,15 @@ let DOCUMENTS = [
         id: 1, 
         name: "Text_A_Interview", 
         plainText: "Interviewer: Welche Erfahrungen haben Sie bisher mit der KI-basierten Inhaltsanalyse nach Fischer (2025) gemacht?\n\nBefragte Person: Ich bin wirklich begeistert. Die strukturierte Extraktion mit MyQDA spart uns enorm viel Zeit bei der Aufbereitung des Korpus, und die Nachvollziehbarkeit der Kodierungen ist hervorragend.\n\nInterviewer: Sieht das Ihr gesamtes Forschungsteam so?\n\nBefragte Person: Absolut, die Akzeptanz im Team ist extrem hoch, weil die Validitätsprüfung durch die direkte Verknüpfung von Zitaten und Kategoriensystem enorm profitiert. Aber natürlich setzt diese Art der Analyse auch erhebliche Kompetenzen im Umgang mit KI und qualitativer Datenauswertung voraus.",
-        annotations: []
+        annotations: [],
+        selectedForAI: true
     },
     { 
         id: 2, 
         name: "Text_B_Interview", 
         plainText: "Interviewer: Wie bewerten Sie die Umsetzbarkeit des methodischen Ansatzes von Fischer (2025) in der Praxis?\n\nBefragte Person: Die praktische Umsetzung verläuft verblüffend reibungslos. Insbesondere die Kombination aus automatisierter Unterstützung und manueller Kontrolle gibt uns maximale Sicherheit.\n\nInterviewer: Gibt es Aspekte, die Sie besonders hervorheben möchten?\n\nBefragte Person: Ja, der Mensch bleibt im Mittelpunkt und verantwortlich für seine Analysen - aber KI kann diese Analysen erleichtern und bereichern, wenn man sie kompetent einsetzt.",
-        annotations: []
+        annotations: [],
+        selectedForAI: true
     }
 ];
 
@@ -487,6 +480,7 @@ let DEFAULT_SETTINGS = {
     useLabeledJSON: false,
     temperature: 0.0,
     top_p: 0.95,
+    top_k: 40,
     useStreaming: true
 };
 
@@ -506,8 +500,12 @@ const codeList = document.getElementById('code-list');
 const textDisplay = document.getElementById('text-display');
 const selectedCodeDisplay = document.getElementById('selected-code-display');
 
-function getCorpusDocuments() {
-    return DOCUMENTS.filter(d => !d.isAIDoc && !d.name.startsWith("KI-Analyse"));
+function getCorpusDocuments() { 
+    return DOCUMENTS.filter(d => d.selectedForAI === true);
+}
+
+function getActiveAIAnalysisDocuments() { 
+    return DOCUMENTS.filter(d => d.selectedForAI === true);
 }
 
 function openModalWithHTML(html) {
@@ -529,13 +527,23 @@ function toggleWriteProtection() {
     textDisplay.contentEditable = isProtected ? "false" : "true";
 }
 
-document.getElementById('export').addEventListener('click', () => {
-    exportToQDPX();
-}); 
+function toggleDocAddDropdown(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('doc-add-dropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+}
 
-document.getElementById('save').addEventListener('click', () => {
-    triggerSaveProject();
-}); 
+function closeDocAddDropdown() {
+    const dropdown = document.getElementById('doc-add-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+}
+
+window.addEventListener('click', () => {
+    closeDocAddDropdown();
+});
+
+document.getElementById('export').addEventListener('click', () => { exportToQDPX(); }); 
+document.getElementById('save').addEventListener('click', () => { triggerSaveProject(); }); 
 
 function triggerSaveProject() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
@@ -548,14 +556,8 @@ function triggerSaveProject() {
 }
 
 document.getElementById('import').addEventListener('click', handleFileSelection);
-
-document.getElementById('import-doc-menu').addEventListener('click', () => {
-    document.getElementById('single-file-input').click();
-});
-
-document.getElementById('import-folder-menu').addEventListener('click', () => {
-    document.getElementById('folder-file-input').click();
-});
+document.getElementById('import-doc-menu').addEventListener('click', () => { document.getElementById('single-file-input').click(); });
+document.getElementById('import-folder-menu').addEventListener('click', () => { document.getElementById('folder-file-input').click(); });
 
 async function extractTextFromFile(file) {
     if (file.name.endsWith('.pdf')) {
@@ -585,11 +587,13 @@ document.getElementById('single-file-input').addEventListener('change', async (e
     const file = e.target.files[0];
     if (!file) return;
     const text = await extractTextFromFile(file);
-    const newDoc = {
-        id: Date.now(),
-        name: file.name.replace(/\.[^/.]+$/, ""),
-        plainText: text,
-        annotations: []
+    const docName = file.name.replace(/\.[^/.]+$/, "");
+    const newDoc = { 
+        id: Date.now(), 
+        name: docName, 
+        plainText: text, 
+        annotations: [],
+        selectedForAI: !docName.startsWith("KI-Analyse")
     };
     DOCUMENTS.push(newDoc);
     updateInterface();
@@ -600,33 +604,31 @@ document.getElementById('single-file-input').addEventListener('change', async (e
 document.getElementById('folder-file-input').addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
     let addedCount = 0;
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
             const text = await extractTextFromFile(file);
-            const newDoc = {
-                id: Date.now() + i,
-                name: file.name.replace(/\.[^/.]+$/, ""),
-                plainText: text,
-                annotations: []
-            };
-            DOCUMENTS.push(newDoc);
+            const docName = file.name.replace(/\.[^/.]+$/, "");
+            DOCUMENTS.push({ 
+                id: Date.now() + i, 
+                name: docName, 
+                plainText: text, 
+                annotations: [],
+                selectedForAI: !docName.startsWith("KI-Analyse")
+            });
             addedCount++;
         }
     }
     updateInterface();
-    if (addedCount > 0) {
-        alert(`${addedCount} Dokument(e) erfolgreich aus Ordner importiert.`);
-    }
+    if (addedCount > 0) alert(`${addedCount} Dokument(e) erfolgreich aus Ordner importiert.`);
     e.target.value = '';
 });
 
 document.getElementById('erase').addEventListener('click', () => {
     SETTINGS = DEFAULT_SETTINGS;
     documentList.innerHTML = '';
-    DOCUMENTS = [{ id: 1, name: "Text", plainText: "", annotations: [] }]; 
+    DOCUMENTS = [{ id: 1, name: "Text", plainText: "", annotations: [], selectedForAI: true }]; 
     codeList.innerHTML = '';
     CODES = [];
     selectedCode = null;
@@ -637,61 +639,38 @@ document.getElementById('erase').addEventListener('click', () => {
 
 textDisplay.addEventListener('beforeinput', (e) => {
     if (!selectedDocument || selectedDocument.isAIDoc) return;
-
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
-
     const range = selection.getRangeAt(0);
     const start = getTextOffsetInContainer(textDisplay, range.startContainer, range.startOffset);
     const end = getTextOffsetInContainer(textDisplay, range.endContainer, range.endOffset);
-
     if (start === -1 || end === -1) return;
 
     let insertedText = e.data || '';
-    if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
-        insertedText = '\n';
-    }
+    if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') insertedText = '\n';
 
-    const removedLength = end - start;
-    const addedLength = insertedText.length;
-    const diff = addedLength - removedLength;
-
+    const diff = insertedText.length - (end - start);
     if (!selectedDocument.annotations) selectedDocument.annotations = [];
 
     selectedDocument.annotations = selectedDocument.annotations.map(a => {
-        let newStart = a.start;
-        let newEnd = a.end;
-
-        if (a.start >= end) {
-            newStart += diff;
-        } else if (a.start > start && a.start < end) {
-            newStart = start + addedLength;
-        }
-
-        if (a.end >= end) {
-            newEnd += diff;
-        } else if (a.end > start && a.end < end) {
-            newEnd = start + addedLength;
-        }
-
+        let newStart = a.start, newEnd = a.end;
+        if (a.start >= end) newStart += diff;
+        else if (a.start > start && a.start < end) newStart = start + insertedText.length;
+        if (a.end >= end) newEnd += diff;
+        else if (a.end > start && a.end < end) newEnd = start + insertedText.length;
         return { ...a, start: newStart, end: newEnd };
     }).filter(a => a.start < a.end);
 });
 
 textDisplay.addEventListener('input', () => {
     if (selectedDocument) { 
-        if (selectedDocument.isAIDoc) {
-            selectedDocument.htmlContent = textDisplay.innerHTML;
-        } else {
-            selectedDocument.plainText = textDisplay.innerText;
-        }
+        if (selectedDocument.isAIDoc) selectedDocument.htmlContent = textDisplay.innerHTML;
+        else selectedDocument.plainText = textDisplay.innerText;
     }
 }); 
 
 textDisplay.addEventListener('blur', () => {
-    if (selectedDocument && !selectedDocument.isAIDoc) {
-        loadDocumentText(selectedDocument);
-    }
+    if (selectedDocument && !selectedDocument.isAIDoc) loadDocumentText(selectedDocument);
 });
 
 textDisplay.addEventListener('dragstart', (e) => {
@@ -707,17 +686,10 @@ textDisplay.addEventListener('dragstart', (e) => {
     }
 });
 
-textDisplay.addEventListener('dragend', () => {
-    draggedSelection = null;
-});
+textDisplay.addEventListener('dragend', () => { draggedSelection = null; });
 
-document.getElementById('document-header').addEventListener('click', () => {
-    openDocumentEditModal();
-}); 
-
-document.getElementById('code-header').addEventListener('click', () => {
-    openCodeEditModal();
-}); 
+document.getElementById('document-header').addEventListener('click', () => { openDocumentEditModal(); }); 
+document.getElementById('code-header').addEventListener('click', () => { openCodeEditModal(); }); 
 
 function openDocumentEditModal() {
     let html = `<h2>Dokumente bearbeiten 📑</h2><form id="doc-edit-form">`;
@@ -726,26 +698,13 @@ function openDocumentEditModal() {
         html += `
             <div class="edit-card">
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>ID:</label>
-                        <input type="text" class="fixed-input doc-id" value="${doc.id}">
-                    </div>
-                    <div class="form-group" style="flex: 2;">
-                        <label>Name:</label>
-                        <input type="text" class="fixed-input doc-name" value="${escapeHTML(doc.name)}">
-                    </div>
+                    <div class="form-group"><label>ID:</label><input type="text" class="fixed-input doc-id" value="${doc.id}"></div>
+                    <div class="form-group" style="flex: 2;"><label>Name:</label><input type="text" class="fixed-input doc-name" value="${escapeHTML(doc.name)}"></div>
                 </div>
-                <div class="form-group">
-                    <label>Inhalt (Content):</label>
-                    <textarea class="fixed-textarea doc-content">${escapeHTML(textVal)}</textarea>
-                </div>
-            </div>
-        `;
+                <div class="form-group"><label>Inhalt:</label><textarea class="fixed-textarea doc-content">${escapeHTML(textVal)}</textarea></div>
+            </div>`;
     });
-    html += `
-        <button type="submit" style="background-color: var(--accent-green); width: 100%; padding: 10px;">Änderungen speichern</button>
-    </form>`;
-
+    html += `<button type="submit" style="background-color: var(--accent-green); width: 100%; padding: 10px;">Änderungen speichern</button></form>`;
     openModalWithHTML(html);
 
     document.getElementById('doc-edit-form').addEventListener('submit', (e) => {
@@ -756,15 +715,11 @@ function openDocumentEditModal() {
             const id = isNaN(rawId) ? rawId : Number(rawId);
             const name = card.querySelector('.doc-name').value.trim();
             const content = card.querySelector('.doc-content').value;
-            
             if (DOCUMENTS[idx]) {
                 DOCUMENTS[idx].id = id;
                 DOCUMENTS[idx].name = name;
-                if (DOCUMENTS[idx].isAIDoc) {
-                    DOCUMENTS[idx].htmlContent = content;
-                } else {
-                    DOCUMENTS[idx].plainText = content;
-                }
+                if (DOCUMENTS[idx].isAIDoc) DOCUMENTS[idx].htmlContent = content;
+                else DOCUMENTS[idx].plainText = content;
             }
         });
         updateInterface();
@@ -777,54 +732,34 @@ function openCodeEditModal() {
     CODES.forEach((code) => {
         let hexColor = code.color || '#000000';
         if (!hexColor.startsWith('#')) hexColor = '#' + hexColor;
-        if (hexColor.length === 4) {
-            hexColor = '#' + hexColor[1] + hexColor[1] + hexColor[2] + hexColor[2] + hexColor[3] + hexColor[3];
-        } else if (hexColor.length > 7) {
-            hexColor = hexColor.substring(0, 7);
-        }
+        if (hexColor.length === 4) hexColor = '#' + hexColor[1]+hexColor[1]+hexColor[2]+hexColor[2]+hexColor[3]+hexColor[3];
+        else if (hexColor.length > 7) hexColor = hexColor.substring(0, 7);
 
         html += `
             <div class="edit-card">
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>ID:</label>
-                        <input type="text" class="fixed-input code-id" value="${code.id}">
-                    </div>
-                    <div class="form-group" style="flex: 2;">
-                        <label>Name:</label>
-                        <input type="text" class="fixed-input code-name" value="${escapeHTML(code.name)}">
-                    </div>
-                    <div class="form-group" style="flex: 1.5;">
-                        <label>Farbe (Hex / Picker):</label>
+                    <div class="form-group"><label>ID:</label><input type="text" class="fixed-input code-id" value="${code.id}"></div>
+                    <div class="form-group" style="flex: 2;"><label>Name:</label><input type="text" class="fixed-input code-name" value="${escapeHTML(code.name)}"></div>
+                    <div class="form-group" style="flex: 1.5;"><label>Farbe:</label>
                         <div class="color-picker-wrapper">
                             <input type="text" class="fixed-input code-color-text" value="${code.color}">
                             <input type="color" class="code-color-picker" value="${hexColor}">
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
     });
-    html += `
-        <button type="submit" style="background-color: var(--accent-green); width: 100%; padding: 10px;">Änderungen speichern</button>
-    </form>`;
-
+    html += `<button type="submit" style="background-color: var(--accent-green); width: 100%; padding: 10px;">Änderungen speichern</button></form>`;
     openModalWithHTML(html);
 
     const cards = document.querySelectorAll('#code-edit-form .edit-card');
     cards.forEach(card => {
         const textInput = card.querySelector('.code-color-text');
         const pickerInput = card.querySelector('.code-color-picker');
-
-        pickerInput.addEventListener('input', () => {
-            textInput.value = pickerInput.value;
-        });
-
+        pickerInput.addEventListener('input', () => { textInput.value = pickerInput.value; });
         textInput.addEventListener('input', () => {
             let val = textInput.value.trim();
-            if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-                pickerInput.value = val;
-            }
+            if (/^#[0-9A-Fa-f]{6}$/.test(val)) pickerInput.value = val;
         });
     });
 
@@ -839,7 +774,6 @@ function openCodeEditModal() {
             const existing = CODES[idx];
             updatedCodes.push({ id, name, color, parentId: existing ? existing.parentId : null });
         });
-
         CODES = updatedCodes;
         updateInterface();
         closeModal();
@@ -847,8 +781,7 @@ function openCodeEditModal() {
 }
 
 function updateInterface(){
-    documentList.innerHTML = '';
-    DOCUMENTS.forEach(doc => documentList.appendChild(createListItem(doc, 'document-list')));
+    renderDocumentList();
 
     if(!selectedDocument && DOCUMENTS.length > 0) selectedDocument = DOCUMENTS[0];
     if(selectedDocument) {
@@ -862,15 +795,119 @@ function updateInterface(){
     updateSelectedCodeDisplay();
 }
 
+function renderDocumentList() {
+    documentList.innerHTML = '';
+    DOCUMENTS.forEach(doc => {
+        const li = document.createElement('li');
+        li.id = `document-${doc.id}`;
+        li.setAttribute('data-id', doc.id);
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.style.justifyContent = 'space-between';
+
+        const leftDiv = document.createElement('div');
+        leftDiv.style.display = 'flex';
+        leftDiv.style.alignItems = 'center';
+        leftDiv.style.gap = '6px';
+        leftDiv.style.flexGrow = '1';
+        leftDiv.style.minWidth = '0';
+        leftDiv.style.overflow = 'hidden';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = doc.selectedForAI !== false;
+        checkbox.title = "Für KI-Analyse auswählen/abwählen";
+        checkbox.style.flexShrink = '0';
+        checkbox.onclick = (e) => e.stopPropagation();
+        checkbox.onchange = (e) => {
+            doc.selectedForAI = e.target.checked;
+        };
+
+        const span = document.createElement('span');
+        span.textContent = doc.name;
+        span.style.cursor = 'pointer';
+        span.style.overflow = 'hidden';
+        span.style.textOverflow = 'ellipsis';
+        span.style.whiteSpace = 'nowrap';
+        span.style.flexGrow = '1';
+        span.style.minWidth = '0';
+
+        leftDiv.appendChild(checkbox);
+        leftDiv.appendChild(span);
+
+        const btnGroup = document.createElement('div');
+        btnGroup.style.display = 'flex';
+        btnGroup.style.gap = '2px';
+        btnGroup.style.alignItems = 'center';
+        btnGroup.style.flexShrink = '0';
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✏️';
+        editBtn.className = 'small-btn';
+        editBtn.title = 'Dokument umbenennen';
+        editBtn.onclick = (e) => {
+            e.stopPropagation();
+            const newName = prompt("Neuer Name für das Dokument:", doc.name);
+            if (newName !== null && newName.trim() !== "") {
+                doc.name = newName.trim();
+                updateInterface();
+            }
+        };
+
+        const upBtn = document.createElement('button');
+        upBtn.textContent = '⬆️';
+        upBtn.className = 'small-btn';
+        upBtn.title = 'Nach oben verschieben';
+        upBtn.onclick = (e) => { e.stopPropagation(); moveDocument(doc.id, -1); };
+
+        const downBtn = document.createElement('button');
+        downBtn.textContent = '⬇️';
+        downBtn.className = 'small-btn';
+        downBtn.title = 'Nach unten verschieben';
+        downBtn.onclick = (e) => { e.stopPropagation(); moveDocument(doc.id, 1); };
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑️';
+        delBtn.className = 'small-btn';
+        delBtn.title = 'Dokument löschen';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm(`Soll das Dokument "${doc.name}" gelöscht werden?`)) {
+                DOCUMENTS = DOCUMENTS.filter(d => d.id != doc.id);
+                textDisplay.innerHTML = "";
+                selectedDocument = DOCUMENTS[0] || null;
+                updateInterface();
+            }
+        };
+
+        btnGroup.appendChild(editBtn);
+        btnGroup.appendChild(upBtn);
+        btnGroup.appendChild(downBtn);
+        btnGroup.appendChild(delBtn);
+
+        li.appendChild(leftDiv);
+        li.appendChild(btnGroup);
+
+        li.addEventListener('click', () => selectListItem(li, 'document-list'));
+        documentList.appendChild(li);
+    });
+}
+
+function moveDocument(id, direction) {
+    const idx = DOCUMENTS.findIndex(d => d.id == id);
+    if (idx === -1) return;
+    const doc = DOCUMENTS[idx];
+    if (idx + direction >= 0 && idx + direction < DOCUMENTS.length) {
+        DOCUMENTS.splice(idx, 1);
+        DOCUMENTS.splice(idx + direction, 0, doc);
+        updateInterface();
+    }
+}
+
 function renderCodeList() {
     codeList.innerHTML = '';
     const rootCodes = CODES.filter(c => !c.parentId);
-    if (rootCodes.length === 0 && CODES.length > 0) {
-        CODES.forEach(c => c.parentId = null);
-        CODES.forEach(code => codeList.appendChild(createCodeTreeNode(code)));
-    } else {
-        rootCodes.forEach(code => codeList.appendChild(createCodeTreeNode(code)));
-    }
+    rootCodes.forEach(code => codeList.appendChild(createCodeTreeNode(code)));
     
     if(CODES.length > 0){
       selectedCode = CODES.find(c => c.id == selectedCode?.id) ?? CODES[0] ?? null;
@@ -881,10 +918,7 @@ function renderCodeList() {
     }
 }
 
-codeList.addEventListener('dragover', (e) => {
-    e.preventDefault();
-});
-
+codeList.addEventListener('dragover', (e) => { e.preventDefault(); });
 codeList.addEventListener('drop', (e) => {
     e.preventDefault();
     if (draggedCodeId !== null && e.target === codeList) {
@@ -897,22 +931,22 @@ codeList.addEventListener('drop', (e) => {
     }
 });
 
-function createListItem(item, containerId) {
-    const li = document.createElement('li');
-    li.id = `${containerId.replace('-list', '')}-${item.id}`;
-    li.setAttribute('data-id', item.id);
-    li.contentEditable = true; 
-    li.textContent = item.name;
-
-    li.addEventListener('click', () => selectListItem(li, containerId));
-
-    if (containerId === 'document-list'){
-        li.addEventListener('input', () => {        
-            const doc = DOCUMENTS.find(el => el.id == item.id);
-            if(doc) doc.name = li.textContent;            
-        }); 
+function moveCode(id, direction) {
+    const idx = CODES.findIndex(c => c.id == id);
+    if (idx === -1) return;
+    const code = CODES[idx];
+    
+    const siblings = CODES.filter(c => c.parentId === code.parentId);
+    const siblingIdx = siblings.findIndex(c => c.id == id);
+    
+    if (siblingIdx + direction >= 0 && siblingIdx + direction < siblings.length) {
+        const targetSibling = siblings[siblingIdx + direction];
+        const targetIdx = CODES.findIndex(c => c.id == targetSibling.id);
+        
+        CODES.splice(idx, 1);
+        CODES.splice(targetIdx, 0, code);
+        updateInterface();
     }
-    return li;
 }
 
 function isDescendant(parentId, childId) {
@@ -936,35 +970,78 @@ function createCodeTreeNode(code) {
     headerDiv.style.display = 'flex';
     headerDiv.style.alignItems = 'center';
     headerDiv.style.justifyContent = 'space-between';
+    headerDiv.style.minWidth = '0';
+    headerDiv.style.gap = '6px';
 
     const contentSpan = document.createElement('span');
-    contentSpan.contentEditable = true;
     contentSpan.textContent = code.name;
     contentSpan.style.flexGrow = '1';
-    contentSpan.style.outline = 'none';
+    contentSpan.style.cursor = 'pointer';
+    contentSpan.style.overflow = 'hidden';
+    contentSpan.style.textOverflow = 'ellipsis';
+    contentSpan.style.whiteSpace = 'nowrap';
+    contentSpan.style.minWidth = '0';
+
+    const btnGroup = document.createElement('div');
+    btnGroup.style.display = 'flex';
+    btnGroup.style.gap = '2px';
+    btnGroup.style.alignItems = 'center';
+    btnGroup.style.flexShrink = '0';
+
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = '✏️';
+    renameBtn.className = 'small-btn';
+    renameBtn.title = 'Code umbenennen';
+    renameBtn.onclick = (e) => {
+        e.stopPropagation();
+        const newName = prompt("Neuer Name für den Code:", code.name);
+        if (newName !== null && newName.trim() !== "") {
+            code.name = newName.trim();
+            updateInterface();
+        }
+    };
+
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '⬆️';
+    upBtn.className = 'small-btn';
+    upBtn.title = 'Nach oben verschieben';
+    upBtn.onclick = (e) => { e.stopPropagation(); moveCode(code.id, -1); };
+
+    const downBtn = document.createElement('button');
+    downBtn.textContent = '⬇️';
+    downBtn.className = 'small-btn';
+    downBtn.title = 'Nach unten verschieben';
+    downBtn.onclick = (e) => { e.stopPropagation(); moveCode(code.id, 1); };
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑️';
+    delBtn.className = 'small-btn';
+    delBtn.title = 'Code löschen';
+    delBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm(`Soll der Code "${code.name}" gelöscht werden?`)) {
+            const childCodes = CODES.filter(c => c.parentId == code.id);
+            childCodes.forEach(c => c.parentId = null);
+            CODES = CODES.filter(c => c.id != code.id);
+            DOCUMENTS.forEach(d => {
+                if (d.annotations) d.annotations = d.annotations.filter(a => a.codeId != code.id);
+            });
+            updateInterface();
+        }
+    };
+
+    btnGroup.appendChild(renameBtn);
+    btnGroup.appendChild(upBtn);
+    btnGroup.appendChild(downBtn);
+    btnGroup.appendChild(delBtn);
 
     headerDiv.appendChild(contentSpan);
+    headerDiv.appendChild(btnGroup);
     li.appendChild(headerDiv);
 
     li.addEventListener('click', (e) => {
-        if (e.target === contentSpan) return;
+        e.stopPropagation();
         selectListItem(li, 'code-list');
-    });
-
-    contentSpan.addEventListener('focus', () => {
-        selectListItem(li, 'code-list');
-    });
-
-    contentSpan.addEventListener('input', () => {
-        code.name = contentSpan.textContent;
-        if (selectedCode && selectedCode.id === code.id) {
-            selectedCode.name = contentSpan.textContent;
-            updateSelectedCodeDisplay();
-        }
-    });
-
-    contentSpan.addEventListener('blur', () => {
-        if (selectedDocument) loadDocumentText(selectedDocument);
     });
 
     li.addEventListener('dragstart', (e) => {
@@ -1049,7 +1126,7 @@ function selectListItem(element, containerId) {
 }
 
 function renderLists() {
-    DOCUMENTS.forEach(doc => documentList.appendChild(createListItem(doc, 'document-list')));
+    renderDocumentList();
     renderCodeList();
 }
 
@@ -1085,10 +1162,8 @@ function renderDocumentWithAnnotations(doc) {
         textDisplay.innerHTML = '';
         return;
     }
-
     const text = doc.plainText;
     const annotations = doc.annotations || [];
-
     if (annotations.length === 0) {
         textDisplay.innerHTML = escapeHTML(text);
         return;
@@ -1100,25 +1175,19 @@ function renderDocumentWithAnnotations(doc) {
         points.add(Math.max(0, Math.min(text.length, a.end)));
     });
     const sortedPoints = Array.from(points).sort((a, b) => a - b);
-
     let html = '';
 
     for (let i = 0; i < sortedPoints.length - 1; i++) {
         const pStart = sortedPoints[i];
         const pEnd = sortedPoints[i + 1];
         const sliceText = text.substring(pStart, pEnd);
-
         if (!sliceText) continue;
 
         const activeAnnos = annotations.filter(a => a.start < pEnd && a.end > pStart);
-
         if (activeAnnos.length === 0) {
             html += escapeHTML(sliceText);
         } else {
-            const activeCodes = activeAnnos
-                .map(a => CODES.find(c => c.id === a.codeId))
-                .filter(Boolean);
-
+            const activeCodes = activeAnnos.map(a => CODES.find(c => c.id === a.codeId)).filter(Boolean);
             let bgStyle = '';
             if (activeCodes.length === 1) {
                 bgStyle = `background-color: ${hexToRgba(activeCodes[0].color, 0.35)}; border-bottom: 2px solid ${activeCodes[0].color};`;
@@ -1130,14 +1199,10 @@ function renderDocumentWithAnnotations(doc) {
                 }).join(', ');
                 bgStyle = `background: linear-gradient(to bottom, ${stops}); border-bottom: 2px solid #334155;`;
             }
-
             const codeNames = activeCodes.map(c => c.name).join(', ');
-            const escapedSlice = escapeHTML(sliceText);
-
-            html += `<span class="annotation-span" style="${bgStyle}" title="Code: ${escapeHTML(codeNames)}" data-start="${pStart}" data-end="${pEnd}">${escapedSlice}</span>`;
+            html += `<span class="annotation-span" style="${bgStyle}" title="Code: ${escapeHTML(codeNames)}" data-start="${pStart}" data-end="${pEnd}">${escapeHTML(sliceText)}</span>`;
         }
     }
-
     textDisplay.innerHTML = html;
 }
 
@@ -1148,49 +1213,24 @@ function updateSelectedCodeDisplay() {
 }
 
 function addListItem(containerId, defaultName) {
-    const container = document.getElementById(containerId);
-    let newItem = null;
-
     if (containerId === 'document-list') {
-        newItem = { id: Date.now(), name: defaultName, plainText: "Inhalt eingeben...", annotations: [] };
+        const docName = defaultName;
+        const newItem = { 
+            id: Date.now(), 
+            name: docName, 
+            plainText: "Inhalt eingeben...", 
+            annotations: [],
+            selectedForAI: true
+        };
         DOCUMENTS.push(newItem);
-        const li = createListItem(newItem, containerId);
-        container.appendChild(li);
-        selectListItem(li, containerId);
+        updateInterface();
+        selectListItem(document.getElementById(`document-${newItem.id}`), 'document-list');
     } else if (containerId === 'code-list') {
-        newItem = { id: Date.now(), name: defaultName, color: "#" + Math.floor(Math.random()*16777215).toString(16), parentId: selectedCode ? selectedCode.id : null };
+        const newItem = { id: Date.now(), name: defaultName, color: "#" + Math.floor(Math.random()*16777215).toString(16), parentId: null };
         CODES.push(newItem);
         renderCodeList();
         const li = document.getElementById(`code-${newItem.id}`);
         if (li) selectListItem(li, 'code-list');
-    }
-}
-
-function deleteSelected(containerId) {
-    const selectedItem = document.querySelector(`#${containerId} li.selected`);
-    if (!selectedItem) return alert("Bitte Eintrag auswählen.");
-
-    if (confirm(`Soll "${selectedItem.textContent.trim()}" gelöscht werden?`)) {
-        const itemId = selectedItem.getAttribute('data-id');
-        selectedItem.remove();
-
-        if (containerId === 'document-list') {
-            DOCUMENTS = DOCUMENTS.filter(doc => doc.id != itemId);
-            textDisplay.innerHTML = "";
-            selectedDocument = DOCUMENTS[0] || null;
-            if (selectedDocument) loadDocumentText(selectedDocument);
-        } else if (containerId === 'code-list') {
-            const childCodes = CODES.filter(c => c.parentId == itemId);
-            childCodes.forEach(c => c.parentId = null);
-            CODES = CODES.filter(code => code.id != itemId);
-            DOCUMENTS.forEach(d => {
-                if (d.annotations) d.annotations = d.annotations.filter(a => a.codeId != itemId);
-            });
-            selectedCode = CODES[0] || null;
-            renderCodeList();
-            updateSelectedCodeDisplay();
-            if (selectedDocument) loadDocumentText(selectedDocument);
-        }
     }
 }
 
@@ -1206,13 +1246,10 @@ function getTextOffsetInContainer(container, targetNode, targetOffset) {
             found = true;
             break;
         }
-        if (node.nodeType === 3) {
-            offset += node.nodeValue.length;
-        } else {
+        if (node.nodeType === 3) offset += node.nodeValue.length;
+        else {
             let i = node.childNodes.length;
-            while (i--) {
-                nodeStack.push(node.childNodes[i]);
-            }
+            while (i--) nodeStack.push(node.childNodes[i]);
         }
     }
     return found ? offset : -1;
@@ -1223,31 +1260,18 @@ function annotateSelectedText() {
     if (!selectedDocument || selectedDocument.isAIDoc) return alert("Bitte ein Quelltext-Dokument auswählen.");
 
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-        return alert("Bitte Text im Hauptfeld markieren.");
-    }
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return alert("Bitte Text im Hauptfeld markieren.");
 
     const range = selection.getRangeAt(0);
-    
-    if (!textDisplay.contains(range.startContainer) || !textDisplay.contains(range.endContainer)) {
-        return alert("Markierung außerhalb des Haupttextes.");
-    }
+    if (!textDisplay.contains(range.startContainer) || !textDisplay.contains(range.endContainer)) return alert("Markierung außerhalb des Haupttextes.");
 
     const start = getTextOffsetInContainer(textDisplay, range.startContainer, range.startOffset);
     const end = getTextOffsetInContainer(textDisplay, range.endContainer, range.endOffset);
 
-    if (start === -1 || end === -1 || start >= end) {
-        return alert("Ungültige Textauswahl.");
-    }
+    if (start === -1 || end === -1 || start >= end) return alert("Ungültige Textauswahl.");
 
     if (!selectedDocument.annotations) selectedDocument.annotations = [];
-    
-    selectedDocument.annotations.push({
-        id: Date.now(),
-        start: start,
-        end: end,
-        codeId: selectedCode.id
-    });
+    selectedDocument.annotations.push({ id: Date.now(), start: start, end: end, codeId: selectedCode.id });
 
     selection.removeAllRanges();
     loadDocumentText(selectedDocument);
@@ -1255,10 +1279,8 @@ function annotateSelectedText() {
 
 function removeAnnotation() {
     if (!selectedDocument || selectedDocument.isAIDoc) return;
-
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
-
     const range = selection.getRangeAt(0);
     let targetSpan = range.commonAncestorContainer;
     if (targetSpan.nodeType === 3) targetSpan = targetSpan.parentNode;
@@ -1266,7 +1288,6 @@ function removeAnnotation() {
     if (targetSpan && targetSpan.classList.contains('annotation-span')) {
         const start = parseInt(targetSpan.getAttribute('data-start'), 10);
         const end = parseInt(targetSpan.getAttribute('data-end'), 10);
-
         selectedDocument.annotations = (selectedDocument.annotations || []).filter(a => !(a.start < end && a.end > start));
         selection.removeAllRanges();
         loadDocumentText(selectedDocument);
@@ -1295,55 +1316,36 @@ function showAnnotationsModal() {
         const items = grouped[code.id] || [];
         html += `<div style="border-left: 4px solid ${code.color}; padding-left: 10px; margin-bottom: 15px;">
             <h4 style="margin: 0; color: ${code.color};">${escapeHTML(code.name)} (${items.length} Treffer)</h4>`;
-        if(items.length === 0) {
-            html += `<i>Keine Treffer im Korpus</i>`;
-        } else {
-            items.forEach(it => {
-                html += `<div class="hit-item"><strong>${escapeHTML(it.docName)}:</strong> <i>"...${escapeHTML(it.text)}..."</i></div>`;
-            });
-        }
+        if(items.length === 0) html += `<i>Keine Treffer im Korpus</i>`;
+        else items.forEach(it => { html += `<div class="hit-item"><strong>${escapeHTML(it.docName)}:</strong> <i>"...${escapeHTML(it.text)}..."</i></div>`; });
         html += `</div>`;
     });
-
     openModalWithHTML(html);
 }
 
 function countAnnotationsModal() {
     const counts = {};
     CODES.forEach(c => counts[c.id] = 0);
-
     getCorpusDocuments().forEach(doc => {
-        (doc.annotations || []).forEach(a => {
-            if (counts[a.codeId] !== undefined) counts[a.codeId]++;
-        });
+        (doc.annotations || []).forEach(a => { if (counts[a.codeId] !== undefined) counts[a.codeId]++; });
     });
 
-    let tableHtml = `<h2>Statistik der Korpus-Annotationen</h2>
-        <p><small><i>Exklusive Analyse-Dokumente</i></small></p>
+    let tableHtml = `<h2>Statistik der Korpus-Annotationen</h2><p><small><i>Exklusive Analyse-Dokumente</i></small></p>
         <table border="1" cellpadding="8" style="width:100%; border-collapse:collapse; border-color: var(--border-color);">
             <thead><tr style="background:#f1f5f9;"><th>ID</th><th>Code</th><th>Anzahl</th></tr></thead><tbody>`;
-
-    CODES.forEach(c => {
-        tableHtml += `<tr><td>${c.id}</td><td>${escapeHTML(c.name)}</td><td>${counts[c.id]}</td></tr>`;
-    });
-
+    CODES.forEach(c => { tableHtml += `<tr><td>${c.id}</td><td>${escapeHTML(c.name)}</td><td>${counts[c.id]}</td></tr>`; });
     tableHtml += `</tbody></table>`;
     openModalWithHTML(tableHtml);
 }
 
 function calculateTextStats() {
-    const corpusDocs = getCorpusDocuments();
-    let totalCorpusLen = 0;
-    let maxDocLen = 0;
-
+    const corpusDocs = getActiveAIAnalysisDocuments();
+    let totalCorpusLen = 0, maxDocLen = 0;
     corpusDocs.forEach(doc => {
         const len = (doc.plainText || '').length;
         totalCorpusLen += len;
-        if (len > maxDocLen) {
-            maxDocLen = len;
-        }
+        if (len > maxDocLen) maxDocLen = len;
     });
-
     return { maxDocLen, totalCorpusLen };
 }
 
@@ -1351,87 +1353,56 @@ async function fetchModelInfoAndUpdateStats() {
     try {
         const baseUrl = SETTINGS.url.split('/v1/')[0];
         const info_url = `${baseUrl}/api/v1/models`;
-
         const headers = {};
         if (SETTINGS.apiKey) headers['Authorization'] = `Bearer ${SETTINGS.apiKey}`;
 
         const response = await fetch(info_url, { headers });
-        if (!response.ok) throw new Error('Netzwerk-Fehler beim Abrufen der Modellinfo');
+        if (!response.ok) throw new Error('Netzwerk-Fehler');
         const data = await response.json();
 
         let maxTokens = 4096;
         if (Array.isArray(data.models)) {
             const currentModel = data.models.find(m => m.key === SETTINGS.model || m.id === SETTINGS.model);
-            if (currentModel && currentModel.max_context_length) {
-                maxTokens = currentModel.max_context_length;
-            }
-        } else if (data.max_tokens) {
-            maxTokens = data.max_tokens;
-        }
+            if (currentModel && currentModel.max_context_length) maxTokens = currentModel.max_context_length;
+        } else if (data.max_tokens) maxTokens = data.max_tokens;
 
         const estMaxChars = maxTokens * 4;
         const stats = calculateTextStats();
-
         const infoBox = document.getElementById('context_info_box');
         if (infoBox) {
-            let warnMsg = '';
-            if (stats.totalCorpusLen > estMaxChars) {
-                warnMsg = `<div style="color: #b45309; margin-top: 6px; font-weight: 600;">⚠️ Hinweis: Der Gesamtkorpus überschreitet die geschätzte Zeichenzahl des Kontextfensters. Für Analysen auf Korpus-Ebene empfiehlt sich eine Segmentierung oder ein Modell mit größerem Kontext.</div>`;
-            }
-
+            let warnMsg = stats.totalCorpusLen > estMaxChars ? `<div style="color: #b45309; margin-top: 6px; font-weight: 600;">⚠️ Hinweis: Gesamtkorpus (markierte Dokumente) überschreitet das Kontextfenster.</div>` : '';
             infoBox.innerHTML = `
-                <strong>📊 Kontext-Länge & Textstatistiken:</strong>
+                <strong>📊 Kontext-Länge & Textstatistiken (Markierte Dokumente):</strong>
                 <table style="width:100%; font-size:0.9em; margin-top:5px;">
                     <tr><td>Max. Kontext-Länge (LLM):</td><td class="val">${maxTokens.toLocaleString('de-DE')} Token</td></tr>
-                    <tr><td>Schätzung max. Zeichenzahl (~4 Ch/Tok):</td><td class="val">${estMaxChars.toLocaleString('de-DE')} Zeichen</td></tr>
-                    <tr><td>Tatsächliche Zeichenzahl (a) Längstes Dokument:</td><td class="val">${stats.maxDocLen.toLocaleString('de-DE')} Zeichen</td></tr>
-                    <tr><td>Tatsächliche Zeichenzahl (b) Gesamter Korpus:</td><td class="val">${stats.totalCorpusLen.toLocaleString('de-DE')} Zeichen</td></tr>
+                    <tr><td>Schätzung max. Zeichenzahl:</td><td class="val">${estMaxChars.toLocaleString('de-DE')} Zeichen</td></tr>
+                    <tr><td>Tatsächliche Zeichen (Markierte Dok.):</td><td class="val">${stats.totalCorpusLen.toLocaleString('de-DE')} Zeichen</td></tr>
                 </table>
-                ${warnMsg}
-            `;
+                ${warnMsg}`;
         }
     } catch (e) {
         const infoBox = document.getElementById('context_info_box');
-        if (infoBox) {
-            infoBox.innerHTML = `<span>Keine Modell-Informationen zum gewählten KI-Modell/-Endpunkt verfügbar (${e.message})</span>`;
-        }
+        if (infoBox) infoBox.innerHTML = `<span>Keine Modell-Informationen verfügbar. Prüfe KI-Server. (${e.message})</span>`;
     }
 }
 
 function openAIModal() {
     const html = `
         <h2>KI-basierte Inhaltsanalyse nach Fischer (2025)</h2>
-        <p><small><i>Anpassungen & Modellparameter zur Erhöhung der Validität und Reliabilität vornehmen! Weitere Informationen bei Fischer (2025) unter <a href="https://doi.org/10.25656/01:34405" target="_blank">https://doi.org/10.25656/01:34405</a></i></small></p>
-
+        <p><small><i>Anpassungen zur Erhöhung der Validität und Reliabilität sind bedarfsgemäß vorzunehmen! Weitere Informationen bei Fischer (2025) unter <a href="https://doi.org/10.25656/01:34405" target="_blank">https://doi.org/10.25656/01:34405</a></i></small></p>
         <form id="ai-form">
             <h3>Kontext & Modell</h3>
-            <div class="form-group">
-                <label>Forschungsfrage / Kontext ({context}):</label>
-                <textarea id="ai_context">${escapeHTML(SETTINGS.context)}</textarea>
-            </div>
+            <div class="form-group"><label>Forschungsfrage / Kontext:</label><textarea id="ai_context">${escapeHTML(SETTINGS.context)}</textarea></div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>LLM Modell Name:</label>
-                    <input type="text" id="ai_model" value="${escapeHTML(SETTINGS.model)}">
-                </div>
-                <div class="form-group">
-                    <label>API Endpunkt URL:</label>
-                    <input type="text" id="ai_url" value="${escapeHTML(SETTINGS.url)}">
-                </div>
+                <div class="form-group"><label>Modell Name:</label><input type="text" id="ai_model" value="${escapeHTML(SETTINGS.model)}"></div>
+                <div class="form-group"><label>API Endpunkt URL:</label><input type="text" id="ai_url" value="${escapeHTML(SETTINGS.url)}"></div>
             </div>
-            <div class="form-group">
-                <label>API Key (Optional):</label>
-                <input type="text" id="ai_key" value="${escapeHTML(SETTINGS.apiKey)}">
-            </div>
-
-            <div id="context_info_box" style="background:#f1f5f9; padding:10px; border-radius:5px; margin-bottom:15px; border: 1px solid var(--border-color);">
-                ⏳ Lade Modell-Informationen...
-            </div>
-
+            <div class="form-group"><label>API Key (Optional):</label><input type="text" id="ai_key" value="${escapeHTML(SETTINGS.apiKey)}"></div>
+            <div id="context_info_box" style="background:#f1f5f9; padding:10px; border-radius:5px; margin-bottom:15px; border: 1px solid var(--border-color);">⏳ Beziehe Modell-Informationen vom KI-Server...</div>
+            
             <h3>Methodik & Parameter</h3>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Analysetechnik:</label>
+                <div class="form-group"><label>Analysetechnik:</label>
                     <select id="ai_verfahren">
                         <option value="Induktion" ${SETTINGS.verfahren==='Induktion'?'selected':''}>Induktion</option>
                         <option value="Deduktion" ${SETTINGS.verfahren==='Deduktion'?'selected':''}>Deduktion</option>
@@ -1439,8 +1410,7 @@ function openAIModal() {
                         <option value="Explikation" ${SETTINGS.verfahren==='Explikation'?'selected':''}>Explikation</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Verarbeitungseinheit:</label>
+                <div class="form-group"><label>Verarbeitungseinheit:</label>
                     <select id="ai_granularitaet">
                         <option value="Korpus" ${SETTINGS.granularitaet==='Korpus'?'selected':''}>Korpus</option>
                         <option value="Dokument" ${SETTINGS.granularitaet==='Dokument'?'selected':''}>Dokument</option>
@@ -1448,94 +1418,72 @@ function openAIModal() {
                     </select>
                 </div>
             </div>
-
             <div class="form-row">
-                <div class="form-group">
-                    <label>Temperature (0.0 - 1.0):</label>
-                    <input type="number" step="0.1" id="ai_temp" value="${SETTINGS.temperature}">
-                </div>
-                <div class="form-group">
-                    <label>Top_P:</label>
-                    <input type="number" step="0.1" id="ai_topp" value="${SETTINGS.top_p}">
-                </div>
+                <div class="form-group"><label>Temperature:</label><input type="number" step="0.1" id="ai_temp" value="${SETTINGS.temperature}"></div>
+                <div class="form-group"><label>Top_P:</label><input type="number" step="0.1" id="ai_topp" value="${SETTINGS.top_p}"></div>
+                <div class="form-group"><label>Top_K:</label><input type="number" step="1" id="ai_topk" value="${SETTINGS.top_k}"></div>
             </div>
-
+            <div class="form-group"><label>Prompt-Template:</label><textarea id="ai_prompt" style="height:150px;">${escapeHTML(SETTINGS.promptTemplate)}</textarea></div>
             <div class="form-group">
-                <label>Prompt-Template:</label>
-                <textarea id="ai_prompt" style="height:150px;">${escapeHTML(SETTINGS.promptTemplate)}</textarea>
-            </div>
-
-            <div class="form-group">
-                <label><input type="checkbox" id="ai_streaming" ${SETTINGS.useStreaming?'checked':''}> Live-Streaming (SSE) aktivieren</label><br>
+                <label><input type="checkbox" id="ai_streaming" ${SETTINGS.useStreaming?'checked':''}> Live-Streaming (SSE)</label><br>
                 <label><input type="checkbox" id="ai_quotes" ${SETTINGS.removeQuotes?'checked':''}> Anführungszeichen entfernen</label><br>
                 <label><input type="checkbox" id="ai_spaces" ${SETTINGS.removeDoubleSpaces?'checked':''}> Doppelte Leerzeichen entfernen</label><br>
-                <label><input type="checkbox" id="ai_json_prep" ${SETTINGS.useLabeledJSON?'checked':''}> Verarbeitungseinheiten mit Label (JSON) übergeben</label>
+                <label><input type="checkbox" id="ai_json_prep" ${SETTINGS.useLabeledJSON?'checked':''}> Labeled JSON</label>
             </div>
-
             <button type="submit" style="background-color: var(--accent-purple); width:100%; padding: 10px;">Analyse starten</button>
-        </form>
-    `;
-
+        </form>`;
     openModalWithHTML(html);
     fetchModelInfoAndUpdateStats();
 
-    const updateModelInfoLive = () => {
-        SETTINGS.model = document.getElementById('ai_model').value;
-        SETTINGS.url = document.getElementById('ai_url').value;
-        SETTINGS.apiKey = document.getElementById('ai_key').value;
-        
-        const infoBox = document.getElementById('context_info_box');
-        if (infoBox) infoBox.innerHTML = '⏳ Lade Modell-Informationen...';
-        
-        fetchModelInfoAndUpdateStats();
-    };
-
-    document.getElementById('ai_model').addEventListener('change', updateModelInfoLive);
-    document.getElementById('ai_url').addEventListener('change', updateModelInfoLive);
-    document.getElementById('ai_key').addEventListener('change', updateModelInfoLive);
-
     document.getElementById('ai_verfahren').addEventListener('change', (e) => {
         const val = e.target.value;
-        const promptEl = document.getElementById('ai_prompt');
-        if (PROMPT_TEMPLATES[val]) {
-            promptEl.value = PROMPT_TEMPLATES[val];
-        }
+        if (PROMPT_TEMPLATES[val]) document.getElementById('ai_prompt').value = PROMPT_TEMPLATES[val];
     });
 
     document.getElementById('ai-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        
         SETTINGS.context = document.getElementById('ai_context').value;
         SETTINGS.model = document.getElementById('ai_model').value;
         SETTINGS.url = document.getElementById('ai_url').value;
         SETTINGS.apiKey = document.getElementById('ai_key').value;
         SETTINGS.verfahren = document.getElementById('ai_verfahren').value;
         SETTINGS.granularitaet = document.getElementById('ai_granularitaet').value;
-        const tempVal = parseFloat(document.getElementById('ai_temp').value);
-        SETTINGS.temperature = isNaN(tempVal) ? 0.0 : tempVal;
-        const topPVal = parseFloat(document.getElementById('ai_topp').value);
-        SETTINGS.top_p = isNaN(topPVal) ? 0.95 : topPVal;
+        SETTINGS.temperature = parseFloat(document.getElementById('ai_temp').value) || 0.0;
+        SETTINGS.top_p = parseFloat(document.getElementById('ai_topp').value) || 0.95;
+        SETTINGS.top_k = parseFloat(document.getElementById('ai_topk').value) || 40;
         SETTINGS.promptTemplate = document.getElementById('ai_prompt').value;
         SETTINGS.useStreaming = document.getElementById('ai_streaming').checked;
         SETTINGS.removeQuotes = document.getElementById('ai_quotes').checked;
         SETTINGS.removeDoubleSpaces = document.getElementById('ai_spaces').checked;
         SETTINGS.useLabeledJSON = document.getElementById('ai_json_prep').checked;
-
         saveSettings();
         closeModal();
         runAIAnalysis(SETTINGS);
     });
 }
 
+function getDocText(doc, removeHtml = false) {
+    if (doc.isAIDoc) {
+        if (removeHtml) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = doc.htmlContent || '';
+            return tempDiv.innerText || '';
+        }
+        return doc.htmlContent || '';
+    }
+    return doc.plainText || '';
+}
+
 async function runAIAnalysis(config) {
     const resultDocName = `KI-Analyse (${config.verfahren}) ${new Date().toLocaleTimeString('de-DE')}`;
-    let currentHtml = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren}) nach Fischer (2025)</h2><p><i>Gestartet...</i></p><hr>`;
-
+    let currentHtml = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren})</h2><hr>`;
+    
     const newDoc = { 
         id: Date.now(), 
         name: resultDocName, 
         isAIDoc: true, 
-        htmlContent: currentHtml 
+        htmlContent: currentHtml,
+        selectedForAI: false 
     };
     DOCUMENTS.push(newDoc);
     updateInterface();
@@ -1544,57 +1492,45 @@ async function runAIAnalysis(config) {
     const updateDocContent = (addedHtml) => {
         currentHtml += addedHtml;
         newDoc.htmlContent = currentHtml;
-        if (selectedDocument && selectedDocument.id === newDoc.id) {
-            textDisplay.innerHTML = currentHtml;
-        }
+        if (selectedDocument && selectedDocument.id === newDoc.id) textDisplay.innerHTML = currentHtml;
     };
 
-    const validDocs = getCorpusDocuments();
+    const validDocs = getActiveAIAnalysisDocuments();
     let textsToAnalyze = [];
 
     if (config.granularitaet === 'Dokument') {
         validDocs.forEach(doc => {
-            let clean = doc.plainText || '';
+            let clean = getDocText(doc) || '';
             if (config.removeQuotes) clean = clean.replace(/["'„“]/g, '');
             if (config.removeDoubleSpaces) clean = clean.replace(/\s+/g, ' ');
-
-            const textPayload = config.useLabeledJSON
-                ? JSON.stringify({ title: doc.name, content: clean })
-                : clean;
-
-            textsToAnalyze.push({ title: doc.name, payload: textPayload });
+            textsToAnalyze.push({ title: doc.name, payload: config.useLabeledJSON ? JSON.stringify({ title: doc.name, content: clean }) : clean });
         });
     } else if (config.granularitaet === 'Korpus') {
         if (config.useLabeledJSON) {
             const corpusArray = validDocs.map(d => {
-                let clean = d.plainText || '';
+                let clean = getDocText(d) || '';
                 if (config.removeQuotes) clean = clean.replace(/["'„“]/g, '');
                 if (config.removeDoubleSpaces) clean = clean.replace(/\s+/g, ' ');
                 return { title: d.name, content: clean };
             });
-            textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dok.)`, payload: JSON.stringify(corpusArray) });
+            textsToAnalyze.push({ title: `markierte Dokumente des Korpus (${validDocs.length} Dok.)`, payload: JSON.stringify(corpusArray) });
         } else {
-            let combined = validDocs.map(d => d.plainText || '').join("\n\n");
+            let combined = validDocs.map(d => getDocText(d) || '').join("\n\n");
             if (config.removeQuotes) combined = combined.replace(/["'„“]/g, '');
             if (config.removeDoubleSpaces) combined = combined.replace(/\s+/g, ' ');
-            textsToAnalyze.push({ title: `Gesamtkorpus (${validDocs.length} Dok.)`, payload: combined });
+            textsToAnalyze.push({ title: `markierte Dokumente des Korpus (${validDocs.length} Dok.)`, payload: combined });
         }
     } else if (config.granularitaet === 'Segment') {
         validDocs.forEach(doc => {
             let idx = 1;
             (doc.annotations || []).forEach(a => {
-                let text = doc.plainText.substring(a.start, a.end).trim();
+                let text = getDocText(doc).substring(a.start, a.end).trim();
                 if (config.removeQuotes) text = text.replace(/["'„“]/g, '');
                 if (config.removeDoubleSpaces) text = text.replace(/\s+/g, ' ');
-
                 if (text) {
                     const codeObj = CODES.find(c => c.id == a.codeId);
                     const codeName = codeObj ? codeObj.name : "Unbekannt";
-
-                    const textPayload = config.useLabeledJSON
-                        ? JSON.stringify({ code: codeName, text: text })
-                        : text;
-
+                    const textPayload = config.useLabeledJSON ? JSON.stringify({ code: codeName, text: text }) : text;
                     textsToAnalyze.push({ title: `${doc.name} - Seg ${idx++} [${codeName}]`, payload: textPayload });
                 }
             });
@@ -1602,83 +1538,68 @@ async function runAIAnalysis(config) {
     }
 
     if (textsToAnalyze.length === 0) {
-        updateDocContent(`<p style="color:red;">Keine Analyseobjekte im Korpus vorhanden.</p>`);
+        updateDocContent(`<p style="color:red;">Keine markierten Dokumente oder Segmente für die Analyse vorhanden.</p>`);
         return;
     }
 
     const headers = { 'Content-Type': 'application/json' };
     if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
 
+    const settingsDocHtml = `
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-left: 4px solid var(--primary); padding: 12px 15px; margin: 10px 0 15px 0; border-radius: 4px; font-size: 0.9em;">
+            <h4 style="margin: 0 0 8px 0; color: var(--primary);">⚙️ Analyse-Einstellungen:</h4>
+            <ul style="margin: 0; padding-left: 20px; color: var(--text-dark); line-height: 1.5;">
+                <li><strong>Forschungsfrage / Kontext:</strong> ${escapeHTML(config.context) || '<i>Keiner angegeben</i>'}</li>
+                <li><strong>Verfahren:</strong> ${config.verfahren} | <strong>Granularität:</strong> ${config.granularitaet}</li>
+                <li><strong>Modell:</strong> ${config.model} (Temp: ${config.temperature}, Top_P: ${config.top_p}, Top_K: ${config.top_k})</li>
+                <li><strong>Optionen:</strong> 
+                    Anführungszeichen entfernen: ${config.removeQuotes ? 'Ja' : 'Nein'} | 
+                    Doppelte Leerzeichen entfernen: ${config.removeDoubleSpaces ? 'Ja' : 'Nein'} | 
+                    Labeled JSON: ${config.useLabeledJSON ? 'Ja' : 'Nein'} </li>
+                <li><strong>Prompt-Template:</strong> ${config.promptTemplate}</li>
+            </ul>
+        </div>
+	<hr>
+    `;
+    updateDocContent(settingsDocHtml);
+
     for (let i = 0; i < textsToAnalyze.length; i++) {
         const item = textsToAnalyze[i];
-
-        const settingsDocHtml = `
+        const finalPrompt = config.promptTemplate.replace('{text}', item.payload).replace('{context}', config.context);
+        const textPrompt = finalPrompt.replace(/\r?\n|\r/g, "\\n");
+        const promptHtml = `	    
             <div style="background: #f8fafc; border: 1px solid var(--border-color); border-left: 4px solid var(--primary); padding: 12px 15px; margin: 10px 0 15px 0; border-radius: 4px; font-size: 0.9em;">
-                <h4 style="margin: 0 0 8px 0; color: var(--primary);">⚙️ Angewendete Analyse-Einstellungen:</h4>
-                <ul style="margin: 0; padding-left: 20px; color: var(--text-dark); line-height: 1.5;">
-                    <li><strong>Forschungsfrage / Kontext:</strong> ${escapeHTML(config.context) || '<i>Keiner angegeben</i>'}</li>
-                    <li><strong>Verfahren:</strong> ${config.verfahren} | <strong>Granularität:</strong> ${config.granularitaet}</li>
-                    <li><strong>Modell:</strong> ${config.model} (Temp: ${config.temperature}, Top_P: ${config.top_p})</li>
-                    <li><strong>Optionen:</strong> 
-                        Anführungszeichen entfernen: ${config.removeQuotes ? 'Ja' : 'Nein'} | 
-                        Doppelte Leerzeichen entfernen: ${config.removeDoubleSpaces ? 'Ja' : 'Nein'} | 
-                        Labeled JSON: ${config.useLabeledJSON ? 'Ja' : 'Nein'}
-                    </li>
-                </ul>
+                <details style="margin: 0; padding-left: 20px; color: var(--text-dark); line-height: 1.5;">
+                  <summary><strong>⚙️ Prompt:</strong></summary><small>${textPrompt}</small>                
+                </details>
             </div>
-            <p>⏳ <i>Verarbeite ${escapeHTML(item.title)}...</i></p>
         `;
-        updateDocContent(settingsDocHtml);
-
-        const finalPrompt = config.promptTemplate
-            .replace('{text}', item.payload)
-            .replace('{context}', config.context);
+        updateDocContent(promptHtml);
 
         const requestBody = {
-            messages: [
-                { role: "system", content: "Du bist ein präziser Assistent für qualitative Inhaltsanalyse." },
-                { role: "user", content: finalPrompt }
-            ],
-            temperature: config.temperature,
-            top_p: config.top_p,
-            stream: config.useStreaming
+            messages: [{ role: "user", content: finalPrompt }],
+            temperature: config.temperature, top_p: config.top_p, top_k: config.top_k, stream: config.useStreaming
         };
         if (config.model) requestBody.model = config.model;
 
         try {
-            const response = await fetch(config.url, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(requestBody)
-            });
-
+            const response = await fetch(config.url, { method: 'POST', headers: headers, body: JSON.stringify(requestBody) });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
             let aiAnswer = "";
 
             if (config.useStreaming) {
-                const boxId = `stream-box-${i}`;
-                const targetId = `stream-target-${i}`;
-                
-                updateDocContent(`
-                    <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
-                        <pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>
-                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
-                `);
+                const boxId = `stream-box-${i}`, targetId = `stream-target-${i}`;
+                updateDocContent(`<div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px;"><h3 style="margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3><pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre></div><hr>`);
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder("utf-8");
                 let buffer = "";
-
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split("\n");
-                    buffer = lines.pop(); 
-
+                    buffer = lines.pop();
                     for (const line of lines) {
                         const trimmed = line.trim();
                         if (trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
@@ -1688,244 +1609,90 @@ async function runAIAnalysis(config) {
                                 if (content) {
                                     aiAnswer += content;
                                     const targetEl = document.getElementById(targetId);
-                                    if (targetEl && selectedDocument && selectedDocument.id === newDoc.id) {
-                                        targetEl.innerText = aiAnswer;
-                                    }
+                                    if (targetEl && selectedDocument && selectedDocument.id === newDoc.id) targetEl.innerText = aiAnswer;
                                 }
                             } catch (e) {}
                         }
                     }
                 }
-
                 const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
-                const finalBoxContent = `
-                    <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
-                        ${renderedHtml}
-                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
-                `;
-
-                const placeholderHtml = `
-                    <div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
-                        <pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>
-                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
-                `;
-                
-                currentHtml = currentHtml.replace(placeholderHtml, finalBoxContent);
+                currentHtml = currentHtml.replace(`<pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>`, renderedHtml);
                 newDoc.htmlContent = currentHtml;
-
-                if (selectedDocument && selectedDocument.id === newDoc.id) {
-                    textDisplay.innerHTML = currentHtml;
-                }
-
+                if (selectedDocument && selectedDocument.id === newDoc.id) textDisplay.innerHTML = currentHtml;
             } else {
                 const data = await response.json();
-                aiAnswer = data.choices?.[0]?.message?.content || "Keine Antwort erhalten.";
-
-                const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
-
-                updateDocContent(`
-                    <div style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <h3 style="color:var(--primary); margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>
-                        ${renderedHtml}
-                    </div><hr style="border:0; border-top:1px solid #e2e8f0;">
-                `);
+                aiAnswer = data.choices?.[0]?.message?.content || "";
+                updateDocContent(`<div style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px;">${renderAIResult(aiAnswer, config.verfahren)}</div><hr>`);
             }
-
         } catch (err) {
-            updateDocContent(`<p style="color:#e11d48;">Prüfe Funktionalität des ausgewählten KI-Systems zur Auswertung von ${escapeHTML(item.title)}:<br>${escapeHTML(err.message)}</p>`);
+            var message = escapeHTML(err.message);
+            if(message==="NetworkError when attempting to fetch resource.") message="LLM-Server antwortet nicht. Prüfe die Angaben zu Endpunkt & Modell in MyQDA sowie Funktionalität und Einstellungen des KI-Servers (enable CORS).";
+            updateDocContent(`<p style="color:#e11d48;">Fehler: ${message}</p>`);
         }
     }
-    updateDocContent(`<p style="color:var(--accent-green); font-weight:bold;">Analyse vollständig beendet!</p>`);
 }
 
 function validateAIResultStructure(parsedData, verfahren) {
     if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) return false;
-
-    return parsedData.every(item => {
-        if (typeof item !== 'object' || item === null) return false;
-
-        const hasQuotes = Array.isArray(item.textstellen);
-        if (!hasQuotes) return false;
-
-        if (verfahren === 'Induktion' || verfahren === 'Deduktion') {
-            return typeof item.code === 'string' && item.code.trim().length > 0;
-        } else if (verfahren === 'Zusammenfassung') {
-            return (typeof item.paraphrase === 'string' && item.paraphrase.trim().length > 0) ||
-                   (typeof item.summary === 'string' && item.summary.trim().length > 0);
-        } else if (verfahren === 'Explikation') {
-            return (typeof item.assoziation === 'string' && item.assoziation.trim().length > 0) ||
-                   (typeof item.explikation === 'string' && item.explikation.trim().length > 0);
-        }
-        return false;
-    });
+    return parsedData.every(item => typeof item === 'object' && item !== null && Array.isArray(item.textstellen));
 }
 
 function renderAIResult(text, verfahren) {
     const parsedData = cleanAndParseJSON(text);
     const isValid = validateAIResultStructure(parsedData, verfahren);
-
     let html = "";
+    if (!isValid) html += `<div class="validation-warning">⚠️ Hinweis: JSON-Struktur weicht ab.</div>`;
 
-    if (!isValid) {
-        html += `<div class="validation-warning">⚠️ <strong>Hinweis:</strong> Die KI-Antwort entspricht nicht exakt dem geforderten JSON-Schema. Interaktive Schaltflächen wurden ausgeblendet.</div>`;
-    }
-
-    if (parsedData && Array.isArray(parsedData) && parsedData.length > 0) {
+    if (parsedData && Array.isArray(parsedData)) {
         parsedData.forEach(item => {
-            let label = "";
-            let description = "";
-
-            if (verfahren === 'Induktion' || verfahren === 'Deduktion') {
-                label = item.code || item.kategorie || "Unbenannter Code";
-                description = item.description || item.beschreibung || "";
-            } else if (verfahren === 'Zusammenfassung') {
-                label = item.paraphrase || item.summary || "Zusammenfassung";
-            } else if (verfahren === 'Explikation') {
-                label = item.assoziation || item.explikation || "Explikation";
-            }
-
-            const quotes = item.textstellen || item.quotes || [];
+            const label = item.code || item.paraphrase || item.assoziation || "Unbenannt";
+            const description = item.description || "";
+            const quotes = item.textstellen || [];
             const cardId = 'card-' + Math.random().toString(36).substr(2, 9);
-            const cardBorderColor = (verfahren === 'Induktion' || verfahren === 'Deduktion') ? 'var(--accent-purple)' : '#0284c7';
-
             html += `
-                <div class="category-card" id="${cardId}" style="border-left-color: ${cardBorderColor};">
+                <div class="category-card" id="${cardId}">
                     <h4>🏷️ ${escapeHTML(label)}</h4>
                     ${description ? `<p>${escapeHTML(description)}</p>` : ''}
-                    ${quotes.length > 0 ? `<p><strong>Textstellen:</strong></p><ul class="quotes-list">${quotes.map(q=>`<li>${escapeHTML(q)}</li>`).join('')}</ul>` : ''}
-                    ${isValid ? `
-                        <button class="ai-action-btn" onclick="addSingleCodeFromCard('${cardId}')">🏷️ Als Code übernehmen</button>
-                        <button class="ai-action-btn-auto" onclick="annotateTextstellenCorpusFromCard('${cardId}')">⚡ Automatisch annotieren</button>
-                    ` : ''}
-                </div>
-            `;
+                    ${quotes.length > 0 ? `<ul class="quotes-list">${quotes.map(q=>`<li>${escapeHTML(q)}</li>`).join('')}</ul>` : ''}
+                    ${isValid ? `<button class="ai-action-btn" onclick="addSingleCodeFromCard('${cardId}')">Als Code übernehmen</button><button class="ai-action-btn-auto" onclick="annotateTextstellenCorpusFromCard('${cardId}')">Annotieren</button>` : ''}
+                </div>`;
         });
         return html;
     }
-
-    return html + `<pre style="white-space: pre-wrap; background: #f8fafc; padding: 12px; border-radius: 5px; border: 1px solid var(--border-color);">${escapeHTML(text)}</pre>`;
+    return `<pre style="white-space: pre-wrap;">${escapeHTML(text)}</pre>`;
 }
 
 function cleanAndParseJSON(jsonString) {
     if (!jsonString) return null;
-
     let clean = jsonString.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-    try {
-        const parsed = JSON.parse(clean);
-        return normalizeDataKeys(parsed);
-    } catch (e) {}
-
-    try {
-        let repaired = clean;
-        repaired = repaired.replace(/"+/g, '"');
-        repaired = repaired.replace(/"":\s*"/g, '"description": "');
-        repaired = repaired.replace(/"([a-zA-ZÄÖÜäöüß0-9_]+)"\s+([{\["a-zA-ZÄÖÜäöüß])/g, '"$1": $2');                            repaired = repaired.replace(/([{,]\s*)([a-zA-ZÄÖÜäöüß0-9_]+)":/g, '$1"$2":');                              repaired = repaired.replace(/(:\s*)([a-zA-ZÄÖÜäöüß][^"\n,}\]]*)/g, (match, p1, p2) => {
-            const trimmed = p2.trim();
-            if (['true', 'false', 'null'].includes(trimmed) || !isNaN(trimmed)) return match;
-            if (trimmed.endsWith('"')) return `${p1}"${trimmed}`;
-            return `${p1}"${trimmed}"`;
-        });
-
-        let lines = repaired.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i].trim();
-            const quoteCount = (line.match(/"/g) || []).length;
-            if (quoteCount % 2 !== 0) {
-                if (line.endsWith(',')) {
-                    lines[i] = line.slice(0, -1) + '",';
-                } else if (!/[{\[}\]]/.test(line.slice(-1))) {
-                    lines[i] = line + '"';
-                }
+    try { return JSON.parse(clean); } catch (e) {
+        try {
+            const firstOpen = clean.indexOf('[');
+            const lastClose = clean.lastIndexOf(']');
+            if (firstOpen !== -1 && lastClose !== -1) {
+                return JSON.parse(clean.substring(firstOpen, lastClose + 1));
             }
-        }
-        repaired = lines.join('\n');
-        repaired = repaired.replace(/,\s*([\}\]])/g, '$1');
-
-        const openBraces = (repaired.match(/\{/g) || []).length;
-        const closeBraces = (repaired.match(/\}/g) || []).length;
-        const openBrackets = (repaired.match(/\[/g) || []).length; const closeBrackets = (repaired.match(/\]/g) || []).length;
-
-        for (let i = 0; i < openBraces - closeBraces; i++) repaired += '\n}';
-        for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += '\n]';
-
-        const parsed = JSON.parse(repaired);
-        return normalizeDataKeys(parsed);
-
-    } catch (e2) {
-        console.error("JSON-Parsing fehlgeschlagen:", e2);
+        } catch (err2) {}
         return null;
     }
-}
-
-function normalizeDataKeys(data) {
-    if (!Array.isArray(data)) return null;
-
-    return data.map(item => {
-        if (typeof item !== 'object' || item === null) return null;
-
-        let textstellen = item.textstellen || item.stellen || item.zitate || item.quotes || [];
-        if (!Array.isArray(textstellen)) {
-            textstellen = typeof textstellen === 'string' && textstellen.trim() ? [textstellen.trim()] : [];
-        }
-
-        const normalizedItem = { textstellen };
-        const mainKey = item.code || item.kategorie || item.category || item.paraphrase || item.summary || item.assoziation;
-        
-        if (item.paraphrase || item.summary) {
-            normalizedItem.paraphrase = String(mainKey).trim();
-        } else if (item.assoziation) {
-            normalizedItem.assoziation = String(mainKey).trim();
-        } else {
-            normalizedItem.code = mainKey ? String(mainKey).trim() : "Unbenannter Code";
-        }
-
-        if (item.description || item.beschreibung) {
-            normalizedItem.description = String(item.description || item.beschreibung).trim();
-        }
-
-        return normalizedItem;
-    }).filter(Boolean);
 }
 
 function extractCardData(cardId) {
     const card = document.getElementById(cardId);
     if (!card) return { codeName: '', quotes: [] };
-
     const h4 = card.querySelector('h4');
     let codeName = h4 ? h4.innerText.replace(/^🏷️\s*/, '').trim() : '';
-
-    const quotesList = card.querySelectorAll('.quotes-list li');
-    const quotes = Array.from(quotesList).map(li => {
-        let text = li.innerText.trim();
-        if (text.startsWith('"') && text.endsWith('"') && text.length >= 2) {
-            text = text.substring(1, text.length - 1).trim();
-        }
-        return text;
-    }).filter(q => q.length > 0);
-
+    const quotes = Array.from(card.querySelectorAll('.quotes-list li')).map(li => li.innerText.trim());
     return { codeName, quotes };
 }
 
 function addSingleCodeFromCard(cardId) {
     const { codeName } = extractCardData(cardId);
-    if (!codeName) return alert("Kein gültiger Code-Name gefunden.");
-
-    let existing = CODES.find(c => c.name.toLowerCase() === codeName.toLowerCase());
-    if (!existing) {
-        const newCode = {
-            id: Date.now(),
-            name: codeName,
-            color: "#" + Math.floor(Math.random()*16777215).toString(16),
-            parentId: null
-        };
-        CODES.push(newCode);
+    if (!codeName) return;
+    if (!CODES.some(c => c.name.toLowerCase() === codeName.toLowerCase())) {
+        CODES.push({ id: Date.now(), name: codeName, color: "#" + Math.floor(Math.random()*16777215).toString(16), parentId: null });
         renderCodeList();
-        alert(`Code "${codeName}" wurde angelegt!`);
-    } else {
-        alert(`Der Code "${codeName}" existiert bereits.`);
+        alert(`Code "${codeName}" erstellt!`);
     }
 }
 
@@ -2043,20 +1810,12 @@ async function handleFileSelection() {
         DOCUMENTS = data[0]["DOCUMENTS"] || [];
         CODES = data[0]["CODES"] || [];
         SETTINGS = data[0]["SETTINGS"] || DEFAULT_SETTINGS;
-
-        CODES.forEach(c => {
-            if (c.parentId === undefined) c.parentId = null;
-        });
-
+        CODES.forEach(c => { if (c.parentId === undefined) c.parentId = null; });
         DOCUMENTS.forEach(d => {
-            if (!d.plainText && d.content) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = d.content;
-                d.plainText = tempDiv.innerText || tempDiv.textContent || '';
-                d.annotations = [];
+            if (d.selectedForAI === undefined) {
+                d.selectedForAI = !d.name.startsWith("KI-Analyse");
             }
         });
-
         saveSettings();
         updateInterface();
     }
@@ -2071,154 +1830,53 @@ function openAndReadJsonFile() {
             const file = event.target.files[0];
             if (!file) return resolve(null);
             const reader = new FileReader();
-            reader.onload = (e) => {
-                try { resolve(JSON.parse(e.target.result)); } 
-                catch (err) { alert('Ungültiges JSON'); resolve(null); }
-            };
+            reader.onload = (e) => { try { resolve(JSON.parse(e.target.result)); } catch (err) { resolve(null); } };
             reader.readAsText(file);
         };
         input.click();
     });
 }
 
-function loadScript(url) {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${url}"]`)) {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = url;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Fehler beim Laden von ${url}`));
-    document.head.appendChild(script);
-  });
-}
-
 async function exportToQDPX() {
-  if (!DOCUMENTS || DOCUMENTS.length === 0) return;
-  const scriptUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js';
-  try {
-    await loadScript(scriptUrl);
+    if (!DOCUMENTS || DOCUMENTS.length === 0) return;
+    const scriptUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js';
+    try {
+        const script = document.createElement('script');
+        script.src = scriptUrl;
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+        
+        const zip = new JSZip();
+        const projectGuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
+        const codeGuidMap = {};
+        CODES.forEach(c => codeGuidMap[c.id] = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => (Math.random()*16|0).toString(16)));
 
-    const generateGUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+        let codesXml = '';
+        CODES.forEach(c => { codesXml += `\n      <Code guid="${codeGuidMap[c.id]}" name="${escapeHTML(c.name)}" color="${c.color}" isNote="false" />`; });
 
-    const projectGuid = generateGUID();
-    const zip = new JSZip();
-
-    const processedDocs = [];
-    const allCodings = [];
-
-    getCorpusDocuments().forEach((doc) => {
-      const docGuid = generateGUID();
-      const docFileName = `Sources/doc_${doc.id}.txt`;
-      const plainText = doc.plainText || '';
-
-      (doc.annotations || []).forEach(a => {
-        allCodings.push({
-            guid: generateGUID(),
-            codeId: a.codeId,
-            docGuid: docGuid,
-            startPosition: a.start,
-            endPosition: a.end
+        let sourcesXml = '';
+        getCorpusDocuments().forEach((doc) => {
+            const docGuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
+            zip.file(`Sources/doc_${doc.id}.txt`, doc.plainText || '');
+            let selectionsXml = '';
+            (doc.annotations || []).forEach(a => {
+                const codeGuid = codeGuidMap[a.codeId];
+                if (codeGuid) {
+                    selectionsXml += `<PlainTextSelection guid="x" startPosition="${a.start}" endPosition="${a.end}"><Coding guid="x"><CodeRef targetGUID="${codeGuid}" /></Coding></PlainTextSelection>`;
+                }
+            });
+            sourcesXml += `<TextSource guid="${docGuid}" name="${escapeHTML(doc.name)}" path="internal://Sources/doc_${doc.id}.txt">${selectionsXml}</TextSource>`;
         });
-      });
 
-      processedDocs.push({
-        id: doc.id,
-        guid: docGuid,
-        name: doc.name,
-        plainText: plainText,
-        path: docFileName
-      });
-
-      zip.file(docFileName, plainText);
-    });
-
-    const codeGuidMap = {};
-    CODES.forEach(c => {
-      codeGuidMap[c.id] = generateGUID();
-    });
-
-    let codesXml = '';
-    CODES.forEach(c => {
-      codesXml += `\n      <Code guid="${codeGuidMap[c.id]}" name="${escapeHTML(c.name)}" color="${c.color}" isNote="false" />`;
-    });
-
-    let sourcesXml = '';
-    processedDocs.forEach(d => {
-      const docCodings = allCodings.filter(c => c.docGuid === d.guid);
-    
-      let selectionsXml = '';
-      docCodings.forEach(coding => {
-        const codeGuid = codeGuidMap[coding.codeId];
-        if (!codeGuid) return;
-
-        selectionsXml += `
-          <PlainTextSelection guid="${coding.guid}" startPosition="${coding.startPosition}" endPosition="${coding.endPosition}">
-            <Coding guid="${generateGUID()}">
-              <CodeRef targetGUID="${codeGuid}" />
-            </Coding>
-          </PlainTextSelection>`;
-      });
-
-      sourcesXml += `
-        <TextSource guid="${d.guid}" name="${escapeHTML(d.name)}" path="internal://${d.path}">
-          ${selectionsXml}
-        </TextSource>`;
-    });
-
-    let notesXml = '';
-    if (Object.keys(SETTINGS).length > 0) {
-      const noteGuid = generateGUID();
-      const formattedSettings = Object.entries(SETTINGS)
-        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-        .join('\n');
-
-      notesXml = `
-    <Notes>
-      <Note guid="${noteGuid}" name="Analyse-Einstellungen (KI/MyQDA)">
-        <PlainText>${escapeHTML(formattedSettings)}</PlainText>
-      </Note>
-    </Notes>`;
-    }
-
-    const projectXml = `<?xml version="1.0" encoding="UTF-8"?>
-  <Project xmlns="http://www.qraconso.org/refi-qda/Project" 
-           guid="${projectGuid}" 
-           name="MyQDA_Export" 
-           origin="MyQDA - KI-basierte Inhaltsanalyse nach Fischer (2025)" 
-           creatingUser="System">
-    <Codes>${codesXml}
-    </Codes>
-    <Sources>
-      ${sourcesXml}
-    </Sources>
-    ${notesXml}
-  </Project>`;
-
-  zip.file("project.qde", projectXml);
-
-    const blob = await zip.generateAsync({ type: "blob" });
-    const downloadUrl = URL.createObjectURL(blob);
-  
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = `Export_MAXQDA_${new Date().toISOString().slice(0, 10)}.qdpx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
-  } catch (error) {
-    console.error("JSZip konnte nicht geladen werden:", error);
-  }
+        zip.file("project.qde", `<?xml version="1.0" encoding="UTF-8"?><Project xmlns="http://www.qraconso.org/refi-qda/Project" guid="${projectGuid}" name="Export"><Codes>${codesXml}</Codes><Sources>${sourcesXml}</Sources></Project>`);
+        const blob = await zip.generateAsync({ type: "blob" });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `project_export.qdpx`;
+        a.click();
+    } catch (e) { console.error(e); }
 }
 
-// Resizer Steuerungs-Logik
 const resizer = document.getElementById('panel-resizer');
 const topPanel = document.getElementById('document-panel');
 const bottomPanel = document.getElementById('code-panel');
@@ -2226,29 +1884,38 @@ const sidebar = document.getElementById('left-sidebar');
 
 resizer.addEventListener('mousedown', (e) => {
     e.preventDefault();
-    
     const onMouseMove = (moveEvent) => {
-        const sidebarRect = sidebar.getBoundingClientRect();
-        let newTopHeight = moveEvent.clientY - sidebarRect.top;
-        
-        const minHeight = 80;
-        const maxHeight = sidebarRect.height - minHeight - resizer.offsetHeight;
-
-        if (newTopHeight < minHeight) newTopHeight = minHeight;
-        if (newTopHeight > maxHeight) newTopHeight = maxHeight;
-
-        const topPercentage = (newTopHeight / sidebarRect.height) * 100;
-        const bottomPercentage = 100 - topPercentage - ((resizer.offsetHeight / sidebarRect.height) * 100);
-
-        topPanel.style.height = `${topPercentage}%`;
-        bottomPanel.style.height = `${bottomPercentage}%`;
+        let newTopHeight = moveEvent.clientY - sidebar.getBoundingClientRect().top;
+        if (newTopHeight < 80) newTopHeight = 80;
+        if (newTopHeight > sidebar.getBoundingClientRect().height - 88) newTopHeight = sidebar.getBoundingClientRect().height - 88;
+        topPanel.style.height = `${(newTopHeight / sidebar.getBoundingClientRect().height) * 100}%`;
+        bottomPanel.style.height = `${100 - parseFloat(topPanel.style.height)}%`;
     };
-
     const onMouseUp = () => {
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
     };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+});
 
+// Neuer Resizer für die vertikale Trennlinie zwischen linker Seitenleiste und Hauptinhalt
+const sidebarResizer = document.getElementById('sidebar-resizer');
+const appContainer = document.getElementById('app-container');
+
+sidebarResizer.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const onMouseMove = (moveEvent) => {
+        let newWidth = moveEvent.clientX - appContainer.getBoundingClientRect().left;
+        const containerWidth = appContainer.getBoundingClientRect().width;
+        if (newWidth < 200) newWidth = 200;
+        if (newWidth > containerWidth - 300) newWidth = containerWidth - 300;
+        sidebar.style.width = `${newWidth}px`;
+    };
+    const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    };
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
 });
