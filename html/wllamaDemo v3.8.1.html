@@ -5,7 +5,8 @@
     <title>wllama Demo</title>
 </head>
 <body>
-    <input type="file" id="modelFile" accept=".gguf"><br><br>
+    <input type="file" id="modelFile" accept=".gguf">
+    <label><input type="checkbox" id="webgpu"> WebGPU</label><br><br>
     <input type="text" id="prompt" value="Schreibe einen kurzen Witz." style="width:300px;">
     <button onclick="run()" id="sendBtn" disabled>Senden</button><br><br>
     <textarea id="output" rows="10" cols="50" readonly>Lade wllama Runtime...</textarea>
@@ -42,39 +43,51 @@
             const fileInput = document.getElementById('modelFile');
             const promptText = document.getElementById('prompt').value;
             const output = document.getElementById('output');
+            const sendBtn = document.getElementById('sendBtn'); 
+            const webgpuChecked = document.getElementById('webgpu').checked;
             
             if (fileInput.files.length === 0) {
                 alert("Bitte zuerst eine .gguf Datei auswählen!");
                 return;
             }
 
-            output.value = "Lade Modell in den Speicher (kann einen Moment dauern)...";
+            sendBtn.disabled = true;
+            output.value = "Lade Modell in den Speicher\n(kann einen Moment dauern...)";
 
-            const wllama = new WllamaClass({
-                'default': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/wasm/wllama.wasm'
-            });
+            try {
+                const wllama = new WllamaClass({
+                    'default': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/wasm/wllama.wasm'
+                });
 
-            // Wichtig: jinja: true aktivieren, damit das Chat-Template des Modells genutzt wird
-            await wllama.loadModel([fileInput.files[0]], { jinja: true, n_gpu_layers: 0 });
-            
-            output.value = "";
-            
-            // Nutze createChatCompletion mit dem OpenAI-kompatiblen Nachrichtenformat
-            const chatStream = await wllama.createChatCompletion({
-                messages: [
-                    { role: 'user', content: promptText }
-                ],
-                n_predict: 256,
-                stream: true
-            });
+                const loadOptions = { jinja: true };
+                if (!webgpuChecked) {
+                    loadOptions.n_gpu_layers = 0;
+                }
 
-            // Iteriere über den Stream und schreibe Token für Token in die Textarea
-            for await (const chunk of chatStream) {
-                const delta = chunk.choices[0]?.delta?.content || '';
-                output.value += delta;
+                await wllama.loadModel([fileInput.files[0]], loadOptions);
+                
+                output.value = "";
+                
+                const chatStream = await wllama.createChatCompletion({
+                    messages: [
+                        { role: 'user', content: promptText }
+                    ],
+                    n_predict: 256,
+                    stream: true
+                });
+
+                for await (const chunk of chatStream) {
+                    const delta = chunk.choices[0]?.delta?.content || '';
+                    output.value += delta;
+                }
+                
+                await wllama.exit();
+            } catch (err) {
+                console.error('Fehler bei der Generierung:', err);
+                output.value += "\n[Fehler: " + err.message + "]";
+            } finally {
+                sendBtn.disabled = false;
             }
-            
-            await wllama.exit();
         };
     </script>
 </body>
