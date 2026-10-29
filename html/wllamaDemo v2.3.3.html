@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>wllama v2.3.3 Demo</title></head><body>
+    <input type="file" id="modelFile" accept=".gguf"><br><br>
+    <input type="text" id="prompt" value="Schreibe einen kurzen Witz." style="width:300px;">
+    <button id="sendBtn" disabled>Senden</button><br><br>
+    <textarea id="output" rows="10" cols="50" readonly>Lade wllama Runtime...</textarea>
+    <script type="module">
+        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.3/esm/index.js';
+        const CONFIG_PATHS = {
+            'single-thread/wllama.wasm': 
+		'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.3/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm': 
+		'https://cdn.jsdelivr.net/npm/@wllama/wllama@2.3.3/esm/multi-thread/wllama.wasm'
+        };
+        let wllama = null;
+        const output = document.getElementById('output');
+        const sendBtn = document.getElementById('sendBtn');
+        const fileInput = document.getElementById('modelFile');
+        (async function() {
+            try {
+                wllama = new Wllama(CONFIG_PATHS);
+                output.value = "Bereit! Bitte GGUF-Modell auswählen.";
+                fileInput.disabled = false;
+            } catch (err) {
+                console.error('Ladefehler:', err);
+                output.value = "Fehler beim Initialisieren: " + err.message;
+            }
+        })();
+        fileInput.addEventListener('change', async (e) => {
+            if (e.target.files.length === 0) return;
+            output.value = "Lade Modell in den Speicher (kann einen Moment dauern)...";
+            sendBtn.disabled = true;
+            try {
+                await wllama.loadModel([e.target.files[0]], { n_ctx: 2048 });
+                output.value = "Modell erfolgreich geladen! Du kannst jetzt Senden.";
+                sendBtn.disabled = false;
+            } catch (err) {
+                console.error('Modell-Ladefehler:', err);
+                output.value = "Fehler beim Laden des Modells: " + err.message;
+            }
+        });
+        sendBtn.addEventListener('click', async () => {
+            if (!wllama) return;
+            const promptText = document.getElementById('prompt').value;
+            output.value = "";
+            const formattedPrompt = `<|im_start|>user\n${promptText}<|im_endto|\n<|im_start|>assistant\n`;
+            try {
+                await wllama.createCompletion(formattedPrompt, {
+                    nPredict: 256, sampling: { temp: 0.7, top_p: 0.9, top_k: 40 },
+                    onNewToken: (token, piece) => {
+                        let textChunk = '';
+                        if (typeof piece === 'string') {textChunk = piece;} else if (piece instanceof Uint8Array) {
+                            textChunk = new TextDecoder().decode(piece);} else if (token) {
+                            try {textChunk = wllama.detokenize([token]);} catch (e) {textChunk = String(piece || '');}
+                        }
+                        output.value += textChunk;
+                    }
+                });
+            } catch (err) {
+                console.error('Inferenzfehler:', err);
+                output.value += "\n[Fehler bei der Inferenz: " + err.message + "]";
+            }
+        });
+    </script></body></html>

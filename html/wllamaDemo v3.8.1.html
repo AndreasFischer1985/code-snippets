@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>wllama Demo</title>
+</head>
+<body>
+    <input type="file" id="modelFile" accept=".gguf"><br><br>
+    <input type="text" id="prompt" value="Schreibe einen kurzen Witz." style="width:300px;">
+    <button onclick="run()" id="sendBtn" disabled>Senden</button><br><br>
+    <textarea id="output" rows="10" cols="50" readonly>Lade wllama Runtime...</textarea>
+
+    <script>
+        let WllamaClass = null;
+
+        (async function() {
+            try {
+                const version = '3.8.1';
+                const moduleUrl = `https://cdn.jsdelivr.net/npm/@wllama/wllama@${version}/esm/index.js`;
+                const res = await fetch(moduleUrl);
+                let code = await res.text();
+
+                code = code.replaceAll('./single-thread/', `https://cdn.jsdelivr.net/npm/@wllama/wllama@${version}/esm/single-thread/`);
+                code = code.replaceAll('./multi-thread/', `https://cdn.jsdelivr.net/npm/@wllama/wllama@${version}/esm/multi-thread/`);
+
+                const blob = new Blob([code], { type: 'application/javascript' });
+                const blobUrl = URL.createObjectURL(blob);
+
+                const wllamaModule = await import(blobUrl);
+                WllamaClass = wllamaModule.Wllama;
+                
+                document.getElementById('output').value = "Bereit! Bitte GGUF-Modell auswählen.";
+                document.getElementById('sendBtn').disabled = false;
+            } catch (err) {
+                console.error('Ladefehler:', err);
+                document.getElementById('output').value = "Fehler beim Initialisieren: " + err.message;
+            }
+        })();
+
+        window.run = async () => {
+            if (!WllamaClass) return;
+            const fileInput = document.getElementById('modelFile');
+            const promptText = document.getElementById('prompt').value;
+            const output = document.getElementById('output');
+            
+            if (fileInput.files.length === 0) {
+                alert("Bitte zuerst eine .gguf Datei auswählen!");
+                return;
+            }
+
+            output.value = "Lade Modell in den Speicher (kann einen Moment dauern)...";
+
+            const wllama = new WllamaClass({
+                'default': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/wasm/wllama.wasm'
+            });
+
+            // Wichtig: jinja: true aktivieren, damit das Chat-Template des Modells genutzt wird
+            await wllama.loadModel([fileInput.files[0]], { jinja: true, n_gpu_layers: 0 });
+            
+            output.value = "";
+            
+            // Nutze createChatCompletion mit dem OpenAI-kompatiblen Nachrichtenformat
+            const chatStream = await wllama.createChatCompletion({
+                messages: [
+                    { role: 'user', content: promptText }
+                ],
+                n_predict: 256,
+                stream: true
+            });
+
+            // Iteriere über den Stream und schreibe Token für Token in die Textarea
+            for await (const chunk of chatStream) {
+                const delta = chunk.choices[0]?.delta?.content || '';
+                output.value += delta;
+            }
+            
+            await wllama.exit();
+        };
+    </script>
+</body>
+</html>
