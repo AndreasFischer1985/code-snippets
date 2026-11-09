@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Dr. Andreas Fischer">
+  <meta name="copyright" content="Dr. Andreas Fischer">
+  <meta name="reply-to" content="andreasfischer1985@web.de">
+  <title>MyAgentHarness</title>
+  <!-- PDF.js für Client-seitiges PDF-Parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <!-- Marked.js über CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #1e1e2e;
+      --bg-secondary: #252538;
+      --bg-card: #2b2b40;
+      --text-main: #cdd6f4;
+      --text-muted: #a6adc8;
+      --accent: #89b4fa;
+      --accent-hover: #b4befe;
+      --border: #45475a;
+      --success: #a6e3a1;
+      --warning: #f9e2af;
+      --danger: #f38ba8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 440px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      gap: 15px;
+      overflow-y: auto;
+    }
+
+    #main-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-primary);
+      min-width: 0;
+    }
+
+    /* Style für klappbare Sidebar-Sektionen */
+    details.section {
+      background: var(--bg-card);
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    details.section summary {
+      font-size: 1.1rem;
+      color: var(--accent);
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+      list-style: none; /* Entfernt Standard-Marker für schöneres Design */
+    }
+    details.section summary::-webkit-details-marker {
+      display: none;
+    }
+    details.section summary::after {
+      content: ' ▼';
+      font-size: 0.8rem;
+      float: right;
+      color: var(--text-muted);
+    }
+    details.section[open] summary::after {
+      content: ' ▲';
+    }
+
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+    input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+    textarea { resize: vertical; }
+
+    .file-upload-btn { border: 1px dashed var(--border); border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; background: var(--bg-primary); }
+    .file-upload-btn:hover { border-color: var(--accent); }
+    
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; }
+
+    .doc-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); margin-bottom: 6px; font-size: 0.85rem; }
+    .doc-item-left { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+    .doc-item-actions { display: flex; gap: 4px; align-items: center; }
+    
+    .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 0.9rem; padding: 2px 4px; border-radius: 3px; color: var(--text-main); }
+    .btn-icon:hover { background: var(--border); }
+    .btn-del { color: var(--danger); font-weight: bold; }
+
+    #chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg { padding: 10px 14px; border-radius: 6px; max-width: 85%; min-width: 0; font-size: 0.95rem; line-height: 1.4; word-break: break-word; overflow-wrap: break-word; }
+    .msg.user { background: #313244; align-self: flex-end; border: 1px solid var(--border); }
+    .msg.assistant { background: #45475a; align-self: flex-start; }
+    .msg.system-info { background: transparent; color: var(--text-muted); font-size: 0.8rem; align-self: center; font-style: italic; }
+
+    .msg.assistant p { margin-bottom: 8px; }
+    .msg.assistant p:last-child { margin-bottom: 0; }
+    .msg.assistant pre { background: #181825; padding: 8px; border-radius: 4px; overflow-x: auto; margin: 6px 0; max-width: 100%; }
+    .msg.assistant code { font-family: monospace; background: rgba(0,0,0,0.2); padding: 2px 4px; border-radius: 3px; word-break: break-all; }
+    .msg.assistant pre code { background: transparent; padding: 0; }
+    .msg.assistant ul, .msg.assistant ol { margin-left: 20px; margin-bottom: 8px; }
+    .msg.assistant img { max-width: 100%; border-radius: 4px; margin-top: 6px; }
+
+    .tool-call-card {
+      background: #181825;
+      border: 1px dashed var(--accent);
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      align-self: flex-start;
+      width: 90%;
+    }
+    .tool-call-card header { color: var(--accent); font-weight: bold; margin-bottom: 4px; }
+    .tool-call-card .args { color: var(--warning); white-space: pre-wrap; margin-bottom: 6px; }
+    .tool-call-card .result { color: var(--success); white-space: pre-wrap; background: #11111b; padding: 6px; border-radius: 4px; max-height: 150px; overflow-y: auto; }
+
+    #chat-input-container {
+      padding: 15px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      background: var(--accent);
+      color: #11111b;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 6px; }
+    .btn-secondary { background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); background: var(--border); }
+
+    .approval-banner {
+      background: #313244;
+      border: 1px solid var(--warning);
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .approval-btn { background: var(--success); color: #11111b; }
+    .deny-btn { background: var(--danger); color: #11111b; }
+
+    /* Modal Overlay */
+    #modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal-content {
+      background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+      width: 700px; max-width: 90%; max-height: 85vh; display: flex; flex-direction: column; padding: 20px;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 12px; }
+    .modal-body { overflow-y: auto; font-size: 0.9rem; line-height: 1.4; white-space: pre-wrap; font-family: monospace; background: var(--bg-primary); padding: 10px; border-radius: 4px; flex: 1; border: 1px solid var(--border); width: 100%; min-height: 200px; color: var(--text-main); }
+  </style>
+</head>
+<body>
+
+  <!-- Modal für Dokumentendetails & Editierung -->
+  <div id="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="color: var(--accent);">Dokumenten-Details & Editor</h3>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="saveModalDocChanges()">Speichern</button>
+          <button class="btn-secondary" onclick="closeDocModal()">Schließen</button>
+        </div>
+      </div>
+      <div style="margin-bottom: 10px; font-size: 0.85rem;" id="modal-meta-container">
+        <label>Titel:</label>
+        <input type="text" id="modal-input-title" style="margin-bottom: 6px;">
+        <label>Kurzbeschreibung:</label>
+        <textarea id="modal-input-desc" rows="2" style="margin-bottom: 6px;"></textarea>
+        <div style="color: var(--text-muted); font-size: 0.8rem;" id="modal-filename-info"></div>
+      </div>
+      <label id="modal-content-label">Dokumenteninhalt:</label>
+      <textarea class="modal-body" id="modal-input-content"></textarea>
+    </div>
+  </div>
+
+  <!-- Sidebar / Config & Tools -->
+  <div id="sidebar">
+    <details class="section" open>
+      <summary>KI-Server</summary>
+      <label for="endpoint">Endpoint URL:</label>
+      <input type="text" id="endpoint" value="http://127.0.0.1:1234/v1/chat/completions" onchange="updateMaxContextFromEndpoint(); saveStateToLocalStorage();">
+
+      <label for="model-name" style="margin-top: 8px;">Modell:</label>
+      <input type="text" id="model-name" list="models-list" value="gemma-4-12b-it" onchange="updateMaxContextFromEndpoint(); saveStateToLocalStorage();" onblur="updateMaxContextFromEndpoint();">
+      <datalist id="models-list"></datalist>
+      
+      <label for="max-context" style="margin-top: 8px;">Max. Kontext (Tokens):</label>
+      <input type="number" id="max-context" value="4096" onchange="updateContextUsageDisplay(); saveStateToLocalStorage();">
+      
+      <div style="margin-top: 10px;" id="context-usage-container">
+        <div id="context-usage-text" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4px;">Auslastung: 0 / 4096 Tokens (0%)</div>
+        <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; height: 8px; overflow: hidden;">
+          <div id="context-usage-bar" style="background: var(--success); width: 0%; height: 100%; transition: width 0.3s;"></div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Session Management -->
+    <details class="section" open>
+      <summary>Session</summary>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="exportSession()" style="flex: 1;">Export JSON</button>
+        <button class="btn-secondary" onclick="document.getElementById('importSessionInput').click()" style="flex: 1;">Import JSON</button>
+        <button class="btn-secondary" onclick="clearSession()" style="color: var(--danger); border-color: var(--danger);" title="Session zurücksetzen">Reset</button>
+      </div>
+      <input type="file" id="importSessionInput" accept=".json" style="display: none;" onchange="importSession(event)">
+    </details>
+
+    <details class="section" open style="display: flex; flex-direction: column;">
+      <summary>AGENT.md</summary>
+      <textarea id="agent-md" style="flex: 1; min-height: 90px; margin-top: 8px;" oninput="syncAgentMdToDoc(); updateContextUsageDisplay(); saveStateToLocalStorage();">Du bist ein hilfsbereiter KI-Assistent mit Zugriff auf virtuelle Dokumente, Web-, Code- und Bildgenerierungs-Tools. Nutze search_web, wenn du etwas nicht weißt. Nutze read_doc und write_doc, um Dateien zu lesen und zu schreiben.</textarea>
+    </details>
+
+    <!-- Virtuelle Dokumente Sektion -->
+    <details class="section" open>
+      <summary>Virtuelle Dateien</summary>
+      <input type="file" id="fileInput" accept=".txt,.pdf,.png,.jpg,.jpeg,.md" multiple style="display: none;">
+      <div class="file-upload-btn" id="upload-btn-container" onclick="document.getElementById('fileInput').click()" style="margin-top: 8px;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">+ Dokumente/Bilder hochladen</span>
+      </div>
+      <div id="docList" style="margin-top: 8px;"></div>
+    </details>
+
+    <details class="section" open>
+      <summary>Verfügbare Tools</summary>
+      <div class="checkbox-group" id="tools-container" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+        <label><input type="checkbox" id="tool-read_doc" checked onchange="saveStateToLocalStorage()"> read_doc (Virtuelle Dateien)</label>
+        <label><input type="checkbox" id="tool-write_doc" checked onchange="saveStateToLocalStorage()"> write_doc (Virtuelle Dateien)</label>
+        <label><input type="checkbox" id="tool-search_web" checked onchange="saveStateToLocalStorage()"> search_web (DuckDuckGo)</label>
+        <label><input type="checkbox" id="tool-fetch_url" checked onchange="saveStateToLocalStorage()"> fetch_url</label>
+        <label><input type="checkbox" id="tool-search_wikipedia" checked onchange="saveStateToLocalStorage()"> search_wikipedia</label>
+        <label><input type="checkbox" id="tool-get_weather" checked onchange="saveStateToLocalStorage()"> get_weather</label>
+        <label><input type="checkbox" id="tool-calculate" checked onchange="saveStateToLocalStorage()"> calculate</label>
+        <label><input type="checkbox" id="tool-run_code" checked onchange="saveStateToLocalStorage()"> run_code (JavaScript)</label>
+        <label><input type="checkbox" id="tool-generate_image" checked onchange="saveStateToLocalStorage()"> generate_image</label>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary>Sicherheit</summary>
+      <div class="checkbox-group" style="margin-top: 8px;">
+        <label><input type="checkbox" id="require-approval" checked onchange="saveStateToLocalStorage()"> Tool-Calls manuell freigeben</label>
+      </div>
+    </details>
+  </div>
+
+  <!-- Chat Panel -->
+  <div id="main-chat">
+    <div id="chat-messages">
+      <div class="msg system-info">Starte neue Session.</div>
+    </div>
+
+    <div id="chat-input-container">
+      <textarea id="user-input" rows="2" placeholder="Frage oder Anweisung eingeben..."></textarea>
+      <button id="send-btn" onclick="handleSend()">Senden</button>
+      <button id="cancel-btn" class="btn-secondary" onclick="cancelAgent()" style="display: none; background: var(--danger); color: #11111b; border: none;">Abbrechen</button>
+    </div>
+  </div>
+
+  <script>
+    let uploadedDocs = {};
+    let docCounter = 0;
+    let chatHistory = [];
+    let currentModalDocId = null;
+    let toolCache = new Map();
+
+    let currentAbortController = null;
+    let isCancelled = false;
+    let chatHistorySnapshotBeforeSend = null;
+
+    const DEFAULT_AGENT_MD = "Du bist ein hilfsbereiter KI-Assistent mit Zugriff auf virtuelle Dokumente, Web-, Code- und Bildgenerierungs-Tools. Nutze search_web, wenn du etwas nicht weißt. Nutze read_doc und write_doc, um Dateien zu lesen und zu schreiben.";
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      loadStateFromLocalStorage();
+      if (!document.getElementById('max-context').value) {
+        await updateMaxContextFromEndpoint();
+      }
+      ensureAgentMdDocExists();
+      updateContextUsageDisplay();
+
+      const userInputElem = document.getElementById('user-input');
+      userInputElem.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          if (e.altKey || e.shiftKey) return;
+          e.preventDefault();
+          handleSend();
+        }
+      });
+    });
+
+    function saveStateToLocalStorage() {
+      const state = {
+        endpoint: document.getElementById('endpoint').value,
+        modelName: document.getElementById('model-name').value,
+        maxContext: document.getElementById('max-context').value,
+        agentMd: document.getElementById('agent-md').value,
+        requireApproval: document.getElementById('require-approval').checked,
+        uploadedDocs,
+        chatHistory,
+        toolCache: Array.from(toolCache.entries())
+      };
+      localStorage.setItem('myAgentHarnessState', JSON.stringify(state));
+    }
+
+    function loadStateFromLocalStorage() {
+      const saved = localStorage.getItem('myAgentHarnessState');
+      if (!saved) return;
+      try {
+        const state = JSON.parse(saved);
+        if (state.endpoint) document.getElementById('endpoint').value = state.endpoint;
+        if (state.modelName) document.getElementById('model-name').value = state.modelName;
+        if (state.maxContext) document.getElementById('max-context').value = state.maxContext;
+        if (state.agentMd) document.getElementById('agent-md').value = state.agentMd;
+        if (state.requireApproval !== undefined) document.getElementById('require-approval').checked = state.requireApproval;
+        if (state.toolCache) toolCache = new Map(state.toolCache);
+        
+        if (state.uploadedDocs) {
+          uploadedDocs = state.uploadedDocs;
+          document.getElementById('docList').innerHTML = "";
+          for (const [id, doc] of Object.entries(uploadedDocs)) {
+            addDocToUI(id, doc.name, doc.title, doc.isImage, doc.selected !== false);
+            if (doc.name === 'AGENT.md' && state.agentMd) {
+              doc.content = state.agentMd;
+            }
+          }
+        }
+        ensureAgentMdDocExists();
+        
+        if (state.chatHistory && Array.isArray(state.chatHistory)) {
+          chatHistory = state.chatHistory;
+          const container = document.getElementById('chat-messages');
+          container.innerHTML = '<div class="msg system-info">Session wiederhergestellt.</div>';
+          
+          // Helper, um Tool-Ergebnisse in chatHistory zu finden
+          const getToolResultText = (toolCallId) => {
+            const found = chatHistory.find(m => m.role === 'tool' && m.tool_call_id === toolCallId);
+            return found ? found.content : '[Ergebnis nicht verfügbar]';
+          };
+
+          for (let i = 0; i < chatHistory.length; i++) {
+            const msg = chatHistory[i];
+            if (msg.role === 'user') {
+              let displayTxt = typeof msg.content === 'string' ? msg.content : (msg.content.find(c => c.type === 'text')?.text || '[Multimodale Nachricht]');
+              appendMessageUI('user', displayTxt);
+            } else if (msg.role === 'assistant') {
+              if (msg.content) appendMessageUI('assistant', msg.content);
+              // Tool-Calls direkt beim Assistenten wiederherstellen
+              if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+                for (const tc of msg.tool_calls) {
+                  let argsParsed = {};
+                  try { argsParsed = JSON.parse(tc.function.arguments); } catch(e){}
+                  const resText = getToolResultText(tc.id);
+                  renderToolResultUI(tc.id, tc.function.name, argsParsed, resText);
+                }
+              }
+            }
+          }
+        }
+        updateContextUsageDisplay();
+      } catch(e) {
+        console.error("Fehler beim Laden des LocalStorage:", e);
+      }
+    }
+
+    function ensureAgentMdDocExists() {
+      let foundId = null;
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (doc.name === 'AGENT.md') {
+          foundId = id;
+          break;
+        }
+      }
+      const currentAgentMdContent = document.getElementById('agent-md').value;
+      if (!foundId) {
+        docCounter++;
+        const docId = `doc_${docCounter}`;
+        uploadedDocs[docId] = {
+          id: docId,
+          name: 'AGENT.md',
+          title: 'AGENT.md',
+          description: 'Virtuelle Konfigurationsdatei für den System-Prompt.',
+          content: currentAgentMdContent,
+          isImage: false,
+          selected: true,
+          page_count: 1
+        };
+        addDocToUI(docId, 'AGENT.md', 'System Prompt (AGENT.md)', false, true);
+      } else {
+        uploadedDocs[foundId].content = currentAgentMdContent;
+        if (!uploadedDocs[foundId].page_count) uploadedDocs[foundId].page_count = 1;
+        if (!document.getElementById(`item_${foundId}`)) {
+          addDocToUI(foundId, 'AGENT.md', uploadedDocs[foundId].title, false, uploadedDocs[foundId].selected !== false);
+        }
+      }
+    }
+
+    function syncAgentMdToDoc() {
+      const val = document.getElementById('agent-md').value;
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (doc.name === 'AGENT.md') {
+          doc.content = val;
+          break;
+        }
+      }
+      saveStateToLocalStorage();
+    }
+
+    function exportSession() {
+      const state = { 
+        endpoint: document.getElementById('endpoint').value, 
+        modelName: document.getElementById('model-name').value, 
+        maxContext: document.getElementById('max-context').value, 
+        agentMd: document.getElementById('agent-md').value, 
+        uploadedDocs, 
+        chatHistory,
+        toolCache: Array.from(toolCache.entries())
+      };
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `agent-session-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importSession(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const state = JSON.parse(e.target.result);
+          if (state.endpoint) document.getElementById('endpoint').value = state.endpoint;
+          if (state.modelName) document.getElementById('model-name').value = state.modelName;
+          if (state.maxContext) document.getElementById('max-context').value = state.maxContext;
+          if (state.agentMd) document.getElementById('agent-md').value = state.agentMd;
+          if (state.toolCache) toolCache = new Map(state.toolCache);
+          if (state.uploadedDocs) {
+            uploadedDocs = state.uploadedDocs;
+            document.getElementById('docList').innerHTML = "";
+            for (const [id, doc] of Object.entries(uploadedDocs)) {
+              if (!doc.page_count) doc.page_count = 1;
+              addDocToUI(id, doc.name, doc.title, doc.isImage, doc.selected !== false);
+              if (doc.name === 'AGENT.md' && state.agentMd) {
+                doc.content = state.agentMd;
+              }
+            }
+          }
+          ensureAgentMdDocExists();
+          
+          if (state.chatHistory) {
+            chatHistory = state.chatHistory;
+            document.getElementById('chat-messages').innerHTML = '<div class="msg system-info">Session erfolgreich importiert.</div>';
+            
+            const getToolResultText = (toolCallId) => {
+              const found = chatHistory.find(m => m.role === 'tool' && m.tool_call_id === toolCallId);
+              return found ? found.content : '[Ergebnis nicht verfügbar]';
+            };
+
+            for (const msg of chatHistory) {
+              if (msg.role === 'user') {
+                let displayTxt = typeof msg.content === 'string' ? msg.content : (msg.content.find(c => c.type === 'text')?.text || '[Multimodale Nachricht]');
+                appendMessageUI('user', displayTxt);
+              } else if (msg.role === 'assistant') {
+                if (msg.content) appendMessageUI('assistant', msg.content);
+                // Tool-Calls und Ergebnisse beim Importieren direkt UI-seitig rendern
+                if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+                  for (const tc of msg.tool_calls) {
+                    let argsParsed = {};
+                    try { argsParsed = JSON.parse(tc.function.arguments); } catch(e){}
+                    const resText = getToolResultText(tc.id);
+                    renderToolResultUI(tc.id, tc.function.name, argsParsed, resText);
+                  }
+                }
+              }
+            }
+          }
+          saveStateToLocalStorage();
+          updateContextUsageDisplay();
+        } catch(err) {
+          alert("Fehler beim Importieren: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    }
+
+    function clearSession() {
+      if (!confirm("Wirklich die gesamte Session zurücksetzen?")) return;
+      localStorage.removeItem('myAgentHarnessState');
+      uploadedDocs = {};
+      chatHistory = [];
+      docCounter = 0; 
+      toolCache.clear();
+      document.getElementById('docList').innerHTML = "";
+      document.getElementById('agent-md').value = DEFAULT_AGENT_MD;
+      document.getElementById('chat-messages').innerHTML = '<div class="msg system-info">Session zurückgesetzt.</div>';
+      ensureAgentMdDocExists();
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+    }
+
+    async function updateMaxContextFromEndpoint() {
+      const maxContextInput = document.getElementById('max-context');
+      const endpoint = document.getElementById('endpoint').value.trim();
+      const modelField = document.getElementById('model-name');
+      const datalist = document.getElementById('models-list');
+      const modelVal = modelField.value.trim().toLowerCase();
+      
+      let baseUrl = endpoint.includes('/v1/') ? endpoint.split('/v1/')[0] : endpoint.replace(/\/+$/, '');
+      const info_url = `${baseUrl}/api/v1/models`;
+      const headers = {};
+      const apiKey = document.getElementById('api-key')?.value;
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    
+      try {
+        const response = await fetch(info_url, { headers });
+        if (!response.ok) throw new Error('Netzwerk-Fehler');
+        const data = await response.json();
+    
+        let maxTokens = null;
+        const modelsList = data.models || data.data || (Array.isArray(data) ? data : null);
+    
+        if (Array.isArray(modelsList) && modelsList.length > 0) {
+          if (datalist) {
+            datalist.innerHTML = '';
+            modelsList.forEach(m => {
+              const mId = m.id || m.key || m.name;
+              if (mId) {
+                const option = document.createElement('option');
+                option.value = mId;
+                datalist.appendChild(option);
+              }
+            });
+          }
+    
+          const validModelMatch = modelsList.find(m => {
+            const mId = (m.id || m.key || m.name || "").toLowerCase();
+            return mId === modelVal || mId.includes(modelVal) || modelVal.includes(mId);
+          });
+    
+          let currentModel = validModelMatch || modelsList[0];
+          if (!validModelMatch && currentModel) {
+            const fetchedName = currentModel.id || currentModel.name || currentModel.key;
+            if (fetchedName) modelField.value = fetchedName;
+          }
+    
+          if (currentModel) {
+            maxTokens = currentModel.max_context_length || currentModel.context_length || currentModel.max_model_len;
+          }
+        } else if (data.max_tokens) {
+          maxTokens = data.max_tokens;
+        }
+    
+        if (maxTokens && (!maxContextInput.value || maxContextInput.value == "4096")) {
+          maxContextInput.value = maxTokens;
+        }
+      } catch (e) {
+        if (!maxContextInput.value) {
+          maxContextInput.value = 4096;
+        }
+      }
+      
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+    }
+
+    let activeFrozenSystemPrompt = null;
+
+    function getCompleteSystemPrompt() {
+      if (activeFrozenSystemPrompt !== null) {
+        return activeFrozenSystemPrompt;
+      }
+
+      let baseAgentMd = document.getElementById('agent-md').value;
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (doc.name === 'AGENT.md' && doc.selected !== false) {
+          baseAgentMd = doc.content;
+          break;
+        }
+      }
+
+      let activeDocsSection = "";
+      let count = 0;
+
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (doc.selected !== false) {
+          if (count === 0) {
+            activeDocsSection += "\n\n--- VIRTUELLE DOKUMENTE ---\n";
+          }
+          count++;
+          activeDocsSection += `- ID: \`${id}\` | Dateiname: \`${doc.name}\` | Titel: **${doc.title}** | Seiten: ${doc.page_count || 1}\n  Beschreibung: ${doc.description}\n`;
+        }
+      }
+
+      return baseAgentMd + activeDocsSection;
+    }
+
+    function estimateTotalTokens(messages) {
+      let chars = 0;
+      for (const m of messages) {
+        chars += 4;
+        if (m.role) chars += m.role.length;
+        if (typeof m.content === 'string') chars += m.content.length;
+        else if (Array.isArray(m.content)) chars += JSON.stringify(m.content).length;
+        if (m.tool_calls) chars += JSON.stringify(m.tool_calls).length;
+        if (m.tool_call_id) chars += m.tool_call_id.length;
+      }
+      return Math.ceil(chars / 4);
+    }
+
+    function updateContextUsageDisplay() {
+      const fullSystemPrompt = getCompleteSystemPrompt();
+      const messages = [{ role: "system", content: fullSystemPrompt }, ...chatHistory];
+      const totalTokens = estimateTotalTokens(messages);
+      const maxTokens = parseInt(document.getElementById('max-context').value) || 4096;
+      const percentage = Math.min(100, Math.round((totalTokens / maxTokens) * 100));
+
+      const usageText = document.getElementById('context-usage-text');
+      const usageBar = document.getElementById('context-usage-bar');
+      if (usageText && usageBar) {
+        usageText.innerText = `Auslastung: ${totalTokens} / ${maxTokens} Tokens (${percentage}%)`;
+        usageBar.style.width = `${percentage}%`;
+        usageBar.style.backgroundColor = percentage > 80 ? 'var(--danger)' : percentage > 60 ? 'var(--warning)' : 'var(--success)';
+      }
+    }
+
+    async function handleContextOverflow(messagesRef, maxContextTokens, model = "gemma-4-12b-it", apiUrl = "http://127.0.0.1:1234/v1/chat/completions") {
+      const threshold = Math.floor(maxContextTokens * 0.80);
+      if (estimateTotalTokens(messagesRef) <= threshold) return false;
+      let systemMsg = messagesRef.length > 0 && messagesRef[0].role === 'system' ? messagesRef.shift() : null;
+      let lastUserMsg = null;
+      let lastUserMsgIndex = -1;
+      for (let i = messagesRef.length - 1; i >= 0; i--) {
+        if (messagesRef[i].role === 'user') { lastUserMsgIndex = i; break; }
+      }
+      if (lastUserMsgIndex !== -1) lastUserMsg = messagesRef.splice(lastUserMsgIndex, 1)[0];
+
+      const rebuildAndCheck = () => {
+        let current = [];
+        if (systemMsg !== null) current.push(systemMsg);
+        current.push(...messagesRef);
+        if (lastUserMsg !== null) current.push(lastUserMsg);
+        let tokens = estimateTotalTokens(current);
+        return { messages: current, tokens, ok: tokens <= threshold };
+      };
+
+      let check = rebuildAndCheck();
+      if (check.ok) { messagesRef.length = 0; messagesRef.push(...check.messages); return true; }
+
+      let historyText = "";
+      for (const m of messagesRef) {
+        let role = m.role || 'user';
+        let content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '');
+        if (content) historyText += `[${role}]: ${content}\n`;
+      }
+
+      let summary = "";
+      if (historyText.trim() !== "") {
+        try {
+          let sumRes = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model, messages: [{ role: "system", content: "Fasse zusammen:" }, { role: "user", content: historyText }], max_tokens: 800, temperature: 0.1 })
+          });
+          if (sumRes.ok) {
+            let dataSum = await sumRes.json();
+            summary = dataSum.choices?.[0]?.message?.content || '';
+          }
+        } catch (e) {}
+      }
+
+      messagesRef.length = 0;
+      messagesRef.push({ role: "assistant", content: summary !== "" ? "Zusammenfassung: " + summary : "[Zusammenfassung wegen Context-Overflow entfernt]" });
+      let finalCheck = rebuildAndCheck();
+      messagesRef.length = 0;
+      messagesRef.push(...finalCheck.messages);
+      return true;
+    }
+
+    async function generateDocMetadata(fileName, fileContent) {
+      if (fileName === 'AGENT.md') {
+        return { title: 'System Prompt (AGENT.md)', description: 'Virtuelle Konfigurationsdatei für den System-Prompt.' };
+      }
+      const endpoint = document.getElementById('endpoint').value.trim();
+      const modelVal = document.getElementById('model-name').value;
+      const snippet = fileContent.substring(0, 3000);
+
+      const prompt = `Analysiere den folgenden Dateinamen und Textauszug. Generiere im JSON-Format genau zwei Felder:
+1. "title": Ein aussagekräftiger Titel für das Dokument.
+2. "description": Eine präzise Kurzbeschreibung (ca. 1-2 Sätze) des Inhalts.
+
+Dateiname: ${fileName}
+Auszug:
+${snippet}
+
+Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`;
+
+      try {
+        const res = await fetch(endpoint.includes('/chat/completions') ? endpoint : endpoint.replace(/\/+$/, '') + '/v1/chat/completions', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: modelVal,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1,
+            max_tokens: 300
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          let rawText = data.choices?.[0]?.message?.content || '';
+          rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+          const parsed = JSON.parse(rawText);
+          return {
+            title: parsed.title || fileName,
+            description: parsed.description || "Keine Kurzbeschreibung verfügbar."
+          };
+        }
+      } catch (e) {}
+      return { title: fileName, description: "Automatische Kurzbeschreibung nicht verfügbar." };
+    }
+
+    document.getElementById('fileInput').addEventListener('change', async function(e) {
+      const files = e.target.files;
+      if (!files.length) return;
+
+      const uploadContainer = document.getElementById('upload-btn-container');
+      const originalHTML = uploadContainer.innerHTML;
+      uploadContainer.innerHTML = `<span class="spinner"></span> <span style="font-size: 0.85rem; color: var(--text-muted);">Dokumente werden eingelesen...</span>`;
+      uploadContainer.style.pointerEvents = 'none';
+
+      try {
+        for (const file of files) {
+          let extractedText = "";
+          let metadataSnippet = "";
+          let isImage = false;
+          let pageCount = 1;
+
+          if (file.type.startsWith("image/") || /\.(png|jpg|jpeg|webp)$/i.test(file.name)) {
+            isImage = true;
+            const base64Data = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.readAsDataURL(file);
+            });
+            extractedText = base64Data;
+            metadataSnippet = file.name;
+            pageCount = 1;
+          } else if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            pageCount = pdf.numPages || 1;
+            let fullText = "";
+            let snippetText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageStr = `--- Seite ${i} ---\n` + textContent.items.map(item => item.str).join(" ") + "\n\n";
+              fullText += pageStr;
+              if (i <= 5) {
+                snippetText += pageStr;
+              }
+            }
+            extractedText = fullText;
+            metadataSnippet = snippetText;
+          } else {
+            extractedText = await file.text();
+            metadataSnippet = extractedText;
+            pageCount = 1;
+          }
+
+          const meta = await generateDocMetadata(file.name, metadataSnippet);
+
+          let targetId = null;
+          for (const [id, doc] of Object.entries(uploadedDocs)) {
+            if (doc.name === 'AGENT.md' && file.name === 'AGENT.md') {
+              targetId = id;
+              break;
+            }
+          }
+
+          if (targetId) {
+            uploadedDocs[targetId].content = extractedText;
+            uploadedDocs[targetId].title = meta.title;
+            uploadedDocs[targetId].description = meta.description;
+            uploadedDocs[targetId].page_count = pageCount;
+            if (file.name === 'AGENT.md') {
+              document.getElementById('agent-md').value = extractedText;
+            }
+          } else {
+            docCounter++;
+            const docId = `doc_${docCounter}`;
+            uploadedDocs[docId] = {
+              id: docId,
+              name: file.name,
+              title: meta.title,
+              description: meta.description,
+              content: extractedText,
+              isImage,
+              selected: true,
+              page_count: pageCount
+            };
+            addDocToUI(docId, file.name, meta.title, isImage, true);
+            if (file.name === 'AGENT.md') {
+              document.getElementById('agent-md').value = extractedText;
+            }
+          }
+        }
+      } finally {
+        uploadContainer.innerHTML = originalHTML;
+        uploadContainer.style.pointerEvents = 'auto';
+        this.value = "";
+        updateContextUsageDisplay();
+        saveStateToLocalStorage();
+      }
+    });
+
+    function addDocToUI(id, name, title, isImage = false, selected = true) {
+      const docList = document.getElementById('docList');
+      if (document.getElementById(`item_${id}`)) return;
+      const div = document.createElement('div');
+      div.className = 'doc-item';
+      div.id = `item_${id}`;
+      const icon = isImage ? '🖼️' : '📄';
+      div.innerHTML = `
+        <div class="doc-item-left">
+          <input type="checkbox" id="chk_${id}" ${selected ? 'checked' : ''} onchange="toggleDocSelection('${id}')">
+          <span title="${title}"> ${icon} <strong>${id}:</strong> ${name}</span>
+        </div>
+        <div class="doc-item-actions">
+          <button type="button" class="btn-icon" title="Details einsehen & editieren" onclick="openDocModal('${id}')">👁️</button>
+          <button type="button" class="btn-icon" title="Export (Titel, Beschreibung, Inhalt)" onclick="exportDocTxt('${id}')">📥</button>
+          <button type="button" class="btn-icon btn-del" title="Löschen" onclick="removeDoc('${id}')">✕</button>
+        </div>
+      `;
+      docList.appendChild(div);
+    }
+
+    function toggleDocSelection(id) {
+      const chk = document.getElementById(`chk_${id}`);
+      if (uploadedDocs[id]) {
+        uploadedDocs[id].selected = chk.checked;
+      }
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+    }
+
+    function removeDoc(id) {
+      if (uploadedDocs[id]?.name === 'AGENT.md') {
+        if (!confirm("AGENT.md aus der Dokumentenliste entfernen? Der Inhalt bleibt in der Sidebar als System-Prompt erhalten.")) return;
+      }
+      delete uploadedDocs[id];
+      document.getElementById(`item_${id}`)?.remove();
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+    }
+
+    function exportDocTxt(id) {
+      const doc = uploadedDocs[id];
+      if (!doc) return;
+      const exportContent = `ID: ${id}\nTitel: ${doc.title}\nDateiname: ${doc.name}\nSeiten: ${doc.page_count || 1}\nKurzbeschreibung:\n${doc.description}\n\n========================================\nINHALT:\n========================================\n\n${doc.content}`;
+      const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${doc.name.replace(/\.[^/.]+$/, "")}_export.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function openDocModal(id) {
+      const doc = uploadedDocs[id];
+      if (!doc) return;
+      currentModalDocId = id;
+      document.getElementById('modal-input-title').value = doc.title || "";
+      document.getElementById('modal-input-desc').value = doc.description || "";
+      document.getElementById('modal-filename-info').innerText = `Dateiname: ${doc.name} (ID: ${id}, Seiten: ${doc.page_count || 1})`;
+      
+      const contentField = document.getElementById('modal-input-content');
+      if (doc.isImage) {
+        contentField.value = '[Bilddatei - Binärdaten / Vorschau im Chat via Multimodal]';
+        contentField.disabled = true;
+      } else {
+        contentField.value = doc.content;
+        contentField.disabled = false;
+      }
+      document.getElementById('modal-overlay').style.display = 'flex';
+    }
+
+    function saveModalDocChanges() {
+      if (!currentModalDocId || !uploadedDocs[currentModalDocId]) return;
+      const doc = uploadedDocs[currentModalDocId];
+      const newTitle = document.getElementById('modal-input-title').value.trim();
+      const newDesc = document.getElementById('modal-input-desc').value.trim();
+      const newContent = document.getElementById('modal-input-content').value;
+      
+      doc.title = newTitle || doc.name;
+      doc.description = newDesc;
+      if (!doc.isImage) {
+        doc.content = newContent;
+        if (doc.name === 'AGENT.md') {
+          document.getElementById('agent-md').value = newContent;
+        }
+      }
+
+      const itemEl = document.getElementById(`item_${currentModalDocId}`);
+      if (itemEl) {
+        const spanEl = itemEl.querySelector('.doc-item-left span');
+        if (spanEl) {
+          spanEl.title = doc.title;
+          const icon = doc.isImage ? '🖼️' : '📄';
+          spanEl.innerHTML = ` ${icon} <strong>${currentModalDocId}:</strong> ${doc.name}`;
+        }
+      }
+
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+      closeDocModal();
+    }
+
+    function closeDocModal() {
+      document.getElementById('modal-overlay').style.display = 'none';
+      currentModalDocId = null;
+    }
+
+    async function performReadDoc(args) {
+      const docIdentifier = args.document_id || args.id || args.name;
+      let targetDoc = null;
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (id === docIdentifier || doc.name === docIdentifier) {
+          targetDoc = doc;
+          break;
+        }
+      }
+
+      if (!targetDoc) {
+        return `Fehler: Dokument '${docIdentifier}' nicht gefunden. Verfügbare Dokumente: ` + Object.values(uploadedDocs).map(d => `${d.name} (${d.id})`).join(', ');
+      }
+
+      if (targetDoc.isImage) {
+        return `Dokument '${targetDoc.name}' ist eine Bilddatei.`;
+      }
+
+      let content = targetDoc.content;
+      const totalPages = targetDoc.page_count || 1;
+
+      const startPage = parseInt(args.start_page !== undefined ? args.start_page : (args.page_start !== undefined ? args.page_start : 1)) || 1;
+      const endPageInput = parseInt(args.end_page !== undefined ? args.end_page : (args.page_end !== undefined ? args.page_end : totalPages));
+      const endPage = Math.min(isNaN(endPageInput) ? totalPages : endPageInput, totalPages);
+
+      if (content.includes("--- Seite ")) {
+        let pagesMap = {};
+        let parts = content.split(/--- Seite (\d+) ---/);
+        for (let i = 1; i < parts.length; i += 2) {
+          let pNum = parseInt(parts[i]);
+          let pText = parts[i+1] || "";
+          pagesMap[pNum] = pText;
+        }
+
+        let filteredParts = [];
+        for (let p = Math.max(1, startPage); p <= endPage; p++) {
+          if (pagesMap[p] !== undefined) {
+            filteredParts.push(`--- Seite ${p} ---\n` + pagesMap[p]);
+          }
+        }
+        if (filteredParts.length > 0) {
+          content = filteredParts.join("\n");
+        }
+      }
+
+      return `Inhalt von Dokument '${targetDoc.name}' (ID: ${targetDoc.id}, Seiten ${Math.max(1, startPage)}-${endPage} von ${totalPages}):\n\n` + content;
+    }
+
+    function performWriteDoc(args) {
+      const fileName = args.name || args.filename || args.document_id;
+      if (!fileName) return "Fehler: Es wurde kein Dateiname ('name') angegeben.";
+      
+      const isAgentMd = fileName.toLowerCase() === 'agent.md';
+      const normalizedFileName = isAgentMd ? 'AGENT.md' : fileName;
+
+      const title = args.title || (isAgentMd ? 'System Prompt (AGENT.md)' : normalizedFileName);
+      const description = args.description || "Vom Agenten erstellte oder bearbeitete Datei.";
+      const contentToAdd = args.content !== undefined ? String(args.content) : "";
+      const isAppend = args.append === true || args.append === "true";
+      const pageCount = parseInt(args.page_count || args.pages) || 1;
+
+      let existingDocId = null;
+      let existingDoc = null;
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (doc.name.toLowerCase() === normalizedFileName.toLowerCase() || id === fileName) {
+          existingDocId = id;
+          existingDoc = doc;
+          break;
+        }
+      }
+
+      let finalContent = contentToAdd;
+      let finalPageCount = pageCount;
+      if (isAppend && existingDoc) {
+        finalContent = existingDoc.content + "\n" + contentToAdd;
+        finalPageCount = (existingDoc.page_count || 1) + pageCount;
+      }
+
+      if (existingDocId) {
+        uploadedDocs[existingDocId].name = normalizedFileName;
+        uploadedDocs[existingDocId].content = finalContent;
+        uploadedDocs[existingDocId].title = title;
+        uploadedDocs[existingDocId].description = description;
+        uploadedDocs[existingDocId].page_count = finalPageCount;
+      } else {
+        docCounter++;
+        const newId = `doc_${docCounter}`;
+        uploadedDocs[newId] = {
+          id: newId,
+          name: normalizedFileName,
+          title: title,
+          description: description,
+          content: finalContent,
+          isImage: false,
+          selected: true,
+          page_count: finalPageCount
+        };
+        addDocToUI(newId, normalizedFileName, title, false, true);
+        existingDocId = newId;
+      }
+
+      // Sofortige UI-Aktualisierung für AGENT.md (unabhängig von Groß-/Kleinschreibung)
+      if (isAgentMd) {
+        document.getElementById('agent-md').value = finalContent;
+      }
+
+      if (currentModalDocId === existingDocId) {
+        const contentField = document.getElementById('modal-input-content');
+        if (contentField && !contentField.disabled) {
+          contentField.value = finalContent;
+        }
+        document.getElementById('modal-input-title').value = title;
+        document.getElementById('modal-input-desc').value = description;
+      }
+
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+      return `Erfolg: Datei '${normalizedFileName}' (ID: ${existingDocId}) wurde erfolgreich ${isAppend ? 'ergänzt (append)' : 'geschrieben'} (Seitenanzahl: ${finalPageCount}).`;
+    }
+
+    function renderToolResultUI(callId, name, args, result) {
+      const container = document.getElementById('chat-messages');
+      const card = document.createElement('div');
+      card.className = 'tool-call-card';
+
+      const header = document.createElement('header');
+      header.textContent = `🛠️ Tool Executed: ${name}`;
+
+      const argsDiv = document.createElement('div');
+      argsDiv.className = 'args';
+      argsDiv.textContent = `Input: ${typeof args === 'object' ? JSON.stringify(args, null, 2) : args}`;
+
+      const resultDiv = document.createElement('div');
+      resultDiv.className = 'result';
+      resultDiv.textContent = typeof result === 'object' ? JSON.stringify(result, null, 2) : result;
+
+      card.appendChild(header);
+      card.appendChild(argsDiv);
+      card.appendChild(resultDiv);
+
+      container.appendChild(card);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function performsearch_web(query) {
+      if (!query) return "Fehler: Kein Suchbegriff.";
+      const cacheKey = `search_web:${query}`;
+      if (toolCache.has(cacheKey)) return toolCache.get(cacheKey);
+
+      try {
+        const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
+        const text = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const results = [];
+        doc.querySelectorAll('.result').forEach((el, index) => {
+          if (index < 5) {
+            const title = el.querySelector('.result__title')?.textContent.trim() || '';
+            const snippet = el.querySelector('.result__snippet')?.textContent.trim() || '';
+            const href = el.querySelector('.result__url')?.getAttribute('href') || '';
+            results.push(`[${index+1}] ${title}\nURL: ${href}\nSnippet: ${snippet}`);
+          }
+        });
+        const output = results.length > 0 ? results.join("\n\n") : "Keine Treffer gefunden.";
+        toolCache.set(cacheKey, output);
+        saveStateToLocalStorage();
+        return output;
+      } catch (e) {
+        return `search_web-Fehler: ${e.message}`;
+      }
+    }
+
+    function performcalculate(expression) {
+      if (!expression) return "Fehler: Kein Ausdruck.";
+      const cleanExpr = expression.replace(/[^0-9\+\-\*\/\.\(\)\s]/g, '');
+      try {
+        const result = Function(`'use strict'; return (${cleanExpr})`)();
+        return `Ergebnis von ${expression} = ${result}`;
+      } catch (e) {
+        return `Berechnungsfehler: ${e.message}`;
+      }
+    }
+
+    function performrun_code(code) {
+      if (!code) return "Fehler: Kein Code angegeben.";
+      try {
+        let logs = [];
+        const customConsole = {
+          log: (...args) => logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ')),
+          error: (...args) => logs.push("[ERROR] " + args.join(' ')),
+          warn: (...args) => logs.push("[WARN] " + args.join(' '))
+        };
+
+        const virtualFiles = {};
+        for (const [id, doc] of Object.entries(uploadedDocs)) {
+          if (doc.selected !== false) {
+            virtualFiles[id] = { name: doc.name, title: doc.title, description: doc.description, content: doc.content, page_count: doc.page_count };
+          }
+        }
+
+        const result = Function('console', 'virtualFiles', `'use strict'; ${code}`)(customConsole, virtualFiles);
+        let output = "";
+        if (logs.length > 0) output += "Console Logs:\n" + logs.join('\n') + "\n";
+        if (result !== undefined) output += "Rückgabewert: " + (typeof result === 'object' ? JSON.stringify(result, null, 2) : result);
+        return output.trim() || "Code erfolgreich ausgeführt (keine Ausgabe).";
+      } catch (e) {
+        return `Code-Ausführungsfehler: ${e.message}`;
+      }
+    }
+
+    async function performfetch_url(url) {
+      if (!url) return "Fehler: Keine URL.";
+      if (url.includes('github.com') && url.includes('/blob/')) {
+        url = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+      }
+      try {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, 'text/html');
+        doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
+        return `Inhalt von URL (${url}):\n` + (doc.body.textContent || "").replace(/\s+/g, ' ').trim().substring(0, 4000);
+      } catch (e) {
+        return `Fehler: ${e.message}`;
+      }
+    }
+
+    async function performsearch_wikipedia(query) {
+      if (!query) return "Fehler: Kein Suchbegriff.";
+      const cacheKey = `search_wikipedia:${query}`;
+      if (toolCache.has(cacheKey)) return toolCache.get(cacheKey);
+
+      try {
+        const searchRes = await fetch(`https://de.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&format=json&origin=*`);
+        const searchData = await searchRes.json();
+        if (searchData[1]?.[0]) {
+          const title = searchData[1][0];
+          const sumRes = await fetch(`https://de.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+          const sumData = await sumRes.json();
+          const output = `search_wikipedia ('${title}'):\n${sumData.extract}\n(Quelle: ${sumData.content_urls?.desktop?.page || 'search_wikipedia'})`;
+          toolCache.set(cacheKey, output);
+          saveStateToLocalStorage();
+          return output;
+        }
+        return "Keine search_wikipedia-Artikel gefunden.";
+      } catch (e) {
+        return `search_wikipedia-Fehler: ${e.message}`;
+      }
+    }
+
+    async function performget_weather(location) {
+      if (!location) return "Fehler: Kein Ort.";
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=de&format=json`);
+        const geoData = await geoRes.json();
+        if (!geoData.results?.[0]) return `Ort '${location}' nicht gefunden.`;
+        const { latitude, longitude, name, country } = geoData.results[0];
+
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m&timezone=auto`);
+        const wData = await wRes.json();
+        const curr = wData.current;
+        return `Wetter für ${name} (${country || ''}):\n- Temp: ${curr.temperature_2m}°C\n- Feuchtigkeit: ${curr.relative_humidity_2m}%\n- Wind: ${curr.wind_speed_10m} km/h`;
+      } catch (e) {
+        return `Wetter-Fehler: ${e.message}`;
+      }
+    }
+
+    async function performgenerate_image(prompt) {
+      if (!prompt) return "Fehler: Kein Prompt angegeben.";
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
+      return `Generiertes Bild für Prompt "${prompt}":\n\n![${prompt}](${imageUrl})`;
+    }
+
+    function getAvailableToolsSchema() {
+      const schemas = {
+        read_doc: {
+          type: "function",
+          function: {
+            name: "read_doc",
+            description: "Liest Inhalte einer virtuellen Datei anhand der Dokumenten-ID oder des Dateinamens. Unterstützt start_page und end_page.",
+            parameters: {
+              type: "object",
+              properties: {
+                document_id: { type: "string", description: "Die ID oder der Dateiname des Dokuments." },
+                start_page: { type: "integer", description: "Startseite (Standard: 1)." },
+                end_page: { type: "integer", description: "Endseite (Standard: maximale Seitenzahl)." }
+              },
+              required: ["document_id"]
+            }
+          }
+        },
+        write_doc: {
+          type: "function",
+          function: {
+            name: "write_doc",
+            description: "Erstellt oder schreibt eine virtuelle Datei.",
+            parameters: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Dateiname (z.B. AGENT.md)." },
+                title: { type: "string", description: "Titel des Dokuments." },
+                description: { type: "string", description: "Kurzbeschreibung." },
+                content: { type: "string", description: "Inhalt der Datei." },
+                append: { type: "boolean", description: "Falls true, an bestehende Datei anhängen." },
+                page_count: { type: "integer", description: "Seitenzahl des Dokuments (Standard: 1)." }
+              },
+              required: ["name", "content"]
+            }
+          }
+        },
+        search_web: { type: "function", function: { name: "search_web", description: "Sucht im Web.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
+        fetch_url: { type: "function", function: { name: "fetch_url", description: "Liest Webseiten.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
+        search_wikipedia: { type: "function", function: { name: "search_wikipedia", description: "search_wikipedia Abfrage.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
+        get_weather: { type: "function", function: { name: "get_weather", description: "Wetterdaten.", parameters: { type: "object", properties: { location: { type: "string" } }, required: ["location"] } } },
+        calculate: { type: "function", function: { name: "calculate", description: "Mathematische Rechnungen.", parameters: { type: "object", properties: { expression: { type: "string" } }, required: ["expression"] } } },
+        run_code: { type: "function", function: { name: "run_code", description: "Führt JavaScript-Code aus. Hat Zugriff auf 'virtualFiles' (z.B. virtualFiles[id] = { name: doc.name, title: doc.title, description: doc.description, content: doc.content, page_count: doc.page_count }).", parameters: { type: "object", properties: { code: { type: "string" } }, required: ["code"] } } },
+        generate_image: { type: "function", function: { name: "generate_image", description: "Generiert Bilder aus einem Prompt.", parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] } } }
+      };
+
+      const activeTools = [];
+      for (const [key, schema] of Object.entries(schemas)) {
+        if (document.getElementById(`tool-${key}`)?.checked) activeTools.push(schema);
+      }
+      return activeTools;
+    }
+
+    async function handleSend() {
+      const inputElem = document.getElementById('user-input');
+      const text = inputElem.value.trim();
+      if (!text) return;
+
+      chatHistorySnapshotBeforeSend = JSON.parse(JSON.stringify(chatHistory));
+      isCancelled = false;
+
+      let messageContent = text;
+      const imageParts = [];
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (doc.isImage && doc.selected !== false) {
+          imageParts.push({ type: "image_url", image_url: { url: doc.content } });
+        }
+      }
+
+      if (imageParts.length > 0) {
+        messageContent = [{ type: "text", text: text }, ...imageParts];
+      }
+
+      appendMessageUI('user', text);
+      chatHistory.push({ role: 'user', content: messageContent });
+      inputElem.value = '';
+      
+      setInputsDisabled(true);
+      document.getElementById('cancel-btn').style.display = 'inline-block';
+
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+      await runAgentLoop();
+    }
+
+    function cancelAgent() {
+      isCancelled = true;
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+      if (chatHistorySnapshotBeforeSend) {
+        chatHistory = chatHistorySnapshotBeforeSend;
+      }
+      activeFrozenSystemPrompt = null;
+      appendMessageUI('system-info', 'Agenten-Anfrage und Tool-Calls wurden abgebrochen.');
+      
+      setInputsDisabled(false);
+      document.getElementById('cancel-btn').style.display = 'none';
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+    }
+
+    async function runAgentLoop(isFirstCall = false) {
+      if (isCancelled) return;
+
+      let endpoint = document.getElementById('endpoint').value.trim();
+      
+      endpoint = endpoint.replace(/\/chat\/completion\b/g, '/chat/completions');
+      endpoint = endpoint.replace(/\/chat\/completions\/chat\/completions/g, '/chat/completions');
+      
+      if (!endpoint.includes('/chat/completions')) {
+        let baseUrl = endpoint.includes('/v1/') ? endpoint.split('/v1/')[0] + '/v1' : endpoint.replace(/\/+$/, '');
+        endpoint = `${baseUrl}/chat/completions`;
+        document.getElementById('endpoint').value = endpoint;
+      }
+
+      const modelVal = document.getElementById('model-name').value;
+      const maxContextTokens = parseInt(document.getElementById('max-context').value) === NaN ? 4096 : parseInt(document.getElementById('max-context').value);
+      
+      if (activeFrozenSystemPrompt === null) {
+        activeFrozenSystemPrompt = getCompleteSystemPrompt();
+      }
+
+      let messages = [{ role: "system", content: activeFrozenSystemPrompt }, ...chatHistory];
+      
+      await handleContextOverflow(messages, maxContextTokens, modelVal, endpoint);
+      if (isCancelled) return;
+
+      chatHistory = messages.filter(m => m.role !== 'system');
+
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+
+      const tools = getAvailableToolsSchema();
+      const currentPayloadMessages = [{ role: "system", content: activeFrozenSystemPrompt }, ...chatHistory];
+      const payload = { model: modelVal, messages: currentPayloadMessages, temperature: 0.2, stream: true };
+      if (tools.length > 0) { payload.tools = tools; payload.tool_choice = "auto"; }
+
+      try {
+        currentAbortController = new AbortController();
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: currentAbortController.signal
+        });
+
+        if (!response.ok) {
+          let errorBody = "";
+          try { errorBody = await response.text(); } catch(e) {}
+          throw new Error(`HTTP Fehler ${response.status}: ${errorBody || response.statusText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+
+        let accumulatedContent = "";
+        let toolCallMap = {}; 
+        let rawStreamChunks = [];
+        let assistantDiv = null;
+        let streamedSuccessfully = false;
+
+        while (true) {
+          if (isCancelled) {
+            reader.cancel();
+            return;
+          }
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          rawStreamChunks.push(chunk);
+          const lines = chunk.split("\n");
+
+          for (let line of lines) {
+            line = line.trim();
+            if (!line.startsWith("data:")) continue;
+            const dataStr = line.replace(/^data:\s*/, "");
+            if (dataStr === "[DONE]") continue;
+
+            try {
+              const parsed = JSON.parse(dataStr);
+              if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                const delta = parsed.choices[0].delta;
+                if (delta.content) {
+                  if (!streamedSuccessfully) {
+                    assistantDiv = createStreamingMessageContainer('assistant');
+                    streamedSuccessfully = true;
+                  }
+                  accumulatedContent += delta.content;
+                  updateStreamingMessageContent(assistantDiv, accumulatedContent);
+                }
+                if (delta.tool_calls) {
+                  for (const tcDelta of delta.tool_calls) {
+                    const idx = tcDelta.index;
+                    if (!toolCallMap[idx]) toolCallMap[idx] = { id: "", type: "function", function: { name: "", arguments: "" } };
+                    if (tcDelta.id) toolCallMap[idx].id = tcDelta.id;
+                    if (tcDelta.function) {
+                      if (tcDelta.function.name) toolCallMap[idx].function.name += tcDelta.function.name;
+                      if (tcDelta.function.arguments) toolCallMap[idx].function.arguments += tcDelta.function.arguments;
+                    }
+                  }
+                }
+              }
+            } catch (err) {}
+          }
+        }
+
+        if (isCancelled) return;
+
+        const accumulatedToolCalls = Object.values(toolCallMap);
+        if (!streamedSuccessfully && accumulatedContent === "" && accumulatedToolCalls.length === 0) {
+          const fullText = rawStreamChunks.join("");
+          try {
+            const data = JSON.parse(fullText);
+            const choice = data.choices[0].message;
+            accumulatedContent = choice.content || "";
+            if (choice.tool_calls) accumulatedToolCalls.push(...choice.tool_calls);
+          } catch(e) {
+            throw new Error('Der LLM-Server hat keine gültigen Stream-Daten zurückgegeben.');
+          }
+        }
+
+        const stepPayload = { model: modelVal, messages: currentPayloadMessages, temperature: 0.2 };
+        if (tools.length > 0) stepPayload.tools = tools;
+        const fullResponseContext = { request_payload: stepPayload, raw_stream_chunks: rawStreamChunks };
+
+        if (accumulatedToolCalls.length === 0) {
+          if (!streamedSuccessfully && accumulatedContent) appendMessageUI('assistant', accumulatedContent, fullResponseContext);
+          else if (assistantDiv) appendDetailsToAssistant(assistantDiv, fullResponseContext);
+          chatHistory.push({ role: 'assistant', content: accumulatedContent });
+          
+          activeFrozenSystemPrompt = null;
+          setInputsDisabled(false);
+          document.getElementById('cancel-btn').style.display = 'none';
+
+          updateContextUsageDisplay();
+          saveStateToLocalStorage();
+          return;
+        }
+
+        const assistantMsgObj = { role: 'assistant', content: accumulatedContent || null, tool_calls: accumulatedToolCalls };
+        chatHistory.push(assistantMsgObj);
+        updateContextUsageDisplay();
+        saveStateToLocalStorage();
+
+        if (streamedSuccessfully && assistantDiv) appendDetailsToAssistant(assistantDiv, fullResponseContext);
+        else if (accumulatedContent) appendMessageUI('assistant', accumulatedContent, fullResponseContext);
+
+        for (const call of accumulatedToolCalls) {
+          if (isCancelled) return;
+          await processToolCall(call);
+        }
+
+        if (!isCancelled) {
+          await runAgentLoop();
+        }
+
+      } catch (err) {
+        if (!isCancelled) {
+          appendMessageUI('system-info', `Fehler: ${err.message}`);
+          activeFrozenSystemPrompt = null;
+          setInputsDisabled(false);
+          document.getElementById('cancel-btn').style.display = 'none';
+        }
+      }
+    }
+
+    async function processToolCall(call) {
+      if (isCancelled) return;
+      const name = call.function.name;
+      let args;
+      try { args = JSON.parse(call.function.arguments || "{}"); } catch(e) { args = {}; }
+      const callId = call.id || "call_" + Math.random().toString(36).substr(2, 9);
+      const requireApproval = document.getElementById('require-approval').checked;
+
+      let res;
+      let executedArgs = args; 
+      
+      const executeFn = async (currentArgs) => {
+        switch (name) {
+          case 'read_doc': return await performReadDoc(currentArgs);
+          case 'write_doc': return performWriteDoc(currentArgs);
+          case 'search_web': return await performsearch_web(currentArgs.query);
+          case 'fetch_url': return await performfetch_url(currentArgs.url || currentArgs.query);
+          case 'search_wikipedia': return await performsearch_wikipedia(currentArgs.query);
+          case 'get_weather': return await performget_weather(currentArgs.location || currentArgs.query);
+          case 'calculate': return await performcalculate(currentArgs.expression || currentArgs.query);
+          case 'run_code': return performrun_code(currentArgs.code || currentArgs.query);
+          case 'generate_image': return await performgenerate_image(currentArgs.prompt || currentArgs.query);
+          default: return "Unbekanntes Tool";
+        }
+      };
+
+      if (requireApproval) {
+        res = await new Promise((resolve) => {
+          renderApprovalUI(callId, name, args, async (approved, editedArgs) => {
+            if (isCancelled) { resolve("Vom Nutzer abgebrochen."); return; }
+            if (approved) {
+              executedArgs = editedArgs;
+              call.function.arguments = JSON.stringify(editedArgs);
+              resolve(await executeFn(editedArgs));
+            } else {
+              resolve("Vom Nutzer abgelehnt.");
+            }
+          });
+        });
+      } else {
+        res = await executeFn(args);
+      }
+
+      if (isCancelled) return;
+
+      renderToolResultUI(callId, name, executedArgs, res);
+      chatHistory.push({ role: "tool", tool_call_id: callId, content: typeof res === 'string' ? res : JSON.stringify(res) });
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+    }
+
+    function appendMessageUI(role, text, responseData = null) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+      if (role === 'assistant') {
+        if (typeof marked !== 'undefined' && typeof marked.parse === 'function') div.innerHTML = marked.parse(text || '');
+        else div.innerText = text || '';
+      } else {
+        div.innerText = text;
+      }
+      container.appendChild(div);
+      if (role === 'assistant' && responseData) appendDetailsToAssistant(div, responseData);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function createStreamingMessageContainer(role) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+      container.appendChild(div);
+      return div;
+    }
+
+    function updateStreamingMessageContent(div, text) {
+      if (typeof marked !== 'undefined' && typeof marked.parse === 'function') div.innerHTML = marked.parse(text || '');
+      else div.innerText = text || '';
+      const container = document.getElementById('chat-messages');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendDetailsToAssistant(msgDiv, responseData) {
+      const details = document.createElement('details');
+      details.style.cssText = 'font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; border-top: 1px solid var(--border); paddingTop: 4px; width: 100%; box-sizing: border-box;';
+      details.innerHTML = `
+        <summary style="cursor: pointer; user-select: none;">Details</summary>
+        <pre style="background: #181825; padding: 6px; border-radius: 4px; height: 220px; width: 100%; overflow: auto; word-break: break-all; margin-top: 4px; color: var(--accent); font-family: monospace;">${JSON.stringify(responseData, null, 2)}</pre>
+      `;
+      msgDiv.appendChild(details);
+    }
+
+    function renderToolResultUI(callId, name, args, result) {
+      const container = document.getElementById('chat-messages');
+      const card = document.createElement('div');
+      card.className = 'tool-call-card';
+      card.innerHTML = `
+        <header>🛠️ Tool Executed: ${name}</header>
+        <div class="args">Input: ${JSON.stringify(args)}</div>
+        <div class="result">${typeof result === 'object' ? JSON.stringify(result, null, 2) : result}</div>
+      `;
+      container.appendChild(card);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function renderApprovalUI(callId, name, args, callback) {
+      const container = document.getElementById('chat-messages');
+      const card = document.createElement('div');
+      card.className = 'tool-call-card';
+      card.style.borderColor = 'var(--warning)';
+      const argsString = JSON.stringify(args, null, 2);
+      card.innerHTML = `
+        <header style="color: var(--warning);">⚠️ Tool-Freigabe erforderlich: ${name}</header>
+        <div style="margin-bottom: 6px; font-size: 0.75rem; color: var(--text-muted);">Parameter editierbar:</div>
+        <textarea id="args-edit-${callId}" rows="4" style="width: 100%; margin-bottom: 6px; font-family: monospace;">${argsString}</textarea>
+        <div class="approval-banner">
+          <span>Ausführen?</span>
+          <div>
+            <button class="approval-btn" id="approve-${callId}">Freigeben</button>
+            <button class="deny-btn" id="deny-${callId}">Ablehnen</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+      container.scrollTop = container.scrollHeight;
+
+      document.getElementById(`approve-${callId}`).onclick = () => {
+        const editedText = document.getElementById(`args-edit-${callId}`).value;
+        let finalArgs = args;
+        try { finalArgs = JSON.parse(editedText); } catch (e) { alert("JSON-Fehler, nutze Original-Parameter."); }
+        card.remove(); 
+        callback(true, finalArgs); 
+      };
+      document.getElementById(`deny-${callId}`).onclick = () => { card.remove(); callback(false, args); };
+    }
+
+    function setInputsDisabled(disabled) {
+      document.getElementById('send-btn').disabled = disabled;
+      document.getElementById('user-input').disabled = disabled;
+    }
+
+    updateMaxContextFromEndpoint(); 
+    saveStateToLocalStorage();
+  </script>
+</body>
+</html>
