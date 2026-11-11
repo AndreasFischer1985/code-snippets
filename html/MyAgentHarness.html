@@ -6,7 +6,7 @@
   <meta name="author" content="Dr. Andreas Fischer">
   <meta name="copyright" content="Dr. Andreas Fischer">
   <meta name="reply-to" content="andreasfischer1985@web.de">
-  <title>MyAgentHarness</title>
+  <title>MyAgentHarness v1.21</title>
   <!-- PDF.js für Client-seitiges PDF-Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -126,10 +126,53 @@
       gap: 12px;
     }
 
-    .msg { padding: 10px 14px; border-radius: 6px; max-width: 85%; min-width: 0; font-size: 0.95rem; line-height: 1.4; word-break: break-word; overflow-wrap: break-word; }
-    .msg.user { background: #313244; align-self: flex-end; border: 1px solid var(--border); }
-    .msg.assistant { background: #45475a; align-self: flex-start; }
-    .msg.system-info { background: transparent; color: var(--text-muted); font-size: 0.8rem; align-self: center; font-style: italic; }
+    .msg-wrapper {
+      display: flex;
+      flex-direction: column;
+      max-width: 85%;
+      position: relative;
+    }
+    .msg-wrapper.user { align-self: flex-end; }
+    .msg-wrapper.assistant { align-self: flex-start; }
+    .msg-wrapper.system-info { align-self: center; max-width: 100%; }
+
+    .msg { padding: 10px 14px; border-radius: 6px; min-width: 0; font-size: 0.95rem; line-height: 1.4; word-break: break-word; overflow-wrap: break-word; width: 100%; }
+    .msg-wrapper.user .msg { background: #313244; border: 1px solid var(--border); }
+    .msg-wrapper.assistant .msg { background: #45475a; }
+    .msg-wrapper.system-info .msg { background: transparent; color: var(--text-muted); font-size: 0.8rem; font-style: italic; text-align: center; }
+
+    .msg-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 2px;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+    }
+    .msg-wrapper:hover .msg-actions { opacity: 1; }
+    .msg-wrapper.user .msg-actions { justify-content: flex-end; }
+    .msg-wrapper.assistant .msg-actions { justify-content: flex-start; }
+
+    /* Unauffällige Buttons (nur Symbole, kleiner, ohne Text, ohne Umrandung) */
+    .msg-action-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+    .msg-action-btn:hover {
+      background: transparent;
+      color: var(--accent);
+    }
+    .msg-action-btn.btn-del-msg:hover {
+      color: var(--danger);
+    }
 
     .msg.assistant p { margin-bottom: 8px; }
     .msg.assistant p:last-child { margin-bottom: 0; }
@@ -191,7 +234,7 @@
     .approval-btn { background: var(--success); color: #11111b; }
     .deny-btn { background: var(--danger); color: #11111b; }
 
-    /* Modal Overlay */
+    /* Modal Overlay für Dokumente & Editieren */
     #modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000;
@@ -225,6 +268,21 @@
       </div>
       <label id="modal-content-label">Dokumenteninhalt:</label>
       <textarea class="modal-body" id="modal-input-content"></textarea>
+    </div>
+  </div>
+
+  <!-- Modal für Nachrichten-Bearbeitung (mehrzeilig, Markdown) -->
+  <div id="msg-edit-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1001;">
+    <div class="modal-content" style="width: 750px;">
+      <div class="modal-header">
+        <h3 style="color: var(--accent);">Nachricht bearbeiten</h3>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="saveMessageEdit()">Übernehmen</button>
+          <button class="btn-secondary" onclick="closeMessageEditModal()">Abbrechen</button>
+        </div>
+      </div>
+      <label style="margin-bottom: 4px; color: var(--text-muted);">Inhalt (Markdown / mehrzeilig):</label>
+      <textarea id="msg-edit-textarea" class="modal-body" style="min-height: 300px; font-family: monospace;"></textarea>
     </div>
   </div>
 
@@ -302,7 +360,7 @@
   <!-- Chat Panel -->
   <div id="main-chat">
     <div id="chat-messages">
-      <div class="msg system-info">Starte neue Session.</div>
+      <div class="msg-wrapper system-info"><div class="msg system-info">Starte neue Session.</div></div>
     </div>
 
     <div id="chat-input-container">
@@ -318,6 +376,7 @@
     let chatHistory = [];
     let currentModalDocId = null;
     let toolCache = new Map();
+    let currentEditingIndex = null;
 
     let currentAbortController = null;
     let isCancelled = false;
@@ -384,9 +443,8 @@
         if (state.chatHistory && Array.isArray(state.chatHistory)) {
           chatHistory = state.chatHistory;
           const container = document.getElementById('chat-messages');
-          container.innerHTML = '<div class="msg system-info">Session wiederhergestellt.</div>';
+          container.innerHTML = '<div class="msg-wrapper system-info"><div class="msg system-info">Session wiederhergestellt.</div></div>';
           
-          // Helper, um Tool-Ergebnisse in chatHistory zu finden
           const getToolResultText = (toolCallId) => {
             const found = chatHistory.find(m => m.role === 'tool' && m.tool_call_id === toolCallId);
             return found ? found.content : '[Ergebnis nicht verfügbar]';
@@ -396,10 +454,9 @@
             const msg = chatHistory[i];
             if (msg.role === 'user') {
               let displayTxt = typeof msg.content === 'string' ? msg.content : (msg.content.find(c => c.type === 'text')?.text || '[Multimodale Nachricht]');
-              appendMessageUI('user', displayTxt);
+              appendMessageUI('user', displayTxt, null, i);
             } else if (msg.role === 'assistant') {
-              if (msg.content) appendMessageUI('assistant', msg.content);
-              // Tool-Calls direkt beim Assistenten wiederherstellen
+              if (msg.content) appendMessageUI('assistant', msg.content, null, i);
               if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
                 for (const tc of msg.tool_calls) {
                   let argsParsed = {};
@@ -506,20 +563,20 @@
           
           if (state.chatHistory) {
             chatHistory = state.chatHistory;
-            document.getElementById('chat-messages').innerHTML = '<div class="msg system-info">Session erfolgreich importiert.</div>';
+            document.getElementById('chat-messages').innerHTML = '<div class="msg-wrapper system-info"><div class="msg system-info">Session erfolgreich importiert.</div></div>';
             
             const getToolResultText = (toolCallId) => {
               const found = chatHistory.find(m => m.role === 'tool' && m.tool_call_id === toolCallId);
               return found ? found.content : '[Ergebnis nicht verfügbar]';
             };
 
-            for (const msg of chatHistory) {
+            for (let i = 0; i < chatHistory.length; i++) {
+              const msg = chatHistory[i];
               if (msg.role === 'user') {
                 let displayTxt = typeof msg.content === 'string' ? msg.content : (msg.content.find(c => c.type === 'text')?.text || '[Multimodale Nachricht]');
-                appendMessageUI('user', displayTxt);
+                appendMessageUI('user', displayTxt, null, i);
               } else if (msg.role === 'assistant') {
-                if (msg.content) appendMessageUI('assistant', msg.content);
-                // Tool-Calls und Ergebnisse beim Importieren direkt UI-seitig rendern
+                if (msg.content) appendMessageUI('assistant', msg.content, null, i);
                 if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
                   for (const tc of msg.tool_calls) {
                     let argsParsed = {};
@@ -550,7 +607,7 @@
       toolCache.clear();
       document.getElementById('docList').innerHTML = "";
       document.getElementById('agent-md').value = DEFAULT_AGENT_MD;
-      document.getElementById('chat-messages').innerHTML = '<div class="msg system-info">Session zurückgesetzt.</div>';
+      document.getElementById('chat-messages').innerHTML = '<div class="msg-wrapper system-info"><div class="msg system-info">Session zurückgesetzt.</div></div>';
       ensureAgentMdDocExists();
       updateContextUsageDisplay();
       saveStateToLocalStorage();
@@ -1081,7 +1138,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
         existingDocId = newId;
       }
 
-      // Sofortige UI-Aktualisierung für AGENT.md (unabhängig von Groß-/Kleinschreibung)
       if (isAgentMd) {
         document.getElementById('agent-md').value = finalContent;
       }
@@ -1098,30 +1154,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       updateContextUsageDisplay();
       saveStateToLocalStorage();
       return `Erfolg: Datei '${normalizedFileName}' (ID: ${existingDocId}) wurde erfolgreich ${isAppend ? 'ergänzt (append)' : 'geschrieben'} (Seitenanzahl: ${finalPageCount}).`;
-    }
-
-    function renderToolResultUI(callId, name, args, result) {
-      const container = document.getElementById('chat-messages');
-      const card = document.createElement('div');
-      card.className = 'tool-call-card';
-
-      const header = document.createElement('header');
-      header.textContent = `🛠️ Tool Executed: ${name}`;
-
-      const argsDiv = document.createElement('div');
-      argsDiv.className = 'args';
-      argsDiv.textContent = `Input: ${typeof args === 'object' ? JSON.stringify(args, null, 2) : args}`;
-
-      const resultDiv = document.createElement('div');
-      resultDiv.className = 'result';
-      resultDiv.textContent = typeof result === 'object' ? JSON.stringify(result, null, 2) : result;
-
-      card.appendChild(header);
-      card.appendChild(argsDiv);
-      card.appendChild(resultDiv);
-
-      container.appendChild(card);
-      container.scrollTop = container.scrollHeight;
     }
 
     async function performsearch_web(query) {
@@ -1326,7 +1358,8 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
         messageContent = [{ type: "text", text: text }, ...imageParts];
       }
 
-      appendMessageUI('user', text);
+      const msgIndex = chatHistory.length;
+      appendMessageUI('user', text, null, msgIndex);
       chatHistory.push({ role: 'user', content: messageContent });
       inputElem.value = '';
       
@@ -1352,6 +1385,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       setInputsDisabled(false);
       document.getElementById('cancel-btn').style.display = 'none';
       updateContextUsageDisplay();
+      rebuildChatUI();
       saveStateToLocalStorage();
     }
 
@@ -1414,6 +1448,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
         let rawStreamChunks = [];
         let assistantDiv = null;
         let streamedSuccessfully = false;
+        const msgIndex = chatHistory.length;
 
         while (true) {
           if (isCancelled) {
@@ -1439,7 +1474,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
                 const delta = parsed.choices[0].delta;
                 if (delta.content) {
                   if (!streamedSuccessfully) {
-                    assistantDiv = createStreamingMessageContainer('assistant');
+                    assistantDiv = createStreamingMessageContainer('assistant', msgIndex);
                     streamedSuccessfully = true;
                   }
                   accumulatedContent += delta.content;
@@ -1481,7 +1516,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
         const fullResponseContext = { request_payload: stepPayload, raw_stream_chunks: rawStreamChunks };
 
         if (accumulatedToolCalls.length === 0) {
-          if (!streamedSuccessfully && accumulatedContent) appendMessageUI('assistant', accumulatedContent, fullResponseContext);
+          if (!streamedSuccessfully && accumulatedContent) appendMessageUI('assistant', accumulatedContent, fullResponseContext, msgIndex);
           else if (assistantDiv) appendDetailsToAssistant(assistantDiv, fullResponseContext);
           chatHistory.push({ role: 'assistant', content: accumulatedContent });
           
@@ -1500,7 +1535,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
         saveStateToLocalStorage();
 
         if (streamedSuccessfully && assistantDiv) appendDetailsToAssistant(assistantDiv, fullResponseContext);
-        else if (accumulatedContent) appendMessageUI('assistant', accumulatedContent, fullResponseContext);
+        else if (accumulatedContent) appendMessageUI('assistant', accumulatedContent, fullResponseContext, msgIndex);
 
         for (const call of accumulatedToolCalls) {
           if (isCancelled) return;
@@ -1572,8 +1607,12 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       saveStateToLocalStorage();
     }
 
-    function appendMessageUI(role, text, responseData = null) {
+    function appendMessageUI(role, text, responseData = null, messageIndex = null) {
       const container = document.getElementById('chat-messages');
+      const wrapper = document.createElement('div');
+      wrapper.className = `msg-wrapper ${role}`;
+      if (messageIndex !== null) wrapper.setAttribute('data-index', messageIndex);
+
       const div = document.createElement('div');
       div.className = `msg ${role}`;
       if (role === 'assistant') {
@@ -1582,16 +1621,78 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       } else {
         div.innerText = text;
       }
-      container.appendChild(div);
+      wrapper.appendChild(div);
+
+      if (role === 'user' || role === 'assistant') {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'msg-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'msg-action-btn';
+        editBtn.innerHTML = '✎';
+        editBtn.title = 'Bearbeiten';
+        editBtn.onclick = () => openMessageEditModal(messageIndex);
+        actionsDiv.appendChild(editBtn);
+
+        // Wiederholen-Button nun auch für User-Messages (sowie weiterhin für Assistant-Messages)
+        const repeatBtn = document.createElement('button');
+        repeatBtn.className = 'msg-action-btn';
+        repeatBtn.innerHTML = '↻';
+        repeatBtn.title = 'Wiederholen';
+        repeatBtn.onclick = () => repeatMessage(messageIndex);
+        actionsDiv.appendChild(repeatBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'msg-action-btn btn-del-msg';
+        delBtn.innerHTML = '✕';
+        delBtn.title = 'Löschen';
+        delBtn.onclick = () => deleteMessageAndFollowing(messageIndex);
+        actionsDiv.appendChild(delBtn);
+
+        wrapper.appendChild(actionsDiv);
+      }
+
+      container.appendChild(wrapper);
       if (role === 'assistant' && responseData) appendDetailsToAssistant(div, responseData);
       container.scrollTop = container.scrollHeight;
     }
 
-    function createStreamingMessageContainer(role) {
+    function createStreamingMessageContainer(role, messageIndex) {
       const container = document.getElementById('chat-messages');
+      const wrapper = document.createElement('div');
+      wrapper.className = `msg-wrapper ${role}`;
+      if (messageIndex !== null) wrapper.setAttribute('data-index', messageIndex);
+
       const div = document.createElement('div');
       div.className = `msg ${role}`;
-      container.appendChild(div);
+      wrapper.appendChild(div);
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'msg-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'msg-action-btn';
+      editBtn.innerHTML = '✎';
+      editBtn.title = 'Bearbeiten';
+      editBtn.onclick = () => openMessageEditModal(messageIndex);
+      actionsDiv.appendChild(editBtn);
+
+      const repeatBtn = document.createElement('button');
+      repeatBtn.className = 'msg-action-btn';
+      repeatBtn.innerHTML = '↻';
+      repeatBtn.title = 'Wiederholen';
+      repeatBtn.onclick = () => repeatMessage(messageIndex);
+      actionsDiv.appendChild(repeatBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'msg-action-btn btn-del-msg';
+      delBtn.innerHTML = '✕';
+      delBtn.title = 'Löschen';
+      delBtn.onclick = () => deleteMessageAndFollowing(messageIndex);
+      actionsDiv.appendChild(delBtn);
+
+      wrapper.appendChild(actionsDiv);
+      container.appendChild(wrapper);
       return div;
     }
 
@@ -1659,6 +1760,113 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
     function setInputsDisabled(disabled) {
       document.getElementById('send-btn').disabled = disabled;
       document.getElementById('user-input').disabled = disabled;
+    }
+
+    function deleteMessageAndFollowing(index) {
+      if (!confirm("Diese Nachricht und alle folgenden Nachrichten wirklich löschen?")) return;
+      chatHistory = chatHistory.slice(0, index);
+      rebuildChatUI();
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+    }
+
+    function repeatMessage(index) {
+      const msg = chatHistory[index];
+      if (!msg) return;
+      
+      if (msg.role === 'assistant') {
+        chatHistory = chatHistory.slice(0, index);
+      } else if (msg.role === 'user') {
+        chatHistory = chatHistory.slice(0, index);
+      }
+      rebuildChatUI();
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+
+      if (msg.role === 'user') {
+        let textContent = typeof msg.content === 'string' ? msg.content : (msg.content.find(c => c.type === 'text')?.text || '');
+        const msgIndex = chatHistory.length;
+        appendMessageUI('user', textContent, null, msgIndex);
+        chatHistory.push(msg);
+        setInputsDisabled(true);
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+        runAgentLoop();
+      } else {
+        setInputsDisabled(true);
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+        runAgentLoop();
+      }
+    }
+
+    function openMessageEditModal(index) {
+      const msg = chatHistory[index];
+      if (!msg) return;
+      currentEditingIndex = index;
+      let currentText = typeof msg.content === 'string' ? msg.content : (msg.content.find(c => c.type === 'text')?.text || '');
+      
+      document.getElementById('msg-edit-textarea').value = currentText;
+      document.getElementById('msg-edit-modal').style.display = 'flex';
+    }
+
+    function closeMessageEditModal() {
+      document.getElementById('msg-edit-modal').style.display = 'none';
+      currentEditingIndex = null;
+    }
+
+    function saveMessageEdit() {
+      if (currentEditingIndex === null) return;
+      const index = currentEditingIndex;
+      const msg = chatHistory[index];
+      if (!msg) return;
+
+      const newText = document.getElementById('msg-edit-textarea').value;
+      if (typeof msg.content === 'string') {
+        msg.content = newText;
+      } else if (Array.isArray(msg.content)) {
+        let textPart = msg.content.find(c => c.type === 'text');
+        if (textPart) textPart.text = newText;
+        else msg.content.unshift({ type: "text", text: newText });
+      }
+
+      chatHistory = chatHistory.slice(0, index + 1);
+      rebuildChatUI();
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+      closeMessageEditModal();
+
+      if (msg.role === 'user') {
+        setInputsDisabled(true);
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+        runAgentLoop();
+      }
+    }
+
+    function rebuildChatUI() {
+      const container = document.getElementById('chat-messages');
+      container.innerHTML = '<div class="msg-wrapper system-info"><div class="msg system-info">Chat-History aktualisiert.</div></div>';
+      
+      const getToolResultText = (toolCallId) => {
+        const found = chatHistory.find(m => m.role === 'tool' && m.tool_call_id === toolCallId);
+        return found ? found.content : '[Ergebnis nicht verfügbar]';
+      };
+
+      for (let i = 0; i < chatHistory.length; i++) {
+        const msg = chatHistory[i];
+        if (msg.role === 'user') {
+          let displayTxt = typeof msg.content === 'string' ? msg.content : (msg.content.find(c => c.type === 'text')?.text || '[Multimodale Nachricht]');
+          appendMessageUI('user', displayTxt, null, i);
+        } else if (msg.role === 'assistant') {
+          if (msg.content) appendMessageUI('assistant', msg.content, null, i);
+          if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+            for (const tc of msg.tool_calls) {
+              let argsParsed = {};
+              try { argsParsed = JSON.parse(tc.function.arguments); } catch(e){}
+              const resText = getToolResultText(tc.id);
+              renderToolResultUI(tc.id, tc.function.name, argsParsed, resText);
+            }
+          }
+        }
+      }
     }
 
     updateMaxContextFromEndpoint(); 
