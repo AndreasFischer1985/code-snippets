@@ -1814,31 +1814,31 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
     }
 
     function saveMessageEdit() {
-      if (currentEditingIndex === null) return;
-      const index = currentEditingIndex;
-      const msg = chatHistory[index];
-      if (!msg) return;
-
-      const newText = document.getElementById('msg-edit-textarea').value;
-      if (typeof msg.content === 'string') {
-        msg.content = newText;
-      } else if (Array.isArray(msg.content)) {
-        let textPart = msg.content.find(c => c.type === 'text');
-        if (textPart) textPart.text = newText;
-        else msg.content.unshift({ type: "text", text: newText });
-      }
-
-      chatHistory = chatHistory.slice(0, index + 1);
-      rebuildChatUI();
-      updateContextUsageDisplay();
-      saveStateToLocalStorage();
-      closeMessageEditModal();
-
-      if (msg.role === 'user') {
-        setInputsDisabled(true);
-        document.getElementById('cancel-btn').style.display = 'inline-block';
-        runAgentLoop();
-      }
+          if (currentEditingIndex === null) return;
+          const index = currentEditingIndex;
+          const msg = chatHistory[index];
+          if (!msg) return;
+          
+          const newText = document.getElementById('msg-edit-textarea').value;
+          
+          if (typeof msg.content === 'string') {
+            msg.content = newText;
+          } else if (Array.isArray(msg.content)) {
+            let textPart = msg.content.find(c => c.type === 'text');
+            if (textPart) textPart.text = newText;
+            else msg.content.unshift({ type: "text", text: newText });
+          }
+    
+          rebuildChatUI();
+          updateContextUsageDisplay();
+          saveStateToLocalStorage();
+          closeMessageEditModal();
+          
+          if (msg.role === 'user') {
+            setInputsDisabled(true);
+            document.getElementById('cancel-btn').style.display = 'inline-block';
+            runAgentLoop();
+          }
     }
 
     function rebuildChatUI() {
