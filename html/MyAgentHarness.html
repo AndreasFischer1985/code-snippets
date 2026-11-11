@@ -6,7 +6,7 @@
   <meta name="author" content="Dr. Andreas Fischer">
   <meta name="copyright" content="Dr. Andreas Fischer">
   <meta name="reply-to" content="andreasfischer1985@web.de">
-  <title>MyAgentHarness v1.21</title>
+  <title>MyAgentHarness v1.22</title>
   <!-- PDF.js für Client-seitiges PDF-Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -443,7 +443,7 @@
         if (state.chatHistory && Array.isArray(state.chatHistory)) {
           chatHistory = state.chatHistory;
           const container = document.getElementById('chat-messages');
-          container.innerHTML = '<div class="msg-wrapper system-info"><div class="msg system-info">Session wiederhergestellt.</div></div>';
+          container.innerHTML = '<div class="msg-wrapper system-info"><div class="msg system-info">Neue Session gestartet.</div></div>';
           
           const getToolResultText = (toolCallId) => {
             const found = chatHistory.find(m => m.role === 'tool' && m.tool_call_id === toolCallId);
@@ -739,42 +739,126 @@
     }
 
     async function handleContextOverflow(messagesRef, maxContextTokens, model = "gemma-4-12b-it", apiUrl = "http://127.0.0.1:1234/v1/chat/completions") {
+      // Schwellenwert auf 80% des maximalen Kontextfensters festlegen
       const threshold = Math.floor(maxContextTokens * 0.80);
-      if (estimateTotalTokens(messagesRef) <= threshold) return false;
-      let systemMsg = messagesRef.length > 0 && messagesRef[0].role === 'system' ? messagesRef.shift() : null;
-      let lastUserMsg = null;
+      
+      // Wenn der aktuelle Token-Verbrauch unter dem Schwellenwert liegt, ist keine Aktion erforderlich
+      if (estimateTotalTokens(messagesRef) <= threshold) {
+        return false;
+      }
+        
+      // PHASE 1: System-Nachricht und letzte Benutzer-Nachricht isolieren, 
+      // damit sie bei den folgenden Optimierungsschritten nicht versehentlich verloren gehen
+      let systemMsg = null;
+      if (messagesRef.length > 0 && (messagesRef[0].role || '') === 'system') {
+        systemMsg = messagesRef.shift();
+      }
+    
       let lastUserMsgIndex = -1;
       for (let i = messagesRef.length - 1; i >= 0; i--) {
-        if (messagesRef[i].role === 'user') { lastUserMsgIndex = i; break; }
+        if ((messagesRef[i].role || '') === 'user') {
+          lastUserMsgIndex = i;
+          break;
+        }
       }
-      if (lastUserMsgIndex !== -1) lastUserMsg = messagesRef.splice(lastUserMsgIndex, 1)[0];
-
+    
+      let lastUserMsg = null;
+      if (lastUserMsgIndex !== -1) {
+        lastUserMsg = messagesRef.splice(lastUserMsgIndex, 1)[0];
+      }
+    
+      // Hilfsfunktion zum Zusammenbauen und Prüfen des Gesamt-Kontexts
       const rebuildAndCheck = () => {
         let current = [];
-        if (systemMsg !== null) current.push(systemMsg);
-        current.push(...messagesRef);
-        if (lastUserMsg !== null) current.push(lastUserMsg);
+        if (systemMsg !== null) {
+          current.push(systemMsg);
+        }
+        for (const m of messagesRef) {
+          current.push(m);
+        }
+        if (lastUserMsg !== null) {
+          current.push(lastUserMsg);
+        }
         let tokens = estimateTotalTokens(current);
-        return { messages: current, tokens, ok: tokens <= threshold };
+        return {
+          messages: current,
+          tokens: tokens,
+          ok: tokens <= threshold
+        };
       };
+    
+      // PHASE 2: Tool-Ergebnisse in der Historie optimieren (ältere Tool-Antworten leeren, das letzte kürzen)
+      let toolIndices = [];
+      messagesRef.forEach((m, idx) => {
+        if ((m.role || '') === 'tool') {
+          toolIndices.push(idx);
+        }
+      });
+    
+      if (toolIndices.length > 0) {
+        let lastToolIdx = toolIndices.pop();
+        
+        for (const idx of toolIndices) {
+          if (messagesRef[idx]) {
+            messagesRef[idx].content = "[wegen Context-Overflow entfernt]";
+          }
+        }
+    
+        check = rebuildAndCheck();
+        if (check.ok) {
+          messagesRef.length = 0;
+          messagesRef.push(...check.messages);
+          return true;
+        }
 
-      let check = rebuildAndCheck();
-      if (check.ok) { messagesRef.length = 0; messagesRef.push(...check.messages); return true; }
+        if (messagesRef[lastToolIdx]) {
+          let content = Array.isArray(messagesRef[lastToolIdx].content)
+            ? JSON.stringify(messagesRef[lastToolIdx].content)
+            : (messagesRef[lastToolIdx].content || '');
+          messagesRef[lastToolIdx].content = content.substring(0, 500) + "\n[wegen Context-Overflow gekürzt]";
+        }
+    
+        check = rebuildAndCheck();
+        if (check.ok) {
+          messagesRef.length = 0;
+          messagesRef.push(...check.messages);
+          return true;
+        }
+      }
 
+
+       // PHASE 3: History verdichten (lange messages kürzen, Zusammenfassung erstellen)
       let historyText = "";
       for (const m of messagesRef) {
         let role = m.role || 'user';
-        let content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content || '');
-        if (content) historyText += `[${role}]: ${content}\n`;
+        let content = m.tool_calls ? "[Tool-Aufruf]" : (Array.isArray(m.content) ? JSON.stringify(m.content) : (m.content || ''));
+        if (content !== '') {
+          if (content.length > 4000) {
+            content = content.substring(0, 1500) + "\n[... Inhalt gekürzt ...]\n" + content.substring(content.length - 1500);
+          }
+          historyText += `[${role}]: ${content}\n`;
+        }
       }
 
+      let messagesRef2 = [...messagesRef];      
       let summary = "";
       if (historyText.trim() !== "") {
+        let summaryPayload = {
+          model: model,
+          messages: [
+            { role: "system", content: "Fasse den folgenden Text oder Gesprächsverlauf extrem präzise und kompakt zusammen:" },
+            { role: "user", content: historyText }
+          ],
+          max_tokens: 800,
+          temperature: 0.1,
+          stream: false
+        };
+      
         try {
           let sumRes = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model, messages: [{ role: "system", content: "Fasse zusammen:" }, { role: "user", content: historyText }], max_tokens: 800, temperature: 0.1 })
+            body: JSON.stringify(summaryPayload)
           });
           if (sumRes.ok) {
             let dataSum = await sumRes.json();
@@ -782,14 +866,51 @@
           }
         } catch (e) {}
       }
-
+      
+      // Testen mit der Zusammenfassung
       messagesRef.length = 0;
-      messagesRef.push({ role: "assistant", content: summary !== "" ? "Zusammenfassung: " + summary : "[Zusammenfassung wegen Context-Overflow entfernt]" });
+      if (summary !== "") {
+        messagesRef.push({
+          role: "assistant",
+          content: "Zusammenfassung der bisherigen Unterhaltung: " + summary
+        });
+      }
+      
+      check = rebuildAndCheck();
+      if (check.ok) {
+        messagesRef.length = 0;
+        messagesRef.push(...check.messages);
+        return true;
+      }
+      
+      // PHASE 4: Zusammenfassung hat nicht gereicht -> Fallback auf Sliding Window der Historie vor der Zusammenfassung
+      messagesRef.length = 0;
+      messagesRef.push(...messagesRef2); // Nachrichten vor der Zusammenfassung wiederherstellen
+
+      // Älteste Nachrichten schrittweise von vorne (links) löschen, bis es passt
+      while (messagesRef.length > 0 && !rebuildAndCheck().ok) {
+        messagesRef.shift();
+      }
+
+      // PHASE 5: Letzter Ausweg (falls selbst ohne Historie noch System- oder User-Prompt zu groß sind)
+      let finalRebuild = rebuildAndCheck();
+      if (!finalRebuild.ok && lastUserMsg !== null) {
+        let content = Array.isArray(lastUserMsg.content) ? JSON.stringify(lastUserMsg.content) : (lastUserMsg.content || '');
+        lastUserMsg.content = content.substring(0, 1000) + "\n[wegen extremem Context-Overflow gekürzt]";
+      }
+      
+      if (!rebuildAndCheck().ok && systemMsg !== null) {
+        let content = Array.isArray(systemMsg.content) ? JSON.stringify(systemMsg.content) : (systemMsg.content || '');
+        systemMsg.content = content.substring(0, 1000) + "\n[System-Prompt wegen Context-Overflow gekürzt]";
+      }
+      
+      // Finales Zusammenbauen
       let finalCheck = rebuildAndCheck();
       messagesRef.length = 0;
       messagesRef.push(...finalCheck.messages);
       return true;
-    }
+
+    }   
 
     async function generateDocMetadata(fileName, fileContent) {
       if (fileName === 'AGENT.md') {
@@ -1080,7 +1201,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
         if (filteredParts.length > 0) {
           content = filteredParts.join("\n");
         }
-      }
+      }      
 
       return `Inhalt von Dokument '${targetDoc.name}' (ID: ${targetDoc.id}, Seiten ${Math.max(1, startPage)}-${endPage} von ${totalPages}):\n\n` + content;
     }
@@ -1839,7 +1960,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
             document.getElementById('cancel-btn').style.display = 'inline-block';
             runAgentLoop();
           }
-    }
+      }
 
     function rebuildChatUI() {
       const container = document.getElementById('chat-messages');
