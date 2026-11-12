@@ -6,7 +6,7 @@
   <meta name="author" content="Dr. Andreas Fischer">
   <meta name="copyright" content="Dr. Andreas Fischer">
   <meta name="reply-to" content="andreasfischer1985@web.de">
-  <title>MyAgentHarness v1.22</title>
+  <title>MyAgentHarness v1.23</title>
   <!-- PDF.js für Client-seitiges PDF-Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -1344,21 +1344,98 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
     }
 
     async function performfetch_url(url) {
-      if (!url) return "Fehler: Keine URL.";
-      if (url.includes('github.com') && url.includes('/blob/')) {
-        url = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+          if (!url) return "Fehler: Keine URL angegeben.";
+              
+          // 1. Spezielle Behandlung für GitHub-URLs (nutzt die offizielle GitHub API & README)
+          if (url.includes('github.com')) {
+            try {
+              const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+              if (match) {
+                const owner = match[1];
+                const repo = match[2].replace(/\.git$/, '');
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
+                
+                // Repository-Metadaten abrufen
+                const response = await fetch(apiUrl, { 
+                  headers: { 'Accept': 'application/vnd.github.v3+json' },
+                  signal: AbortSignal.timeout(8000) 
+                });
+                
+                if (!response.ok) throw new Error(`GitHub API Fehler: HTTP ${response.status}`);
+                const repoData = await response.json();
+
+                // Versuche zusätzlich die README.md zu laden
+                let readmeContent = "Keine README.md gefunden.";
+                try {
+                  const readmeRes = await fetch(`${apiUrl}/readme`, {
+                    headers: { 'Accept': 'application/vnd.github.v3.raw' }, // Holt direkt den Rohtext der README
+                    signal: AbortSignal.timeout(5000)
+                  });
+                  if (readmeRes.ok) {
+                    readmeContent = await readmeRes.text();
+                    // README bei Bedarf auf eine sinnvolle Länge kürzen (z.B. 4000 Zeichen)
+                    if (readmeContent.length > 3000) {
+                      readmeContent = readmeContent.substring(0, 4000) + "\n[... README gekürzt ...]";
+                    }
+                  }
+                } catch (e) {
+                  // Ignorieren, falls keine README existiert
+                }
+                
+                return `GitHub Repository Info (${owner}/${repo}):\n` +
+                       `- Beschreibung: ${repoData.description || 'Keine'}\n` +
+                       `- Hauptsprache: ${repoData.language || 'Unbekannt'}\n` +
+                       `- Sterne: ${repoData.stargazers_count} | Forks: ${repoData.forks_count}\n` +
+                       `- URL: ${repoData.html_url}\n\n` +
+                       `=== README.md ===\n${readmeContent}`;
+              }
+            } catch (e) {
+              console.warn("GitHub API-Abruf fehlgeschlagen, versuche Fallback:", e.message);
+            }
+          }
+      
+        // 2. Normaler direkter Fetch-Versuch (greift, falls die Zielseite CORS erlaubt)
+        try {
+          const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          if (response.ok) {
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
+            return `Inhalt von URL (${url}):\n` + (doc.body.textContent || "").replace(/\s+/g, ' ').trim().substring(0, 4000);
+          }
+        } catch (e) {
+          // Direkter Fetch fehlgeschlagen (CORS-Blockade), weiter zu Proxies...
+        }
+      
+        // 3. Fallback: Bekannte CORS-Proxies für normale Webseiten nutzen
+        const proxyServices = [
+          {
+            getUrl: (target) => `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
+            parse: async (res) => (await res.json()).contents
+          },
+          {
+            getUrl: (target) => `https://corsproxy.io/?${encodeURIComponent(target)}`,
+            parse: async (res) => await res.text()
+          }
+        ];
+      
+        for (const proxy of proxyServices) {
+          try {
+            const res = await fetch(proxy.getUrl(url), { signal: AbortSignal.timeout(8000) });
+            if (!res.ok) continue;
+            const rawHtml = await proxy.parse(res);
+            if (rawHtml && rawHtml.trim().length > 0) {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(rawHtml, 'text/html');
+              doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
+              return `Inhalt von URL (${url}):\n` + (doc.body.textContent || "").replace(/\s+/g, ' ').trim().substring(0, 4000);
+            }
+          } catch (err) {}
+        }
+
+        return `Fehler: Konnte URL '${url}' weder direkt noch über Proxies laden (CORS-Beschränkung oder Timeout).`;
       }
-      try {
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-        const data = await res.json();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
-        doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
-        return `Inhalt von URL (${url}):\n` + (doc.body.textContent || "").replace(/\s+/g, ' ').trim().substring(0, 4000);
-      } catch (e) {
-        return `Fehler: ${e.message}`;
-      }
-    }
 
     async function performsearch_wikipedia(query) {
       if (!query) return "Fehler: Kein Suchbegriff.";
