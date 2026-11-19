@@ -6,7 +6,7 @@
   <meta name="author" content="Dr. Andreas Fischer">
   <meta name="copyright" content="Dr. Andreas Fischer">
   <meta name="reply-to" content="andreasfischer1985@web.de">
-  <title>MyAgentHarness v1.23</title>
+  <title>MyAgentHarness v1.24</title>
   <!-- PDF.js für Client-seitiges PDF-Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -339,12 +339,14 @@
       <div class="checkbox-group" id="tools-container" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
         <label><input type="checkbox" id="tool-read_doc" checked onchange="saveStateToLocalStorage()"> read_doc (Virtuelle Dateien)</label>
         <label><input type="checkbox" id="tool-write_doc" checked onchange="saveStateToLocalStorage()"> write_doc (Virtuelle Dateien)</label>
+        <label><input type="checkbox" id="tool-search_doc" checked onchange="saveStateToLocalStorage()"> search_doc (Virtuelle Dateien)</label>
         <label><input type="checkbox" id="tool-search_web" checked onchange="saveStateToLocalStorage()"> search_web (DuckDuckGo)</label>
         <label><input type="checkbox" id="tool-fetch_url" checked onchange="saveStateToLocalStorage()"> fetch_url</label>
         <label><input type="checkbox" id="tool-search_wikipedia" checked onchange="saveStateToLocalStorage()"> search_wikipedia</label>
         <label><input type="checkbox" id="tool-get_weather" checked onchange="saveStateToLocalStorage()"> get_weather</label>
         <label><input type="checkbox" id="tool-calculate" checked onchange="saveStateToLocalStorage()"> calculate</label>
         <label><input type="checkbox" id="tool-run_code" checked onchange="saveStateToLocalStorage()"> run_code (JavaScript)</label>
+        <label><input type="checkbox" id="tool-run_content_analysis" checked onchange="saveStateToLocalStorage()"> run_content_analysis (<a href="https://doi.org/10.25656/01:34405" target="_blank">Fischer, 2025</a>)</label>
         <label><input type="checkbox" id="tool-generate_image" checked onchange="saveStateToLocalStorage()"> generate_image</label>
       </div>
     </details>
@@ -1158,7 +1160,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       currentModalDocId = null;
     }
 
-    async function performReadDoc(args) {
+    async function perform_read_doc(args) {
       const docIdentifier = args.document_id || args.id || args.name;
       let targetDoc = null;
       for (const [id, doc] of Object.entries(uploadedDocs)) {
@@ -1206,7 +1208,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       return `Inhalt von Dokument '${targetDoc.name}' (ID: ${targetDoc.id}, Seiten ${Math.max(1, startPage)}-${endPage} von ${totalPages}):\n\n` + content;
     }
 
-    function performWriteDoc(args) {
+    function perform_write_doc(args) {
       const fileName = args.name || args.filename || args.document_id;
       if (!fileName) return "Fehler: Es wurde kein Dateiname ('name') angegeben.";
       
@@ -1277,7 +1279,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       return `Erfolg: Datei '${normalizedFileName}' (ID: ${existingDocId}) wurde erfolgreich ${isAppend ? 'ergänzt (append)' : 'geschrieben'} (Seitenanzahl: ${finalPageCount}).`;
     }
 
-    async function performsearch_web(query) {
+    async function perform_search_web(query) {
       if (!query) return "Fehler: Kein Suchbegriff.";
       const cacheKey = `search_web:${query}`;
       if (toolCache.has(cacheKey)) return toolCache.get(cacheKey);
@@ -1305,7 +1307,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       }
     }
 
-    function performcalculate(expression) {
+    function perform_calculate(expression) {
       if (!expression) return "Fehler: Kein Ausdruck.";
       const cleanExpr = expression.replace(/[^0-9\+\-\*\/\.\(\)\s]/g, '');
       try {
@@ -1316,7 +1318,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       }
     }
 
-    function performrun_code(code) {
+    function perform_run_code(code) {
       if (!code) return "Fehler: Kein Code angegeben.";
       try {
         let logs = [];
@@ -1343,7 +1345,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       }
     }
 
-    async function performfetch_url(url) {
+    async function perform_fetch_url(url) {
           if (!url) return "Fehler: Keine URL angegeben.";
               
           // 1. Spezielle Behandlung für GitHub-URLs (nutzt die offizielle GitHub API & README)
@@ -1437,7 +1439,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
         return `Fehler: Konnte URL '${url}' weder direkt noch über Proxies laden (CORS-Beschränkung oder Timeout).`;
       }
 
-    async function performsearch_wikipedia(query) {
+    async function perform_search_wikipedia(query) {
       if (!query) return "Fehler: Kein Suchbegriff.";
       const cacheKey = `search_wikipedia:${query}`;
       if (toolCache.has(cacheKey)) return toolCache.get(cacheKey);
@@ -1460,7 +1462,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       }
     }
 
-    async function performget_weather(location) {
+    async function perform_get_weather(location) {
       if (!location) return "Fehler: Kein Ort.";
       try {
         const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=de&format=json`);
@@ -1477,10 +1479,265 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       }
     }
 
-    async function performgenerate_image(prompt) {
+    async function perform_generate_image(prompt) {
       if (!prompt) return "Fehler: Kein Prompt angegeben.";
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
       return `Generiertes Bild für Prompt "${prompt}":\n\n![${prompt}](${imageUrl})`;
+    }
+
+
+    async function perform_search_doc(args = {}) {
+      const params = typeof args === 'string' ? { query: args } : (args || {});
+      const query = (params.query || params.search || params.term || '').trim();
+      if (!query) {
+        return "Fehler: Kein Suchbegriff ('query') angegeben.";
+      }
+    
+      const docIdentifier = params.document_id || params.id || params.name;
+      const caseSensitive = params.case_sensitive === true || params.case_sensitive === "true";
+      const maxResults = parseInt(params.max_results || params.limit) || 10;
+    
+      let candidateDocs = [];
+      if (docIdentifier) {
+        let targetDoc = null;
+        for (const [id, doc] of Object.entries(uploadedDocs)) {
+          if (id === docIdentifier || doc.name === docIdentifier) {
+            targetDoc = doc;
+            break;
+          }
+        }
+        if (!targetDoc) {
+          return `Fehler: Dokument '${docIdentifier}' nicht gefunden. Verfügbare Dokumente: ` +
+            Object.values(uploadedDocs).map(d => `${d.name} (${d.id})`).join(', ');
+        }
+        if (targetDoc.isImage) {
+          return `Dokument '${targetDoc.name}' ist eine Bilddatei und kann nicht durchsucht werden.`;
+        }
+        candidateDocs.push(targetDoc);
+      } else {
+        candidateDocs = Object.values(uploadedDocs).filter(d => !d.isImage && typeof d.content === 'string');
+      }
+
+      if (candidateDocs.length === 0) {
+        return "Keine durchsuchbaren Dokumente vorhanden.";
+      }
+
+      const normalizedQuery = caseSensitive ? query : query.toLowerCase();
+      const matches = [];
+    
+      for (const doc of candidateDocs) {
+        const rawContent = doc.content || "";
+        const hasPages = rawContent.includes("--- Seite ");
+    
+        const sections = [];
+        if (hasPages) {
+          const parts = rawContent.split(/--- Seite (\d+) ---/);
+          for (let i = 1; i < parts.length; i += 2) {
+            sections.push({
+              page: parseInt(parts[i], 10),
+              text: parts[i + 1] || ""
+            });
+          }
+        } else {
+          sections.push({ page: 1, text: rawContent });
+        }
+    
+        for (const sec of sections) {
+          const haystack = caseSensitive ? sec.text : sec.text.toLowerCase();
+          let searchFrom = 0;
+    
+          while (searchFrom < haystack.length) {
+            const idx = haystack.indexOf(normalizedQuery, searchFrom);
+            if (idx === -1) break;
+    
+            const snippetStart = Math.max(0, idx - 120);
+            const snippetEnd = Math.min(sec.text.length, idx + query.length + 120);
+            const prefix = snippetStart > 0 ? "..." : "";
+            const suffix = snippetEnd < sec.text.length ? "..." : "";
+            const snippet = prefix + sec.text.slice(snippetStart, snippetEnd).replace(/\s+/g, " ").trim() + suffix;
+    
+            matches.push(
+              `[${doc.name} (${doc.id}) | Seite ${sec.page}]: ${snippet}`
+            );
+    
+            if (matches.length >= maxResults) {
+              return `Suchergebnisse für "${query}" (auf ${maxResults} Treffer begrenzt):\n\n` + matches.join("\n\n");
+            }
+    
+            searchFrom = idx + Math.max(1, query.length);
+          }
+        }
+      }
+    
+      if (matches.length === 0) {
+        return `Keine Treffer für "${query}" gefunden.`;
+      }
+
+      return `Suchergebnisse für "${query}" (${matches.length} Treffer):\n\n` + matches.join("\n\n");
+    }
+
+
+    function buildContentAnalysisPrompt({ doc, researchQuestion, technique, targetPage, prevPageText, currentPageText, nextPageText }) {
+      const techniqueInstructions = {
+        summarize: `Zusammenfassung: Verdichte die für die Forschungsfrage relevanten Aussagen der Zielseite sachlich und präzise auf die Kernaussagen, ohne eigene Interpretationen     hinzuzufügen.`,
+        explicate: `Explikation: Erläutere unklare, verdichtete oder mehrdeutige Textstellen der Zielseite zur Forschungsfrage mithilfe des engeren und weiteren Kontextes (inkl.     Nachbarseiten).`,
+        annotate: `Strukturierung: Ordne relevante Textstellen der Zielseite passenden Kategorien/Dimensionen zur Forschungsfrage zu und begründe kurz die Zuordnung mit Textbelegen.`,
+        induce: `Kategorienbildung: Leite direkt aus dem Material der Zielseite neue, präzise Kategorien/Muster ab, die zur Beantwortung der Forschungsfrage beitragen, und belege sie knapp am Text.`
+      };
+    
+      const techKey = (technique || "summarize").toLowerCase();
+      const instruction = techniqueInstructions[techKey] || techniqueInstructions.summarize;
+    
+      const contextBlock = [
+        prevPageText ? `--- KONTEXT VORHERIGE SEITE (nur zur Einordnung, nicht primär auswerten) ---\n${prevPageText.trim()}` : null,
+        `--- ZIELSEITE ${targetPage} (PRIMÄR ANALYSIEREN) ---\n${currentPageText.trim()}`,
+        nextPageText ? `--- KONTEXT NÄCHSTE SEITE (nur zur Einordnung, nicht primär auswerten) ---\n${nextPageText.trim()}` : null
+      ].filter(Boolean).join("\n\n");
+    
+      return `Du bist ein Assistent für KI-basierte qualitative Inhaltsanalyse nach Fischer (2025).
+Analysiere ausschließlich auf Basis des bereitgestellten Textes die ZIELSEITE ${targetPage} aus dem Dokument "${doc.name}" (${doc.title || doc.name}).
+
+Forschungsfrage:
+${researchQuestion}
+
+Analysetechnik (${techKey}):
+${instruction}
+
+Material (mit Chunk-Overlap der angrenzenden Seiten):
+${contextBlock}
+
+Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp auf Deutsch. Falls auf Seite ${targetPage} nichts Relevantes zur Forschungsfrage steht, vermerke dies kurz. Fordere den User auf, die Ergebnisse zu überprüfen und die Analyse bei Bedarf anzupassen.`;
+}
+
+    async function perform_run_content_analysis(args = {}) {
+      const params = typeof args === 'string' ? { research_question: args } : (args || {});
+      const docIdentifier = params.document_id || params.id || params.name;
+      const researchQuestion = (params.research_question || params.question || '').trim();
+      const technique = (params.technique || params.analysis_technique || params.method || 'summarize').toLowerCase().trim();
+    
+      const validTechniques = ['summarize', 'explicate', 'annotate', 'induce'];
+      if (!validTechniques.includes(technique)) {
+        return `Fehler: Ungültige Analysetechnik '${technique}'. Erlaubt sind: ${validTechniques.join(', ')}.`;
+      }
+      if (!researchQuestion) {
+        return "Fehler: Es wurde keine 'research_question' angegeben.";
+      }
+    
+      let targetDoc = null;
+      if (docIdentifier) {
+        for (const [id, doc] of Object.entries(uploadedDocs)) {
+          if (id === docIdentifier || doc.name === docIdentifier) {
+            targetDoc = doc;
+            break;
+          }
+        }
+      } else {
+        targetDoc = Object.values(uploadedDocs).find(d => !d.isImage && d.selected !== false) ||
+                    Object.values(uploadedDocs).find(d => !d.isImage);
+      }
+
+      if (!targetDoc) {
+        return docIdentifier
+          ? `Fehler: Dokument '${docIdentifier}' nicht gefunden.`
+          : "Fehler: Kein geeignetes Dokument für die Inhaltsanalyse gefunden.";
+      }
+      if (targetDoc.isImage) {
+        return `Fehler: Dokument '${targetDoc.name}' ist eine Bilddatei und wird von perform_content_analysis nicht als Text unterstützt.`;
+      }
+    
+      const endpointEl = document.getElementById('endpoint');
+      const modelEl = document.getElementById('model-name');
+      const endpoint = endpointEl ? endpointEl.value.trim() : '';
+      const modelVal = modelEl ? modelEl.value : '';
+    
+      if (!endpoint) {
+        return "Fehler: Kein LLM-Endpoint ('#endpoint') konfiguriert.";
+      }
+    
+      const chatUrl = endpoint.includes('/chat/completions')
+        ? endpoint
+        : endpoint.replace(/\/+$/, '') + '/v1/chat/completions';
+    
+      // Seiten extrahieren (Fallback auf 1 Seite, falls keine Seitenmarker vorhanden)
+      const rawContent = targetDoc.content || "";
+      const pages = [];
+
+      if (rawContent.includes("--- Seite ")) {
+        const parts = rawContent.split(/--- Seite (\d+) ---/);
+        for (let i = 1; i < parts.length; i += 2) {
+          pages.push({
+            pageNum: parseInt(parts[i], 10),
+            text: parts[i + 1] || ""
+          });
+        }
+      }
+    
+      if (pages.length === 0) {
+        pages.push({ pageNum: 1, text: rawContent });
+      }
+
+      const minPage = pages[0].pageNum;
+      const maxPage = pages[pages.length - 1].pageNum;
+      const startPage = Math.max(minPage, parseInt(params.start_page) || minPage);
+      const endPage = Math.min(maxPage, parseInt(params.end_page) || maxPage);
+    
+      const selectedIndices = pages
+        .map((p, idx) => ({ p, idx }))
+        .filter(({ p }) => p.pageNum >= startPage && p.pageNum <= endPage);
+    
+      if (selectedIndices.length === 0) {
+        return `Keine Seiten im Bereich ${startPage}-${endPage} für Dokument '${targetDoc.name}' gefunden.`;
+      }
+    
+      const pageResults = [];
+    
+      for (const { p, idx } of selectedIndices) {
+        const prevText = idx > 0 ? pages[idx - 1].text : "";
+        const nextText = idx < pages.length - 1 ? pages[idx + 1].text : "";
+    
+        const prompt = buildContentAnalysisPrompt({
+          doc: targetDoc,
+          researchQuestion,
+          technique,
+          targetPage: p.pageNum,
+          prevPageText: prevText,
+          currentPageText: p.text,
+          nextPageText: nextText
+        });
+    
+        try {
+          const res = await fetch(chatUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: modelVal,
+              messages: [{ role: "user", content: prompt }],
+              temperature: 0.2,
+              max_tokens: 900
+            })
+          });
+    
+          if (!res.ok) {
+            pageResults.push(`### Seite ${p.pageNum}\nFehler beim LLM-Aufruf (HTTP ${res.status}).`);
+            continue;
+          }
+    
+          const data = await res.json();
+          const analysisText = (data.choices?.[0]?.message?.content || '').trim() || "Keine Antwort vom Modell erhalten.";
+          pageResults.push(`### Seite ${p.pageNum}\n${analysisText}`);
+        } catch (err) {
+          pageResults.push(`### Seite ${p.pageNum}\nFehler bei der Analyse: ${err.message}`);
+        }
+      }
+    
+      return [
+        `# Qualitative Inhaltsanalyse: ${targetDoc.name} (${targetDoc.id})`,
+        `- **Forschungsfrage:** ${researchQuestion}`,
+        `- **Analysetechnik:** ${technique}`,
+        `- **Analysierte Seiten:** ${startPage}–${endPage} (mit je 1 Seite Overlap davor/danach)`,
+        ``,
+        pageResults.join("\n\n")
+      ].join("\n");
     }
 
     function getAvailableToolsSchema() {
@@ -1520,12 +1777,51 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
             }
           }
         },
+        search_doc: {
+          type: "function",
+          function: {
+            name: "search_doc",
+            description: "Durchsucht ein bestimmtes oder alle hochgeladenen Dokumente nach einem Suchbegriff und gibt Treffer mit Seitenangabe und Kontext aus.",
+            parameters: {
+              type: "object",
+              properties: {
+                query: { type: "string", description: "Suchbegriff oder Phrase." },
+                document_id: { type: "string", description: "Optional: ID oder Dateiname des zu durchsuchenden Dokuments (sonst alle Dokumente)." },
+                case_sensitive: { type: "boolean", description: "Groß-/Kleinschreibung beachten (Standard: false)." },
+                max_results: { type: "integer", description: "Maximale Anzahl an Treffern (Standard: 10)." }
+              },
+              required: ["query"]
+            }
+          }
+        },
         search_web: { type: "function", function: { name: "search_web", description: "Sucht im Web.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
         fetch_url: { type: "function", function: { name: "fetch_url", description: "Liest Webseiten.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
         search_wikipedia: { type: "function", function: { name: "search_wikipedia", description: "search_wikipedia Abfrage.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
         get_weather: { type: "function", function: { name: "get_weather", description: "Wetterdaten.", parameters: { type: "object", properties: { location: { type: "string" } }, required: ["location"] } } },
         calculate: { type: "function", function: { name: "calculate", description: "Mathematische Rechnungen.", parameters: { type: "object", properties: { expression: { type: "string" } }, required: ["expression"] } } },
         run_code: { type: "function", function: { name: "run_code", description: "Führt JavaScript-Code aus. Hat Zugriff auf 'virtualFiles' (z.B. virtualFiles[id] = { name: doc.name, title: doc.title, description: doc.description, content: doc.content, page_count: doc.page_count }).", parameters: { type: "object", properties: { code: { type: "string" } }, required: ["code"] } } },
+        run_content_analysis: {
+          type: "function",
+          function: {
+            name: "run_content_analysis",
+            description: "Führt eine qualitative Inhaltsanalyse eines Dokuments Seite für Seite (inkl. je einer Seite Overlap davor und danach) für eine Forschungsfrage durch.",
+            parameters: {
+              type: "object",
+              properties: {
+                document_id: { type: "string", description: "Optional: ID oder Dateiname des Dokuments (sonst erstes ausgewähltes Textdokument)." },
+                research_question: { type: "string", description: "Forschungsfrage für die Inhaltsanalyse." },
+                technique: {
+                  type: "string",
+                  enum: ["summarize", "explicate", "annotate", "induce"],
+                  description: "Analysetechnik: 'summarize' (Zusammenfassung), 'explicate' (Explikation), 'annotate' (Strukturierung) oder 'induce' (Kategorienbildung)."
+                },
+                start_page: { type: "integer", description: "Optional: Erste zu analysierende Seite." },
+                end_page: { type: "integer", description: "Optional: Letzte zu analysierende Seite." }
+              },
+              required: ["research_question", "technique"]
+            }
+          }
+        },
         generate_image: { type: "function", function: { name: "generate_image", description: "Generiert Bilder aus einem Prompt.", parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] } } }
       };
 
@@ -1767,15 +2063,17 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       
       const executeFn = async (currentArgs) => {
         switch (name) {
-          case 'read_doc': return await performReadDoc(currentArgs);
-          case 'write_doc': return performWriteDoc(currentArgs);
-          case 'search_web': return await performsearch_web(currentArgs.query);
-          case 'fetch_url': return await performfetch_url(currentArgs.url || currentArgs.query);
-          case 'search_wikipedia': return await performsearch_wikipedia(currentArgs.query);
-          case 'get_weather': return await performget_weather(currentArgs.location || currentArgs.query);
-          case 'calculate': return await performcalculate(currentArgs.expression || currentArgs.query);
-          case 'run_code': return performrun_code(currentArgs.code || currentArgs.query);
-          case 'generate_image': return await performgenerate_image(currentArgs.prompt || currentArgs.query);
+          case 'read_doc': return await perform_read_doc(currentArgs);
+          case 'write_doc': return perform_write_doc(currentArgs);
+          case 'search_doc': return perform_search_doc(currentArgs);
+          case 'search_web': return await perform_search_web(currentArgs.query);
+          case 'fetch_url': return await perform_fetch_url(currentArgs.url || currentArgs.query);
+          case 'search_wikipedia': return await perform_search_wikipedia(currentArgs.query);
+          case 'get_weather': return await perform_get_weather(currentArgs.location || currentArgs.query);
+          case 'calculate': return await perform_calculate(currentArgs.expression || currentArgs.query);
+          case 'run_code': return perform_run_code(currentArgs.code || currentArgs.query);
+          case 'run_content_analysis': return await perform_run_content_analysis(currentArgs);
+          case 'generate_image': return await perform_generate_image(currentArgs.prompt || currentArgs.query);
           default: return "Unbekanntes Tool";
         }
       };
