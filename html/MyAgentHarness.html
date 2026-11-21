@@ -6,7 +6,7 @@
   <meta name="author" content="Dr. Andreas Fischer">
   <meta name="copyright" content="Dr. Andreas Fischer">
   <meta name="reply-to" content="andreasfischer1985@web.de">
-  <title>MyAgentHarness v1.25</title>
+  <title>MyAgentHarness v1.26</title>
   <!-- PDF.js für Client-seitiges PDF-Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -1559,293 +1559,825 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       return `Suchergebnisse für "${query}" (${matches.length} Treffer):\n\n` + matches.join("\n\n");
     }
 
-    function normalizeAnalysisUnit(rawUnit) {
-      const val = (rawUnit || 'page').toString().toLowerCase().trim();
-      if (['line', 'lines', 'line-by-line', 'line_by_line', 'zeile', 'zeilen', 'zeilenweise'].includes(val)) {
-        return 'line';
+    const analysisCache = new Map();
+
+const DEFAULT_CONFIG = {
+  concurrency: 3,
+  maxUnitsPerCall: 40,
+  requestTimeoutMs: 120_000,
+  maxContextChars: 6_000,
+  maxDocumentChars: 45_000
+};
+
+function normalizeAnalysisUnit(rawUnit) {
+  const val = (rawUnit || "page").toString().toLowerCase().trim();
+  if (["line", "lines", "line-by-line", "line_by_line", "zeile", "zeilen", "zeilenweise"].includes(val)) {
+    return "line";
+  }
+  if (["document", "whole", "whole_document", "full", "all", "gesamt", "gesamtdokument", "ganzes"].includes(val)) {
+    return "document";
+  }
+  return "page";
+}
+
+function normalizeCategories(rawCategories) {
+  if (!Array.isArray(rawCategories)) return [];
+  return rawCategories
+    .map((c) => (typeof c === "string" ? c.trim() : ""))
+    .filter(Boolean);
+}
+
+function formatCategoriesBlock(categories) {
+  if (!categories || categories.length === 0) return "";
+  return [
+    "Vorgegebene Kategorien / Dimensionen (prioritär verwenden, falls passend):",
+    ...categories.map((cat, idx) => `${idx + 1}. ${cat}`)
+  ].join("\n");
+}
+
+function truncateText(text, maxChars) {
+  const clean = (text || "").trim();
+  if (!maxChars || clean.length <= maxChars) {
+    return { text: clean, truncated: false };
+  }
+  return {
+    text: `${clean.slice(0, maxChars)}\n\n[... gekürzt wegen Zeichenlimit (${clean.length} Zeichen gesamt) ...]`,
+    truncated: true
+  };
+}
+
+function parseBoundedRange(startVal, endVal, minVal, maxVal, label) {
+  const hasStart = startVal !== undefined && startVal !== null && startVal !== "";
+  const hasEnd = endVal !== undefined && endVal !== null && endVal !== "";
+
+  let start = hasStart ? Number.parseInt(startVal, 10) : minVal;
+  let end = hasEnd ? Number.parseInt(endVal, 10) : maxVal;
+
+  if (Number.isNaN(start)) start = minVal;
+  if (Number.isNaN(end)) end = maxVal;
+
+  if (start > end) {
+    return {
+      error: `Ungültiger ${label}-Bereich: Start (${start}) ist größer als Ende (${end}).`
+    };
+  }
+
+  return {
+    start: Math.max(minVal, Math.min(maxVal, start)),
+    end: Math.max(minVal, Math.min(maxVal, end))
+  };
+}
+
+async function runWithConcurrency(items, concurrency, workerFn) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const idx = nextIndex++;
+      results[idx] = await workerFn(items[idx], idx);
+    }
+  }
+
+  const count = Math.max(1, Math.min(concurrency, items.length));
+  await Promise.all(Array.from({ length: count }, () => worker()));
+  return results;
+}
+
+function buildContentAnalysisPrompts({
+  doc,
+  researchQuestion,
+  technique,
+  unitType = "page",
+  unitLabel = "Seite",
+  targetUnit = "1",
+  prevText = "",
+  currentText = "",
+  nextText = "",
+  categories = [],
+  promptTemplate = "",
+  maxContextChars = DEFAULT_CONFIG.maxContextChars,
+  maxDocumentChars = DEFAULT_CONFIG.maxDocumentChars
+}) {
+  const techKey = (technique || "summarize").toLowerCase().trim();
+  const categoriesBlock = formatCategoriesBlock(categories);
+
+  const techniqueInstructions = {
+    summarize:
+      "Zusammenfassung: Verdichte die für die Forschungsfrage relevanten Aussagen der Zieleinheit sachlich und präzise auf die Kernaussagen, ohne eigene Interpretationen hinzuzufügen.",
+    explicate:
+      "Explikation: Erläutere unklare, verdichtete oder mehrdeutige Textstellen der Zieleinheit zur Forschungsfrage mithilfe des engeren und weiteren Kontextes (inkl. angrenzender Einheiten).",
+    annotate: categories.length
+      ? "Strukturierung: Ordne relevante Textstellen der Zieleinheit den vorgegebenen Kategorien/Dimensionen zur Forschungsfrage zu (nur bei klarem Bezug neue Kategorien ergänzen) und begründe die Zuordnung knapp mit Textbelegen."
+      : "Strukturierung: Ordne relevante Textstellen der Zieleinheit passenden Kategorien/Dimensionen zur Forschungsfrage zu und begründe kurz die Zuordnung mit Textbelegen.",
+    induce:
+      "Kategorienbildung: Leite direkt aus dem Material der Zieleinheit neue, präzise Kategorien/Muster ab, die zur Beantwortung der Forschungsfrage beitragen, und belege sie knapp am Text."
+  };
+
+  const instruction = techniqueInstructions[techKey] || techniqueInstructions.summarize;
+
+  const systemPrompt = [
+    "Du bist ein präziser Assistent für KI-basierte qualitative Inhaltsanalyse nach Fischer (2025).",
+    "Analysiere ausschließlich auf Basis des bereitgestellten Materials und erfinde keine Fakten.",
+    "Antworte klar strukturiert, sachlich und knapp auf Deutsch.",
+    "Falls im Material nichts Relevantes zur Forschungsfrage steht, vermerke dies kurz.",
+    "Weise am Ende kurz darauf hin, dass die Ergebnisse überprüft und bei Bedarf angepasst werden sollten."
+  ].join("\n");
+
+  if (unitType === "document") {
+    const docSlice = truncateText(currentText, maxDocumentChars);
+
+    if (promptTemplate && promptTemplate.trim()) {
+      const replacements = {
+        "{{research_question}}": researchQuestion,
+        "{{technique}}": techKey,
+        "{{technique_instruction}}": instruction,
+        "{{categories_block}}": categoriesBlock,
+        "{{unit_type}}": unitType,
+        "{{unit_label}}": unitLabel,
+        "{{target_unit}}": String(targetUnit),
+        "{{unit_text}}": docSlice.text,
+        "{{prev_context}}": "",
+        "{{next_context}}": "",
+        "{{context_block}}": docSlice.text,
+        "{{doc_name}}": doc.name || "",
+        "{{doc_title}}": doc.title || doc.name || "",
+        "{{doc_id}}": doc.id || ""
+      };
+      let rendered = promptTemplate;
+      for (const [key, val] of Object.entries(replacements)) {
+        rendered = rendered.split(key).join(val);
       }
-      if (['document', 'whole', 'whole_document', 'full', 'all', 'gesamt', 'gesamtdokument', 'ganzes'].includes(val)) {
-        return 'document';
-      }
-      return 'page';
+      return { systemPrompt, userPrompt: rendered };
     }
 
-    function buildContentAnalysisPrompt({
-      doc,
+    const userPrompt = [
+      `Dokument: "${doc.name}" (${doc.title || doc.name})`,
+      `Forschungsfrage:\n${researchQuestion}`,
+      `Analysetechnik (${techKey}):\n${instruction}`,
+      categoriesBlock ? `\n${categoriesBlock}` : "",
+      `\nMaterial (Gesamtdokument):\n${docSlice.text}`
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    return { systemPrompt, userPrompt };
+  }
+
+  const prevSlice = truncateText(prevText, maxContextChars);
+  const currSlice = truncateText(currentText, maxContextChars);
+  const nextSlice = truncateText(nextText, maxContextChars);
+
+  const contextParts = [];
+  if (prevSlice.text) {
+    contextParts.push(
+      `--- KONTEXT VORHERIGE EINHEIT (nur zur Einordnung, nicht primär auswerten) ---\n${prevSlice.text}`
+    );
+  }
+  contextParts.push(
+    `--- ZIEL${unitLabel.toUpperCase()} ${targetUnit} (PRIMÄR ANALYSIEREN) ---\n${currSlice.text}`
+  );
+  if (nextSlice.text) {
+    contextParts.push(
+      `--- KONTEXT NÄCHSTE EINHEIT (nur zur Einordnung, nicht primär auswerten) ---\n${nextSlice.text}`
+    );
+  }
+  const contextBlock = contextParts.join("\n\n");
+
+  if (promptTemplate && promptTemplate.trim()) {
+    const replacements = {
+      "{{research_question}}": researchQuestion,
+      "{{technique}}": techKey,
+      "{{technique_instruction}}": instruction,
+      "{{categories_block}}": categoriesBlock,
+      "{{unit_type}}": unitType,
+      "{{unit_label}}": unitLabel,
+      "{{target_unit}}": String(targetUnit),
+      "{{unit_text}}": currSlice.text,
+      "{{prev_context}}": prevSlice.text,
+      "{{next_context}}": nextSlice.text,
+      "{{context_block}}": contextBlock,
+      "{{doc_name}}": doc.name || "",
+      "{{doc_title}}": doc.title || doc.name || "",
+      "{{doc_id}}": doc.id || ""
+    };
+    let rendered = promptTemplate;
+    for (const [key, val] of Object.entries(replacements)) {
+      rendered = rendered.split(key).join(val);
+    }
+    return { systemPrompt, userPrompt: rendered };
+  }
+
+  const userPrompt = [
+    `Dokument: "${doc.name}" (${doc.title || doc.name})`,
+    `Zieleinheit: ${unitLabel} ${targetUnit}`,
+    `Forschungsfrage:\n${researchQuestion}`,
+    `Analysetechnik (${techKey}):\n${instruction}`,
+    categoriesBlock ? `\n${categoriesBlock}` : "",
+    `\nMaterial (inkl. Kontext angrenzender Einheiten):\n${contextBlock}`
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return { systemPrompt, userPrompt };
+}
+
+function buildUnitsForDocument(targetDoc, unitType, params, overlapCount) {
+  const rawContent = targetDoc.content || "";
+
+  if (unitType === "document") {
+    const cleanedFullText = rawContent.replace(/--- Seite \d+ ---/g, "").trim() || rawContent;
+    return {
+      unitLabel: "Dokument",
+      scopeSummary: "Gesamtes Dokument als Ganzes",
+      units: [
+        {
+          id: "doc-full",
+          labelNum: "Gesamtdokument",
+          text: cleanedFullText,
+          prevText: "",
+          nextText: ""
+        }
+      ]
+    };
+  }
+
+  if (unitType === "line") {
+    const lines = rawContent.split(/\r?\n/).map((lineText, index) => ({
+      lineNum: index + 1,
+      text: lineText
+    }));
+    if (lines.length === 0) {
+      lines.push({ lineNum: 1, text: "" });
+    }
+
+    const minLine = lines[0].lineNum;
+    const maxLine = lines[lines.length - 1].lineNum;
+    const range = parseBoundedRange(params.start_line, params.end_line, minLine, maxLine, "Zeilen");
+    if (range.error) {
+      return { error: range.error };
+    }
+
+    const filtered = lines
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => item.lineNum >= range.start && item.lineNum <= range.end);
+
+    if (filtered.length === 0) {
+      return {
+        error: `Keine Zeilen im Bereich ${range.start}-${range.end} für Dokument '${targetDoc.name}' gefunden.`
+      };
+    }
+
+    const units = filtered.map(({ item, idx }) => {
+      const prevSlice =
+        overlapCount > 0 ? lines.slice(Math.max(0, idx - overlapCount), idx) : [];
+      const nextSlice =
+        overlapCount > 0
+          ? lines.slice(idx + 1, Math.min(lines.length, idx + 1 + overlapCount))
+          : [];
+
+      return {
+        id: `line-${item.lineNum}`,
+        labelNum: String(item.lineNum),
+        text: item.text,
+        prevText: prevSlice.map((x) => `Zeile ${x.lineNum}: ${x.text}`).join("\n"),
+        nextText: nextSlice.map((x) => `Zeile ${x.lineNum}: ${x.text}`).join("\n")
+      };
+    });
+
+    return {
+      unitLabel: "Zeile",
+      scopeSummary: `Zeilen ${range.start}–${range.end} (Overlap: ${overlapCount})`,
+      units
+    };
+  }
+
+  // Standard: 'page'
+  const pages = [];
+  if (rawContent.includes("--- Seite ")) {
+    const parts = rawContent.split(/--- Seite (\d+) ---/);
+    for (let i = 1; i < parts.length; i += 2) {
+      pages.push({
+        pageNum: Number.parseInt(parts[i], 10),
+        text: parts[i + 1] || ""
+      });
+    }
+  }
+  if (pages.length === 0) {
+    pages.push({ pageNum: 1, text: rawContent });
+  }
+
+  const minPage = pages[0].pageNum;
+  const maxPage = pages[pages.length - 1].pageNum;
+  const range = parseBoundedRange(params.start_page, params.end_page, minPage, maxPage, "Seiten");
+  if (range.error) {
+    return { error: range.error };
+  }
+
+  const selected = pages
+    .map((p, idx) => ({ p, idx }))
+    .filter(({ p }) => p.pageNum >= range.start && p.pageNum <= range.end);
+
+  if (selected.length === 0) {
+    return {
+      error: `Keine Seiten im Bereich ${range.start}-${range.end} für Dokument '${targetDoc.name}' gefunden.`
+    };
+  }
+
+  const units = selected.map(({ p, idx }) => {
+    const prevSlice =
+      overlapCount > 0 ? pages.slice(Math.max(0, idx - overlapCount), idx) : [];
+    const nextSlice =
+      overlapCount > 0
+        ? pages.slice(idx + 1, Math.min(pages.length, idx + 1 + overlapCount))
+        : [];
+
+    return {
+      id: `page-${p.pageNum}`,
+      labelNum: String(p.pageNum),
+      text: p.text,
+      prevText: prevSlice.map((x) => `--- Seite ${x.pageNum} ---\n${x.text.trim()}`).join("\n\n"),
+      nextText: nextSlice.map((x) => `--- Seite ${x.pageNum} ---\n${x.text.trim()}`).join("\n\n")
+    };
+  });
+
+  return {
+    unitLabel: "Seite",
+    scopeSummary: `Seiten ${range.start}–${range.end} (Overlap: ${overlapCount})`,
+    units
+  };
+}
+
+async function callChatCompletion({
+  chatUrl,
+  model,
+  apiKey,
+  systemPrompt,
+  userPrompt,
+  temperature = 0.2,
+  maxTokens = 1000,
+  timeoutMs = DEFAULT_CONFIG.requestTimeoutMs,
+  signal
+}) {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+  }
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(chatUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature,
+        max_tokens: maxTokens
+      })
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      return {
+        ok: false,
+        status: `http_error_${res.status}`,
+        error: `HTTP ${res.status}${errBody ? `: ${errBody.slice(0, 200)}` : ""}`,
+        content: "",
+        finishReason: null
+      };
+    }
+
+    const data = await res.json();
+    const choice = data.choices?.[0];
+    const content = (choice?.message?.content || "").trim();
+    const finishReason = choice?.finish_reason || null;
+
+    if (!content) {
+      return {
+        ok: false,
+        status: "empty_response",
+        error: "Leere Antwort vom Modell erhalten.",
+        content: "",
+        finishReason
+      };
+    }
+
+    return {
+      ok: true,
+      status: finishReason === "length" ? "truncated" : "ok",
+      error: finishReason === "length" ? "Antwort durch max_tokens gekürzt." : null,
+      content,
+      finishReason
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: err.name === "AbortError" ? "timeout_or_aborted" : "network_error",
+      error: err.message || String(err),
+      content: "",
+      finishReason: null
+    };
+  } finally {
+    clearTimeout(timeoutId);
+    if (signal) signal.removeEventListener("abort", onAbort);
+  }
+}
+
+async function synthesizeUnitResults({
+  chatUrl,
+  model,
+  apiKey,
+  doc,
+  researchQuestion,
+  technique,
+  categories,
+  unitLabel,
+  unitResults,
+  timeoutMs,
+  signal
+}) {
+  const validResults = unitResults.filter((r) => r.ok && r.analysis);
+  if (validResults.length === 0) {
+    return {
+      ok: false,
+      status: "no_valid_units",
+      error: "Keine erfolgreichen Einzelergebnisse für eine Synthese vorhanden.",
+      synthesis: ""
+    };
+  }
+
+  const combinedInput = validResults
+    .map((r) => `### ${unitLabel} ${r.unit}\n${r.analysis}`)
+    .join("\n\n");
+
+  const { text: boundedInput } = truncateText(combinedInput, DEFAULT_CONFIG.maxDocumentChars);
+  const categoriesBlock = formatCategoriesBlock(categories);
+
+  const systemPrompt = [
+    "Du bist ein Assistent für qualitative Inhaltsanalyse nach Fischer (2025).",
+    "Verdichte die vorliegenden Einzelergebnisse zu einer übergreifenden, widerspruchsfreien Synthese.",
+    "Bleibe streng bei den belegten Aussagen der Einzelergebnisse und benenne übergreifende Muster, Unterschiede sowie offene Punkte."
+  ].join("\n");
+
+  const userPrompt = [
+    `Dokument: "${doc.name}" (${doc.title || doc.name})`,
+    `Forschungsfrage:\n${researchQuestion}`,
+    `Analysetechnik: ${technique}`,
+    categoriesBlock ? `\n${categoriesBlock}` : "",
+    `\nEinzelergebnisse (${validResults.length} von ${unitResults.length} Einheiten):\n${boundedInput}`
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const res = await callChatCompletion({
+    chatUrl,
+    model,
+    apiKey,
+    systemPrompt,
+    userPrompt,
+    temperature: 0.2,
+    maxTokens: 1800,
+    timeoutMs,
+    signal
+  });
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    error: res.error,
+    synthesis: res.content
+  };
+}
+
+function formatAnalysisMarkdown(report) {
+  const lines = [
+    `# Qualitative Inhaltsanalyse: ${report.document.name} (${report.document.id})`,
+    `- **Forschungsfrage:** ${report.research_question}`,
+    `- **Analysetechnik:** ${report.technique}`,
+    `- **Verarbeitungseinheit:** ${report.unit_type} (${report.scope_summary})`,
+    `- **Kategorienvorgabe:** ${report.categories.length ? report.categories.join(", ") : "Keine"}`,
+    `- **Eigenes Prompt-Template:** ${report.has_custom_template ? "Ja" : "Nein"}`,
+    `- **Statusübersicht:** ${report.stats.ok} ok, ${report.stats.truncated} gekürzt, ${report.stats.failed} fehlgeschlagen (Cache-Treffer: ${report.stats.cached})`,
+    ""
+  ];
+
+  for (const item of report.results) {
+    const badge =
+      item.status === "ok"
+        ? ""
+        : item.status === "truncated"
+        ? " *(gekürzt)*"
+        : ` *(Fehler: ${item.error || item.status})*`;
+    lines.push(`### ${report.unit_label} ${item.unit}${badge}`);
+    lines.push(item.analysis || `Fehler bei der Analyse: ${item.error || item.status}`);
+    lines.push("");
+  }
+
+  if (report.synthesis) {
+    lines.push("## Übergreifende Synthese");
+    lines.push(report.synthesis);
+    lines.push("");
+  }
+
+  return lines.join("\n").trim();
+}
+
+async function perform_run_content_analysis(args = {}, context = {}) {
+  const params = typeof args === "string" ? { research_question: args } : args || {};
+  const docIdentifier = params.document_id || params.id || params.name;
+  const researchQuestion = (params.research_question || params.question || "").trim();
+  const technique = (params.technique || params.analysis_technique || params.method || "summarize")
+    .toLowerCase()
+    .trim();
+  const unitType = normalizeAnalysisUnit(params.unit || params.processing_unit || params.granularity);
+  const categories = normalizeCategories(params.categories);
+  const dryRun = Boolean(params.dry_run);
+  const synthesize = Boolean(params.synthesize);
+  const promptTemplate =
+    typeof params.prompt_template === "string"
+      ? params.prompt_template
+      : typeof params.custom_prompt === "string"
+      ? params.custom_prompt
+      : "";
+
+  const validTechniques = ["summarize", "explicate", "annotate", "induce"];
+  if (!validTechniques.includes(technique)) {
+    return {
+      ok: false,
+      error: `Ungültige Analysetechnik '${technique}'. Erlaubt sind: ${validTechniques.join(", ")}.`,
+      markdown: `Fehler: Ungültige Analysetechnik '${technique}'. Erlaubt sind: ${validTechniques.join(", ")}.`
+    };
+  }
+
+  if (!researchQuestion) {
+    return {
+      ok: false,
+      error: "Es wurde keine 'research_question' angegeben.",
+      markdown: "Fehler: Es wurde keine 'research_question' angegeben."
+    };
+  }
+
+  const docsMap = context.uploadedDocs || (typeof uploadedDocs !== "undefined" ? uploadedDocs : {});
+  let targetDoc = null;
+
+  if (docIdentifier) {
+    for (const [id, doc] of Object.entries(docsMap)) {
+      if (id === docIdentifier || doc.name === docIdentifier) {
+        targetDoc = doc;
+        break;
+      }
+    }
+  } else {
+    const docList = Object.values(docsMap);
+    targetDoc =
+      docList.find((d) => !d.isImage && d.selected !== false) ||
+      docList.find((d) => !d.isImage) ||
+      null;
+  }
+
+  if (!targetDoc) {
+    const msg = docIdentifier
+      ? `Dokument '${docIdentifier}' nicht gefunden.`
+      : "Kein geeignetes Dokument für die Inhaltsanalyse gefunden.";
+    return { ok: false, error: msg, markdown: `Fehler: ${msg}` };
+  }
+
+  if (targetDoc.isImage) {
+    const msg = `Dokument '${targetDoc.name}' ist eine Bilddatei und wird nicht als Text unterstützt.`;
+    return { ok: false, error: msg, markdown: `Fehler: ${msg}` };
+  }
+
+  const defaultOverlap = unitType === "document" ? 0 : 1;
+  const hasExplicitOverlap = params.overlap !== undefined && params.overlap !== null && params.overlap !== "";
+  const parsedOverlap = hasExplicitOverlap ? Number.parseInt(params.overlap, 10) : defaultOverlap;
+  const overlapCount = Number.isNaN(parsedOverlap) ? defaultOverlap : Math.max(0, parsedOverlap);
+
+  const built = buildUnitsForDocument(targetDoc, unitType, params, overlapCount);
+  if (built.error) {
+    return { ok: false, error: built.error, markdown: `Fehler: ${built.error}` };
+  }
+
+  const maxUnits =
+    params.max_units !== undefined && params.max_units !== null
+      ? Math.max(1, Number.parseInt(params.max_units, 10) || DEFAULT_CONFIG.maxUnitsPerCall)
+      : context.maxUnitsPerCall || DEFAULT_CONFIG.maxUnitsPerCall;
+
+  if (built.units.length > maxUnits && !dryRun) {
+    const msg = `Zu viele Einheiten (${built.units.length} > Limit ${maxUnits}). Nutze start_page/end_page, start_line/end_line, unit='document', dry_run=true oder ein höheres max_units.`;
+    return { ok: false, error: msg, markdown: `Fehler: ${msg}` };
+  }
+
+  // 1. Erweiterung: Dry-Run
+  if (dryRun) {
+    const totalChars = built.units.reduce((sum, u) => sum + (u.text || "").length, 0);
+    const totalWords = built.units.reduce(
+      (sum, u) => sum + ((u.text || "").trim().match(/\S+/g) || []).length,
+      0
+    );
+    const estimatedTokensInput = Math.ceil((totalChars * (1 + overlapCount * 0.6)) / 4);
+    const estimatedTokensOutput =
+      built.units.length * (unitType === "document" ? 1600 : 800) + (synthesize ? 1500 : 0);
+
+    const dryRunReport = {
+      ok: true,
+      dry_run: true,
+      document: { id: targetDoc.id, name: targetDoc.name, title: targetDoc.title || targetDoc.name },
+      research_question: researchQuestion,
+      technique,
+      unit_type: unitType,
+      unit_label: built.unitLabel,
+      scope_summary: built.scopeSummary,
+      unit_count: built.units.length,
+      exceeds_default_max_units: built.units.length > maxUnits,
+      max_units_limit: maxUnits,
+      categories,
+      synthesize,
+      stats: {
+        characters: totalChars,
+        words: totalWords,
+        estimated_input_tokens: estimatedTokensInput,
+        estimated_output_tokens: estimatedTokensOutput
+      }
+    };
+
+    dryRunReport.markdown = [
+      `# Dry-Run: Qualitative Inhaltsanalyse (${targetDoc.name})`,
+      `- **Forschungsfrage:** ${researchQuestion}`,
+      `- **Analysetechnik:** ${technique}`,
+      `- **Bereich:** ${built.scope_summary}`,
+      `- **Anzahl Einheiten:** ${built.units.length} (Limit: ${maxUnits})`,
+      `- **Umfang:** ${totalWords} Wörter / ${totalChars} Zeichen`,
+      `- **Geschätzte Tokens:** ~${estimatedTokensInput} Input / ~${estimatedTokensOutput} Output`,
+      `- **Synthese geplant:** ${synthesize ? "Ja" : "Nein"}`
+    ].join("\n");
+
+    return dryRunReport;
+  }
+
+  const endpoint = (
+    context.endpoint ||
+    (typeof document !== "undefined" ? document.getElementById("endpoint")?.value?.trim() : "") ||
+    ""
+  ).trim();
+  const modelVal =
+    context.model ||
+    (typeof document !== "undefined" ? document.getElementById("model-name")?.value || "" : "");
+  const apiKey = context.apiKey || "";
+
+  if (!endpoint) {
+    return {
+      ok: false,
+      error: "Kein LLM-Endpoint konfiguriert.",
+      markdown: "Fehler: Kein LLM-Endpoint konfiguriert."
+    };
+  }
+
+  const chatUrl = endpoint.includes("/chat/completions")
+    ? endpoint
+    : `${endpoint.replace(/\/+$/, "")}/v1/chat/completions`;
+
+  const docVersion = targetDoc.updatedAt || targetDoc.hash || `${(targetDoc.content || "").length}`;
+  const concurrency = context.concurrency || DEFAULT_CONFIG.concurrency;
+  const timeoutMs = context.requestTimeoutMs || DEFAULT_CONFIG.requestTimeoutMs;
+  const maxContextChars = context.maxContextChars || DEFAULT_CONFIG.maxContextChars;
+  const maxDocumentChars = context.maxDocumentChars || DEFAULT_CONFIG.maxDocumentChars;
+
+  let cachedCount = 0;
+
+  const results = await runWithConcurrency(built.units, concurrency, async (u) => {
+    const cacheKey = JSON.stringify({
+      docId: targetDoc.id,
+      docVersion,
       researchQuestion,
       technique,
-      unitType = 'page',
-      unitLabel = 'Einheit',
-      targetUnit = '1',
-      prevText = '',
-      currentText = '',
-      nextText = '',
-      promptTemplate = ''
-    }) {
-      const techniqueInstructions = {
-        summarize: `Zusammenfassung: Verdichte die für die Forschungsfrage relevanten Aussagen der Zieleinheit sachlich und präzise auf die Kernaussagen, ohne eigene Interpretationen hinzuzufügen.`,
-        explicate: `Explikation: Erläutere unklare, verdichtete oder mehrdeutige Textstellen der Zieleinheit zur Forschungsfrage mithilfe des engeren und weiteren Kontextes (inkl. angrenzender Einheiten).`,
-        annotate: `Strukturierung: Ordne relevante Textstellen der Zieleinheit passenden Kategorien/Dimensionen zur Forschungsfrage zu und begründe kurz die Zuordnung mit Textbelegen.`,
-        induce: `Kategorienbildung: Leite direkt aus dem Material der Zieleinheit neue, präzise Kategorien/Muster ab, die zur Beantwortung der Forschungsfrage beitragen, und belege sie knapp am Text.`
-      };
-    
-      const techKey = (technique || "summarize").toLowerCase();
-      const instruction = techniqueInstructions[techKey] || techniqueInstructions.summarize;
+      unitType,
+      unitId: u.id,
+      overlapCount,
+      categories,
+      promptTemplate,
+      text: u.text,
+      prevText: u.prevText,
+      nextText: u.nextText
+    });
 
-      const contextParts = [];
-      if (prevText && prevText.trim()) {
-        contextParts.push(`--- KONTEXT VORHERIGE EINHEIT (nur zur Einordnung, nicht primär auswerten) ---\n${prevText.trim()}`);
-      }
-      contextParts.push(`--- ZIEL${unitLabel.toUpperCase()} ${targetUnit} (PRIMÄR ANALYSIEREN) ---\n${currentText.trim()}`);
-      if (nextText && nextText.trim()) {
-        contextParts.push(`--- KONTEXT NÄCHSTE EINHEIT (nur zur Einordnung, nicht primär auswerten) ---\n${nextText.trim()}`);
-      }
-      const contextBlock = contextParts.join("\n\n");
-
-      if (promptTemplate && promptTemplate.trim()) {
-        const replacements = {
-          '{{research_question}}': researchQuestion,
-          '{{technique}}': techKey,
-          '{{technique_instruction}}': instruction,
-          '{{unit_type}}': unitType,
-          '{{unit_label}}': unitLabel,
-          '{{target_unit}}': String(targetUnit),
-          '{{unit_text}}': currentText.trim(),
-          '{{prev_context}}': prevText.trim(),
-          '{{next_context}}': nextText.trim(),
-          '{{context_block}}': contextBlock,
-          '{{doc_name}}': doc.name || '',
-          '{{doc_title}}': doc.title || doc.name || '',
-          '{{doc_id}}': doc.id || ''
-        };
-        let rendered = promptTemplate;
-        for (const [placeholder, value] of Object.entries(replacements)) {
-          rendered = rendered.split(placeholder).join(value);
-        }
-        return rendered;
-      }
-
-      if (unitType === 'document') {
-        return `Du bist ein Assistent für KI-basierte qualitative Inhaltsanalyse nach Fischer (2025).
-Analysiere ausschließlich auf Basis des bereitgestellten Textes das gesamte Dokument "${doc.name}" (${doc.title || doc.name}).
-
-Forschungsfrage:
-${researchQuestion}
-
-Analysetechnik (${techKey}):
-${instruction}
-
-Material (Gesamtdokument):
-${currentText.trim()}
-
-Formuliere die Ergebnisse klar strukturiert und knapp auf Deutsch. Falls im Dokument nichts Relevantes zur Forschungsfrage steht, vermerke dies kurz. Fordere den User auf, die Ergebnisse zu überprüfen und die Analyse bei Bedarf anzupassen.`;
-      }
-    
-      return `Du bist ein Assistent für KI-basierte qualitative Inhaltsanalyse nach Fischer (2025).
-Analysiere ausschließlich auf Basis des bereitgestellten Textes ${unitLabel} ${targetUnit} aus dem Dokument "${doc.name}" (${doc.title || doc.name}).
-
-Forschungsfrage:
-${researchQuestion}
-
-Analysetechnik (${techKey}):
-${instruction}
-
-Material (inkl. Kontext angrenzender Einheiten):
-${contextBlock}
-
-Formuliere die Ergebnisse für ${unitLabel} ${targetUnit} klar strukturiert und knapp auf Deutsch. Falls in ${unitLabel} ${targetUnit} nichts Relevantes zur Forschungsfrage steht, vermerke dies kurz. Fordere den User auf, die Ergebnisse zu überprüfen und die Analyse bei Bedarf anzupassen.`;
+    if (analysisCache.has(cacheKey)) {
+      cachedCount += 1;
+      return { ...analysisCache.get(cacheKey), cached: true };
     }
 
-    async function perform_run_content_analysis(args = {}) {
-      const params = typeof args === 'string' ? { research_question: args } : (args || {});
-      const docIdentifier = params.document_id || params.id || params.name;
-      const researchQuestion = (params.research_question || params.question || '').trim();
-      const technique = (params.technique || params.analysis_technique || params.method || 'summarize').toLowerCase().trim();
-      const unitType = normalizeAnalysisUnit(params.unit || params.processing_unit || params.granularity);
-      const promptTemplate = typeof params.prompt_template === 'string' ? params.prompt_template : (typeof params.custom_prompt === 'string' ? params.custom_prompt : '');
-    
-      const validTechniques = ['summarize', 'explicate', 'annotate', 'induce'];
-      if (!validTechniques.includes(technique)) {
-        return `Fehler: Ungültige Analysetechnik '${technique}'. Erlaubt sind: ${validTechniques.join(', ')}.`;
-      }
-      if (!researchQuestion) {
-        return "Fehler: Es wurde keine 'research_question' angegeben.";
-      }
-    
-      let targetDoc = null;
-      if (docIdentifier) {
-        for (const [id, doc] of Object.entries(uploadedDocs)) {
-          if (id === docIdentifier || doc.name === docIdentifier) {
-            targetDoc = doc;
-            break;
-          }
-        }
-      } else {
-        targetDoc = Object.values(uploadedDocs).find(d => !d.isImage && d.selected !== false) ||
-                    Object.values(uploadedDocs).find(d => !d.isImage);
-      }
+    const { systemPrompt, userPrompt } = buildContentAnalysisPrompts({
+      doc: targetDoc,
+      researchQuestion,
+      technique,
+      unitType,
+      unitLabel: built.unitLabel,
+      targetUnit: u.labelNum,
+      prevText: u.prevText || "",
+      currentText: u.text || "",
+      nextText: u.nextText || "",
+      categories,
+      promptTemplate,
+      maxContextChars,
+      maxDocumentChars
+    });
 
-      if (!targetDoc) {
-        return docIdentifier
-          ? `Fehler: Dokument '${docIdentifier}' nicht gefunden.`
-          : "Fehler: Kein geeignetes Dokument für die Inhaltsanalyse gefunden.";
-      }
-      if (targetDoc.isImage) {
-        return `Fehler: Dokument '${targetDoc.name}' ist eine Bilddatei und wird von perform_run_content_analysis nicht als Text unterstützt.`;
-      }
-    
-      const endpointEl = document.getElementById('endpoint');
-      const modelEl = document.getElementById('model-name');
-      const endpoint = endpointEl ? endpointEl.value.trim() : '';
-      const modelVal = modelEl ? modelEl.value : '';
-    
-      if (!endpoint) {
-        return "Fehler: Kein LLM-Endpoint ('#endpoint') konfiguriert.";
-      }
-    
-      const chatUrl = endpoint.includes('/chat/completions')
-        ? endpoint
-        : endpoint.replace(/\/+$/, '') + '/v1/chat/completions';
-    
-      const rawContent = targetDoc.content || "";
-      const defaultOverlap = unitType === 'document' ? 0 : 1;
-      const overlapCount = params.overlap !== undefined ? Math.max(0, parseInt(params.overlap, 10) || 0) : defaultOverlap;
+    const llmRes = await callChatCompletion({
+      chatUrl,
+      model: modelVal,
+      apiKey,
+      systemPrompt,
+      userPrompt,
+      temperature: 0.2,
+      maxTokens: unitType === "document" ? 2000 : 1000,
+      timeoutMs,
+      signal: context.signal
+    });
 
-      let units = [];
-      let unitLabel = 'Seite';
-      let scopeSummary = '';
+    const itemResult = {
+      unit_id: u.id,
+      unit: u.labelNum,
+      ok: llmRes.ok,
+      status: llmRes.status,
+      error: llmRes.error,
+      analysis: llmRes.ok ? llmRes.content : "",
+      cached: false
+    };
 
-      if (unitType === 'document') {
-        const cleanedFullText = rawContent.replace(/--- Seite \d+ ---/g, '').trim() || rawContent;
-        units = [{ labelNum: 'Gesamtdokument', text: cleanedFullText }];
-        unitLabel = 'Dokument';
-        scopeSummary = 'Gesamtes Dokument als Ganzes';
-      } else if (unitType === 'line') {
-        unitLabel = 'Zeile';
-        const lines = rawContent.split(/\r?\n/).map((lineText, index) => ({
-          lineNum: index + 1,
-          text: lineText
-        }));
-        if (lines.length === 0) {
-          lines.push({ lineNum: 1, text: '' });
-        }
-        const minLine = lines[0].lineNum;
-        const maxLine = lines[lines.length - 1].lineNum;
-        const startLine = Math.max(minLine, parseInt(params.start_line, 10) || minLine);
-        const endLine = Math.min(maxLine, parseInt(params.end_line, 10) || maxLine);
-
-        const filteredLines = lines
-          .map((item, idx) => ({ item, idx }))
-          .filter(({ item }) => item.lineNum >= startLine && item.lineNum <= endLine);
-
-        if (filteredLines.length === 0) {
-          return `Keine Zeilen im Bereich ${startLine}-${endLine} für Dokument '${targetDoc.name}' gefunden.`;
-        }
-
-        units = filteredLines.map(({ item, idx }) => {
-          const prevSlice = overlapCount > 0 ? lines.slice(Math.max(0, idx - overlapCount), idx) : [];
-          const nextSlice = overlapCount > 0 ? lines.slice(idx + 1, Math.min(lines.length, idx + 1 + overlapCount)) : [];
-          return {
-            labelNum: String(item.lineNum),
-            text: item.text,
-            prevText: prevSlice.map(x => `Zeile ${x.lineNum}: ${x.text}`).join('\n'),
-            nextText: nextSlice.map(x => `Zeile ${x.lineNum}: ${x.text}`).join('\n')
-          };
-        });
-        scopeSummary = `Zeilen ${startLine}–${endLine} (Overlap: ${overlapCount} Zeile(n) davor/danach)`;
-      } else {
-        unitLabel = 'Seite';
-        const pages = [];
-        if (rawContent.includes("--- Seite ")) {
-          const parts = rawContent.split(/--- Seite (\d+) ---/);
-          for (let i = 1; i < parts.length; i += 2) {
-            pages.push({
-              pageNum: parseInt(parts[i], 10),
-              text: parts[i + 1] || ""
-            });
-          }
-        }
-        if (pages.length === 0) {
-          pages.push({ pageNum: 1, text: rawContent });
-        }
-
-        const minPage = pages[0].pageNum;
-        const maxPage = pages[pages.length - 1].pageNum;
-        const startPage = Math.max(minPage, parseInt(params.start_page, 10) || minPage);
-        const endPage = Math.min(maxPage, parseInt(params.end_page, 10) || maxPage);
-      
-        const selectedIndices = pages
-          .map((p, idx) => ({ p, idx }))
-          .filter(({ p }) => p.pageNum >= startPage && p.pageNum <= endPage);
-      
-        if (selectedIndices.length === 0) {
-          return `Keine Seiten im Bereich ${startPage}-${endPage} für Dokument '${targetDoc.name}' gefunden.`;
-        }
-
-        units = selectedIndices.map(({ p, idx }) => {
-          const prevSlice = overlapCount > 0 ? pages.slice(Math.max(0, idx - overlapCount), idx) : [];
-          const nextSlice = overlapCount > 0 ? pages.slice(idx + 1, Math.min(pages.length, idx + 1 + overlapCount)) : [];
-          return {
-            labelNum: String(p.pageNum),
-            text: p.text,
-            prevText: prevSlice.map(x => `--- Seite ${x.pageNum} ---\n${x.text.trim()}`).join('\n\n'),
-            nextText: nextSlice.map(x => `--- Seite ${x.pageNum} ---\n${x.text.trim()}`).join('\n\n')
-          };
-        });
-        scopeSummary = `Seiten ${startPage}–${endPage} (Overlap: ${overlapCount} Seite(n) davor/danach)`;
-      }
-    
-      const unitResults = [];
-    
-      for (const u of units) {
-        const prompt = buildContentAnalysisPrompt({
-          doc: targetDoc,
-          researchQuestion,
-          technique,
-          unitType,
-          unitLabel,
-          targetUnit: u.labelNum,
-          prevText: u.prevText || "",
-          currentText: u.text || "",
-          nextText: u.nextText || "",
-          promptTemplate
-        });
-    
-        try {
-          const res = await fetch(chatUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: modelVal,
-              messages: [{ role: "user", content: prompt }],
-              temperature: 0.2,
-              max_tokens: unitType === 'document' ? 1600 : 900
-            })
-          });
-    
-          if (!res.ok) {
-            unitResults.push(`### ${unitLabel} ${u.labelNum}\nFehler beim LLM-Aufruf (HTTP ${res.status}).`);
-            continue;
-          }
-    
-          const data = await res.json();
-          const analysisText = (data.choices?.[0]?.message?.content || '').trim() || "Keine Antwort vom Modell erhalten.";
-          unitResults.push(`### ${unitLabel} ${u.labelNum}\n${analysisText}`);
-        } catch (err) {
-          unitResults.push(`### ${unitLabel} ${u.labelNum}\nFehler bei der Analyse: ${err.message}`);
-        }
-      }
-    
-      return [
-        `# Qualitative Inhaltsanalyse: ${targetDoc.name} (${targetDoc.id})`,
-        `- **Forschungsfrage:** ${researchQuestion}`,
-        `- **Analysetechnik:** ${technique}`,
-        `- **Verarbeitungseinheit:** ${unitType} (${scopeSummary})`,
-        `- **Eigenes Prompt-Template:** ${promptTemplate && promptTemplate.trim() ? 'Ja (benutzerdefiniert)' : 'Nein (Standard)'}`,
-        ``,
-        unitResults.join("\n\n")
-      ].join("\n");
+    if (llmRes.ok && llmRes.status !== "truncated") {
+      analysisCache.set(cacheKey, itemResult);
     }
+
+    return itemResult;
+  });
+
+  // 3. Erweiterung: Übergreifende Synthese
+  let synthesisText = "";
+  let synthesisMeta = null;
+
+  if (synthesize) {
+    const synRes = await synthesizeUnitResults({
+      chatUrl,
+      model: modelVal,
+      apiKey,
+      doc: targetDoc,
+      researchQuestion,
+      technique,
+      categories,
+      unitLabel: built.unitLabel,
+      unitResults: results,
+      timeoutMs,
+      signal: context.signal
+    });
+    synthesisText = synRes.synthesis || "";
+    synthesisMeta = {
+      ok: synRes.ok,
+      status: synRes.status,
+      error: synRes.error
+    };
+  }
+
+  const stats = {
+    total: results.length,
+    ok: results.filter((r) => r.ok && r.status !== "truncated").length,
+    truncated: results.filter((r) => r.status === "truncated").length,
+    failed: results.filter((r) => !r.ok).length,
+    cached: cachedCount
+  };
+
+  const report = {
+    ok: stats.failed < results.length,
+    dry_run: false,
+    document: {
+      id: targetDoc.id,
+      name: targetDoc.name,
+      title: targetDoc.title || targetDoc.name
+    },
+    research_question: researchQuestion,
+    technique,
+    unit_type: unitType,
+    unit_label: built.unitLabel,
+    scope_summary: built.scopeSummary,
+    categories,
+    has_custom_template: Boolean(promptTemplate && promptTemplate.trim()),
+    stats,
+    results,
+    synthesis: synthesisText || null,
+    synthesis_meta: synthesisMeta
+  };
+
+  report.markdown = formatAnalysisMarkdown(report);
+  return report;
+}
 
     function getAvailableToolsSchema() {
       const schemas = {
@@ -1911,30 +2443,77 @@ Formuliere die Ergebnisse für ${unitLabel} ${targetUnit} klar strukturiert und 
           type: "function",
           function: {
             name: "run_content_analysis",
-            description: "Führt eine qualitative Inhaltsanalyse eines Dokuments für eine Forschungsfrage durch. Standardmäßig seitenweise ('page'), optional auch zeilenweise ('line') oder als gesamtes Dokument ('document') sowie mit eigenem 'prompt_template'.",
+            description:
+              "Führt eine qualitative Inhaltsanalyse eines Dokuments für eine Forschungsfrage durch. Standardmäßig seitenweise ('page'), optional zeilenweise ('line') oder als gesamtes Dokument ('document'). Unterstützt eigenes 'prompt_template', Kategorienvorgaben ('categories') bei 'annotate', einen 'dry_run' zur Umfangsprüfung sowie eine übergreifende 'synthesize'-Verdichtung.",
             parameters: {
               type: "object",
               properties: {
-                document_id: { type: "string", description: "Optional: ID oder Dateiname des Dokuments (sonst erstes ausgewähltes Textdokument)." },
-                research_question: { type: "string", description: "Forschungsfrage für die Inhaltsanalyse." },
+                document_id: {
+                  type: "string",
+                  description: "Optional: ID oder Dateiname des Dokuments (sonst erstes ausgewähltes Textdokument)."
+                },
+                research_question: {
+                  type: "string",
+                  description: "Forschungsfrage für die Inhaltsanalyse."
+                },
                 technique: {
                   type: "string",
                   enum: ["summarize", "explicate", "annotate", "induce"],
-                  description: "Analysetechnik: 'summarize' (Zusammenfassung), 'explicate' (Explikation), 'annotate' (Strukturierung) oder 'induce' (Kategorienbildung)."
+                  description:
+                    "Analysetechnik: 'summarize' (Zusammenfassung), 'explicate' (Explikation), 'annotate' (Strukturierung) oder 'induce' (Kategorienbildung)."
                 },
                 unit: {
                   type: "string",
                   enum: ["page", "line", "document"],
-                  description: "Verarbeitungseinheit: 'page' (Standard, seitenweise), 'line' (zeilenweise) oder 'document' (gesamtes Dokument als Ganzes)."
+                  description:
+                    "Verarbeitungseinheit: 'page' (Standard, seitenweise), 'line' (zeilenweise) oder 'document' (gesamtes Dokument als Ganzes)."
                 },
-                start_page: { type: "integer", description: "Optional bei unit='page': Erste zu analysierende Seite." },
-                end_page: { type: "integer", description: "Optional bei unit='page': Letzte zu analysierende Seite." },
-                start_line: { type: "integer", description: "Optional bei unit='line': Erste zu analysierende Zeile." },
-                end_line: { type: "integer", description: "Optional bei unit='line': Letzte zu analysierende Zeile." },
-                overlap: { type: "integer", description: "Optional: Anzahl benachbarter Einheiten davor/danach als Kontext (Standard: 1 für page/line, 0 für document)." },
+                start_page: {
+                  type: "integer",
+                  description: "Optional bei unit='page': Erste zu analysierende Seite."
+                },
+                end_page: {
+                  type: "integer",
+                  description: "Optional bei unit='page': Letzte zu analysierende Seite."
+                },
+                start_line: {
+                  type: "integer",
+                  description: "Optional bei unit='line': Erste zu analysierende Zeile."
+                },
+                end_line: {
+                  type: "integer",
+                  description: "Optional bei unit='line': Letzte zu analysierende Zeile."
+                },
+                overlap: {
+                  type: "integer",
+                  description:
+                    "Optional: Anzahl benachbarter Einheiten davor/danach als Kontext (Standard: 1 für page/line, 0 für document)."
+                },
+                categories: {
+                  type: "array",
+                  items: { type: "string" },
+                  description:
+                    "Optional (vor allem bei technique='annotate'): Vorgegebene Kategorien oder Dimensionen (z. B. ['Chancen', 'Risiken', 'Rahmenbedingungen'])."
+                },
+                dry_run: {
+                  type: "boolean",
+                  description:
+                    "Optional: Wenn true, werden keine LLM-Analysen ausgeführt, sondern nur Einheitenanzahl, Zeichen-/Wortumfang und geschätzter Aufwand zurückgegeben."
+                },
+                synthesize: {
+                  type: "boolean",
+                  description:
+                    "Optional: Wenn true, wird nach Analyse der Einheiten eine übergreifende Synthese über alle ausgewerteten Einheiten erstellt."
+                },
+                max_units: {
+                  type: "integer",
+                  description:
+                    "Optional: Maximale Anzahl gleichzeitig/insgesamt zu verarbeitender Einheiten in einem Aufruf (Sicherheitslimit)."
+                },
                 prompt_template: {
                   type: "string",
-                  description: "Optionales eigenes Prompt-Template. Unterstützt Platzhalter wie {{research_question}}, {{technique}}, {{technique_instruction}}, {{unit_label}}, {{target_unit}}, {{unit_text}}, {{context_block}}, {{prev_context}}, {{next_context}}, {{doc_name}}, {{doc_title}}, {{doc_id}}."
+                  description:
+                    "Optionales eigenes Prompt-Template, z. B. \"Analysiere {{unit_label}} {{target_unit}} zur Frage {{research_question}}.\". Unterstützt Platzhalter wie {{research_question}}, {{technique}}, {{technique_instruction}}, {{categories_block}}, {{unit_type}}, {{unit_label}}, {{target_unit}}, {{unit_text}}, {{context_block}}, {{prev_context}}, {{next_context}}, {{doc_name}}, {{doc_title}}, {{doc_id}}."
                 }
               },
               required: ["research_question", "technique"]
