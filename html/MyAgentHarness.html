@@ -6,7 +6,7 @@
   <meta name="author" content="Dr. Andreas Fischer">
   <meta name="copyright" content="Dr. Andreas Fischer">
   <meta name="reply-to" content="andreasfischer1985@web.de">
-  <title>MyAgentHarness v1.24</title>
+  <title>MyAgentHarness v1.25</title>
   <!-- PDF.js für Client-seitiges PDF-Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -58,6 +58,27 @@
       min-width: 0;
     }
 
+    #send-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    #send-btn .btn-spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(17, 17, 27, 0.25);
+      border-top-color: #11111b;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    #send-btn:disabled .btn-spinner {
+      display: inline-block;
+    }
+
     /* Style für klappbare Sidebar-Sektionen */
     details.section {
       background: var(--bg-card);
@@ -74,7 +95,7 @@
       border-bottom: 1px solid var(--border);
       padding-bottom: 4px;
       margin-bottom: 8px;
-      list-style: none; /* Entfernt Standard-Marker für schöneres Design */
+      list-style: none;
     }
     details.section summary::-webkit-details-marker {
       display: none;
@@ -152,7 +173,6 @@
     .msg-wrapper.user .msg-actions { justify-content: flex-end; }
     .msg-wrapper.assistant .msg-actions { justify-content: flex-start; }
 
-    /* Unauffällige Buttons (nur Symbole, kleiner, ohne Text, ohne Umrandung) */
     .msg-action-btn {
       background: transparent;
       border: none;
@@ -234,7 +254,6 @@
     .approval-btn { background: var(--success); color: #11111b; }
     .deny-btn { background: var(--danger); color: #11111b; }
 
-    /* Modal Overlay für Dokumente & Editieren */
     #modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000;
@@ -367,7 +386,10 @@
 
     <div id="chat-input-container">
       <textarea id="user-input" rows="2" placeholder="Frage oder Anweisung eingeben..."></textarea>
-      <button id="send-btn" onclick="handleSend()">Senden</button>
+      <button id="send-btn" onclick="handleSend()">
+        <span class="btn-spinner" aria-hidden="true"></span>
+        <span class="btn-label">Senden</span>
+      </button>
       <button id="cancel-btn" class="btn-secondary" onclick="cancelAgent()" style="display: none; background: var(--danger); color: #11111b; border: none;">Abbrechen</button>
     </div>
   </div>
@@ -741,16 +763,11 @@
     }
 
     async function handleContextOverflow(messagesRef, maxContextTokens, model = "gemma-4-12b-it", apiUrl = "http://127.0.0.1:1234/v1/chat/completions") {
-      // Schwellenwert auf 80% des maximalen Kontextfensters festlegen
       const threshold = Math.floor(maxContextTokens * 0.80);
-      
-      // Wenn der aktuelle Token-Verbrauch unter dem Schwellenwert liegt, ist keine Aktion erforderlich
       if (estimateTotalTokens(messagesRef) <= threshold) {
         return false;
       }
         
-      // PHASE 1: System-Nachricht und letzte Benutzer-Nachricht isolieren, 
-      // damit sie bei den folgenden Optimierungsschritten nicht versehentlich verloren gehen
       let systemMsg = null;
       if (messagesRef.length > 0 && (messagesRef[0].role || '') === 'system') {
         systemMsg = messagesRef.shift();
@@ -769,44 +786,29 @@
         lastUserMsg = messagesRef.splice(lastUserMsgIndex, 1)[0];
       }
     
-      // Hilfsfunktion zum Zusammenbauen und Prüfen des Gesamt-Kontexts
       const rebuildAndCheck = () => {
         let current = [];
-        if (systemMsg !== null) {
-          current.push(systemMsg);
-        }
-        for (const m of messagesRef) {
-          current.push(m);
-        }
-        if (lastUserMsg !== null) {
-          current.push(lastUserMsg);
-        }
+        if (systemMsg !== null) current.push(systemMsg);
+        for (const m of messagesRef) current.push(m);
+        if (lastUserMsg !== null) current.push(lastUserMsg);
         let tokens = estimateTotalTokens(current);
-        return {
-          messages: current,
-          tokens: tokens,
-          ok: tokens <= threshold
-        };
+        return { messages: current, tokens: tokens, ok: tokens <= threshold };
       };
     
-      // PHASE 2: Tool-Ergebnisse in der Historie optimieren (ältere Tool-Antworten leeren, das letzte kürzen)
       let toolIndices = [];
       messagesRef.forEach((m, idx) => {
-        if ((m.role || '') === 'tool') {
-          toolIndices.push(idx);
-        }
+        if ((m.role || '') === 'tool') toolIndices.push(idx);
       });
     
       if (toolIndices.length > 0) {
         let lastToolIdx = toolIndices.pop();
-        
         for (const idx of toolIndices) {
           if (messagesRef[idx]) {
             messagesRef[idx].content = "[wegen Context-Overflow entfernt]";
           }
         }
     
-        check = rebuildAndCheck();
+        let check = rebuildAndCheck();
         if (check.ok) {
           messagesRef.length = 0;
           messagesRef.push(...check.messages);
@@ -828,8 +830,6 @@
         }
       }
 
-
-       // PHASE 3: History verdichten (lange messages kürzen, Zusammenfassung erstellen)
       let historyText = "";
       for (const m of messagesRef) {
         let role = m.role || 'user';
@@ -869,7 +869,6 @@
         } catch (e) {}
       }
       
-      // Testen mit der Zusammenfassung
       messagesRef.length = 0;
       if (summary !== "") {
         messagesRef.push({
@@ -878,23 +877,20 @@
         });
       }
       
-      check = rebuildAndCheck();
+      let check = rebuildAndCheck();
       if (check.ok) {
         messagesRef.length = 0;
         messagesRef.push(...check.messages);
         return true;
       }
       
-      // PHASE 4: Zusammenfassung hat nicht gereicht -> Fallback auf Sliding Window der Historie vor der Zusammenfassung
       messagesRef.length = 0;
-      messagesRef.push(...messagesRef2); // Nachrichten vor der Zusammenfassung wiederherstellen
+      messagesRef.push(...messagesRef2);
 
-      // Älteste Nachrichten schrittweise von vorne (links) löschen, bis es passt
       while (messagesRef.length > 0 && !rebuildAndCheck().ok) {
         messagesRef.shift();
       }
 
-      // PHASE 5: Letzter Ausweg (falls selbst ohne Historie noch System- oder User-Prompt zu groß sind)
       let finalRebuild = rebuildAndCheck();
       if (!finalRebuild.ok && lastUserMsg !== null) {
         let content = Array.isArray(lastUserMsg.content) ? JSON.stringify(lastUserMsg.content) : (lastUserMsg.content || '');
@@ -906,12 +902,10 @@
         systemMsg.content = content.substring(0, 1000) + "\n[System-Prompt wegen Context-Overflow gekürzt]";
       }
       
-      // Finales Zusammenbauen
       let finalCheck = rebuildAndCheck();
       messagesRef.length = 0;
       messagesRef.push(...finalCheck.messages);
       return true;
-
     }   
 
     async function generateDocMetadata(fileName, fileContent) {
@@ -1346,98 +1340,88 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
     }
 
     async function perform_fetch_url(url) {
-          if (!url) return "Fehler: Keine URL angegeben.";
-              
-          // 1. Spezielle Behandlung für GitHub-URLs (nutzt die offizielle GitHub API & README)
-          if (url.includes('github.com')) {
-            try {
-              const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
-              if (match) {
-                const owner = match[1];
-                const repo = match[2].replace(/\.git$/, '');
-                const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
-                
-                // Repository-Metadaten abrufen
-                const response = await fetch(apiUrl, { 
-                  headers: { 'Accept': 'application/vnd.github.v3+json' },
-                  signal: AbortSignal.timeout(8000) 
-                });
-                
-                if (!response.ok) throw new Error(`GitHub API Fehler: HTTP ${response.status}`);
-                const repoData = await response.json();
-
-                // Versuche zusätzlich die README.md zu laden
-                let readmeContent = "Keine README.md gefunden.";
-                try {
-                  const readmeRes = await fetch(`${apiUrl}/readme`, {
-                    headers: { 'Accept': 'application/vnd.github.v3.raw' }, // Holt direkt den Rohtext der README
-                    signal: AbortSignal.timeout(5000)
-                  });
-                  if (readmeRes.ok) {
-                    readmeContent = await readmeRes.text();
-                    // README bei Bedarf auf eine sinnvolle Länge kürzen (z.B. 4000 Zeichen)
-                    if (readmeContent.length > 3000) {
-                      readmeContent = readmeContent.substring(0, 4000) + "\n[... README gekürzt ...]";
-                    }
-                  }
-                } catch (e) {
-                  // Ignorieren, falls keine README existiert
-                }
-                
-                return `GitHub Repository Info (${owner}/${repo}):\n` +
-                       `- Beschreibung: ${repoData.description || 'Keine'}\n` +
-                       `- Hauptsprache: ${repoData.language || 'Unbekannt'}\n` +
-                       `- Sterne: ${repoData.stargazers_count} | Forks: ${repoData.forks_count}\n` +
-                       `- URL: ${repoData.html_url}\n\n` +
-                       `=== README.md ===\n${readmeContent}`;
-              }
-            } catch (e) {
-              console.warn("GitHub API-Abruf fehlgeschlagen, versuche Fallback:", e.message);
-            }
-          }
-      
-        // 2. Normaler direkter Fetch-Versuch (greift, falls die Zielseite CORS erlaubt)
+      if (!url) return "Fehler: Keine URL angegeben.";
+          
+      if (url.includes('github.com')) {
         try {
-          const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-          if (response.ok) {
-            const text = await response.text();
+          const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+          if (match) {
+            const owner = match[1];
+            const repo = match[2].replace(/\.git$/, '');
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
+            
+            const response = await fetch(apiUrl, { 
+              headers: { 'Accept': 'application/vnd.github.v3+json' },
+              signal: AbortSignal.timeout(8000) 
+            });
+            
+            if (!response.ok) throw new Error(`GitHub API Fehler: HTTP ${response.status}`);
+            const repoData = await response.json();
+
+            let readmeContent = "Keine README.md gefunden.";
+            try {
+              const readmeRes = await fetch(`${apiUrl}/readme`, {
+                headers: { 'Accept': 'application/vnd.github.v3.raw' },
+                signal: AbortSignal.timeout(5000)
+              });
+              if (readmeRes.ok) {
+                readmeContent = await readmeRes.text();
+                if (readmeContent.length > 3000) {
+                  readmeContent = readmeContent.substring(0, 3000) + "\n[... README gekürzt ...]";
+                }
+              }
+            } catch (e) {}
+            
+            return `GitHub Repository Info (${owner}/${repo}):\n` +
+                   `- Beschreibung: ${repoData.description || 'Keine'}\n` +
+                   `- Hauptsprache: ${repoData.language || 'Unbekannt'}\n` +
+                   `- Sterne: ${repoData.stargazers_count} | Forks: ${repoData.forks_count}\n` +
+                   `- URL: ${repoData.html_url}\n\n` +
+                   `=== README.md ===\n${readmeContent}`;
+          }
+        } catch (e) {
+          console.warn("GitHub API-Abruf fehlgeschlagen, versuche Fallback:", e.message);
+        }
+      }
+  
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        if (response.ok) {
+          const text = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(text, 'text/html');
+          doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
+          return `Inhalt von URL (${url}):\n` + (doc.body.textContent || "").replace(/\s+/g, ' ').trim().substring(0, 4000);
+        }
+      } catch (e) {}
+    
+      const proxyServices = [
+        {
+          getUrl: (target) => `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
+          parse: async (res) => (await res.json()).contents
+        },
+        {
+          getUrl: (target) => `https://corsproxy.io/?${encodeURIComponent(target)}`,
+          parse: async (res) => await res.text()
+        }
+      ];
+    
+      for (const proxy of proxyServices) {
+        try {
+          const res = await fetch(proxy.getUrl(url), { signal: AbortSignal.timeout(8000) });
+          if (!res.ok) continue;
+          const rawHtml = await proxy.parse(res);
+          if (rawHtml && rawHtml.trim().length > 0) {
             const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
+            const doc = parser.parseFromString(rawHtml, 'text/html');
             doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
             return `Inhalt von URL (${url}):\n` + (doc.body.textContent || "").replace(/\s+/g, ' ').trim().substring(0, 4000);
           }
-        } catch (e) {
-          // Direkter Fetch fehlgeschlagen (CORS-Blockade), weiter zu Proxies...
-        }
-      
-        // 3. Fallback: Bekannte CORS-Proxies für normale Webseiten nutzen
-        const proxyServices = [
-          {
-            getUrl: (target) => `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
-            parse: async (res) => (await res.json()).contents
-          },
-          {
-            getUrl: (target) => `https://corsproxy.io/?${encodeURIComponent(target)}`,
-            parse: async (res) => await res.text()
-          }
-        ];
-      
-        for (const proxy of proxyServices) {
-          try {
-            const res = await fetch(proxy.getUrl(url), { signal: AbortSignal.timeout(8000) });
-            if (!res.ok) continue;
-            const rawHtml = await proxy.parse(res);
-            if (rawHtml && rawHtml.trim().length > 0) {
-              const parser = new DOMParser();
-              const doc = parser.parseFromString(rawHtml, 'text/html');
-              doc.querySelectorAll('script, style, nav, footer, header').forEach(el => el.remove());
-              return `Inhalt von URL (${url}):\n` + (doc.body.textContent || "").replace(/\s+/g, ' ').trim().substring(0, 4000);
-            }
-          } catch (err) {}
-        }
-
-        return `Fehler: Konnte URL '${url}' weder direkt noch über Proxies laden (CORS-Beschränkung oder Timeout).`;
+        } catch (err) {}
       }
+
+      return `Fehler: Konnte URL '${url}' weder direkt noch über Proxies laden (CORS-Beschränkung oder Timeout).`;
+    }
 
     async function perform_search_wikipedia(query) {
       if (!query) return "Fehler: Kein Suchbegriff.";
@@ -1484,7 +1468,6 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
       return `Generiertes Bild für Prompt "${prompt}":\n\n![${prompt}](${imageUrl})`;
     }
-
 
     async function perform_search_doc(args = {}) {
       const params = typeof args === 'string' ? { query: args } : (args || {});
@@ -1576,26 +1559,75 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       return `Suchergebnisse für "${query}" (${matches.length} Treffer):\n\n` + matches.join("\n\n");
     }
 
+    function normalizeAnalysisUnit(rawUnit) {
+      const val = (rawUnit || 'page').toString().toLowerCase().trim();
+      if (['line', 'lines', 'line-by-line', 'line_by_line', 'zeile', 'zeilen', 'zeilenweise'].includes(val)) {
+        return 'line';
+      }
+      if (['document', 'whole', 'whole_document', 'full', 'all', 'gesamt', 'gesamtdokument', 'ganzes'].includes(val)) {
+        return 'document';
+      }
+      return 'page';
+    }
 
-    function buildContentAnalysisPrompt({ doc, researchQuestion, technique, targetPage, prevPageText, currentPageText, nextPageText }) {
+    function buildContentAnalysisPrompt({
+      doc,
+      researchQuestion,
+      technique,
+      unitType = 'page',
+      unitLabel = 'Einheit',
+      targetUnit = '1',
+      prevText = '',
+      currentText = '',
+      nextText = '',
+      promptTemplate = ''
+    }) {
       const techniqueInstructions = {
-        summarize: `Zusammenfassung: Verdichte die für die Forschungsfrage relevanten Aussagen der Zielseite sachlich und präzise auf die Kernaussagen, ohne eigene Interpretationen     hinzuzufügen.`,
-        explicate: `Explikation: Erläutere unklare, verdichtete oder mehrdeutige Textstellen der Zielseite zur Forschungsfrage mithilfe des engeren und weiteren Kontextes (inkl.     Nachbarseiten).`,
-        annotate: `Strukturierung: Ordne relevante Textstellen der Zielseite passenden Kategorien/Dimensionen zur Forschungsfrage zu und begründe kurz die Zuordnung mit Textbelegen.`,
-        induce: `Kategorienbildung: Leite direkt aus dem Material der Zielseite neue, präzise Kategorien/Muster ab, die zur Beantwortung der Forschungsfrage beitragen, und belege sie knapp am Text.`
+        summarize: `Zusammenfassung: Verdichte die für die Forschungsfrage relevanten Aussagen der Zieleinheit sachlich und präzise auf die Kernaussagen, ohne eigene Interpretationen hinzuzufügen.`,
+        explicate: `Explikation: Erläutere unklare, verdichtete oder mehrdeutige Textstellen der Zieleinheit zur Forschungsfrage mithilfe des engeren und weiteren Kontextes (inkl. angrenzender Einheiten).`,
+        annotate: `Strukturierung: Ordne relevante Textstellen der Zieleinheit passenden Kategorien/Dimensionen zur Forschungsfrage zu und begründe kurz die Zuordnung mit Textbelegen.`,
+        induce: `Kategorienbildung: Leite direkt aus dem Material der Zieleinheit neue, präzise Kategorien/Muster ab, die zur Beantwortung der Forschungsfrage beitragen, und belege sie knapp am Text.`
       };
     
       const techKey = (technique || "summarize").toLowerCase();
       const instruction = techniqueInstructions[techKey] || techniqueInstructions.summarize;
-    
-      const contextBlock = [
-        prevPageText ? `--- KONTEXT VORHERIGE SEITE (nur zur Einordnung, nicht primär auswerten) ---\n${prevPageText.trim()}` : null,
-        `--- ZIELSEITE ${targetPage} (PRIMÄR ANALYSIEREN) ---\n${currentPageText.trim()}`,
-        nextPageText ? `--- KONTEXT NÄCHSTE SEITE (nur zur Einordnung, nicht primär auswerten) ---\n${nextPageText.trim()}` : null
-      ].filter(Boolean).join("\n\n");
-    
-      return `Du bist ein Assistent für KI-basierte qualitative Inhaltsanalyse nach Fischer (2025).
-Analysiere ausschließlich auf Basis des bereitgestellten Textes die ZIELSEITE ${targetPage} aus dem Dokument "${doc.name}" (${doc.title || doc.name}).
+
+      const contextParts = [];
+      if (prevText && prevText.trim()) {
+        contextParts.push(`--- KONTEXT VORHERIGE EINHEIT (nur zur Einordnung, nicht primär auswerten) ---\n${prevText.trim()}`);
+      }
+      contextParts.push(`--- ZIEL${unitLabel.toUpperCase()} ${targetUnit} (PRIMÄR ANALYSIEREN) ---\n${currentText.trim()}`);
+      if (nextText && nextText.trim()) {
+        contextParts.push(`--- KONTEXT NÄCHSTE EINHEIT (nur zur Einordnung, nicht primär auswerten) ---\n${nextText.trim()}`);
+      }
+      const contextBlock = contextParts.join("\n\n");
+
+      if (promptTemplate && promptTemplate.trim()) {
+        const replacements = {
+          '{{research_question}}': researchQuestion,
+          '{{technique}}': techKey,
+          '{{technique_instruction}}': instruction,
+          '{{unit_type}}': unitType,
+          '{{unit_label}}': unitLabel,
+          '{{target_unit}}': String(targetUnit),
+          '{{unit_text}}': currentText.trim(),
+          '{{prev_context}}': prevText.trim(),
+          '{{next_context}}': nextText.trim(),
+          '{{context_block}}': contextBlock,
+          '{{doc_name}}': doc.name || '',
+          '{{doc_title}}': doc.title || doc.name || '',
+          '{{doc_id}}': doc.id || ''
+        };
+        let rendered = promptTemplate;
+        for (const [placeholder, value] of Object.entries(replacements)) {
+          rendered = rendered.split(placeholder).join(value);
+        }
+        return rendered;
+      }
+
+      if (unitType === 'document') {
+        return `Du bist ein Assistent für KI-basierte qualitative Inhaltsanalyse nach Fischer (2025).
+Analysiere ausschließlich auf Basis des bereitgestellten Textes das gesamte Dokument "${doc.name}" (${doc.title || doc.name}).
 
 Forschungsfrage:
 ${researchQuestion}
@@ -1603,17 +1635,34 @@ ${researchQuestion}
 Analysetechnik (${techKey}):
 ${instruction}
 
-Material (mit Chunk-Overlap der angrenzenden Seiten):
+Material (Gesamtdokument):
+${currentText.trim()}
+
+Formuliere die Ergebnisse klar strukturiert und knapp auf Deutsch. Falls im Dokument nichts Relevantes zur Forschungsfrage steht, vermerke dies kurz. Fordere den User auf, die Ergebnisse zu überprüfen und die Analyse bei Bedarf anzupassen.`;
+      }
+    
+      return `Du bist ein Assistent für KI-basierte qualitative Inhaltsanalyse nach Fischer (2025).
+Analysiere ausschließlich auf Basis des bereitgestellten Textes ${unitLabel} ${targetUnit} aus dem Dokument "${doc.name}" (${doc.title || doc.name}).
+
+Forschungsfrage:
+${researchQuestion}
+
+Analysetechnik (${techKey}):
+${instruction}
+
+Material (inkl. Kontext angrenzender Einheiten):
 ${contextBlock}
 
-Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp auf Deutsch. Falls auf Seite ${targetPage} nichts Relevantes zur Forschungsfrage steht, vermerke dies kurz. Fordere den User auf, die Ergebnisse zu überprüfen und die Analyse bei Bedarf anzupassen.`;
-}
+Formuliere die Ergebnisse für ${unitLabel} ${targetUnit} klar strukturiert und knapp auf Deutsch. Falls in ${unitLabel} ${targetUnit} nichts Relevantes zur Forschungsfrage steht, vermerke dies kurz. Fordere den User auf, die Ergebnisse zu überprüfen und die Analyse bei Bedarf anzupassen.`;
+    }
 
     async function perform_run_content_analysis(args = {}) {
       const params = typeof args === 'string' ? { research_question: args } : (args || {});
       const docIdentifier = params.document_id || params.id || params.name;
       const researchQuestion = (params.research_question || params.question || '').trim();
       const technique = (params.technique || params.analysis_technique || params.method || 'summarize').toLowerCase().trim();
+      const unitType = normalizeAnalysisUnit(params.unit || params.processing_unit || params.granularity);
+      const promptTemplate = typeof params.prompt_template === 'string' ? params.prompt_template : (typeof params.custom_prompt === 'string' ? params.custom_prompt : '');
     
       const validTechniques = ['summarize', 'explicate', 'annotate', 'induce'];
       if (!validTechniques.includes(technique)) {
@@ -1642,7 +1691,7 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
           : "Fehler: Kein geeignetes Dokument für die Inhaltsanalyse gefunden.";
       }
       if (targetDoc.isImage) {
-        return `Fehler: Dokument '${targetDoc.name}' ist eine Bilddatei und wird von perform_content_analysis nicht als Text unterstützt.`;
+        return `Fehler: Dokument '${targetDoc.name}' ist eine Bilddatei und wird von perform_run_content_analysis nicht als Text unterstützt.`;
       }
     
       const endpointEl = document.getElementById('endpoint');
@@ -1658,51 +1707,108 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
         ? endpoint
         : endpoint.replace(/\/+$/, '') + '/v1/chat/completions';
     
-      // Seiten extrahieren (Fallback auf 1 Seite, falls keine Seitenmarker vorhanden)
       const rawContent = targetDoc.content || "";
-      const pages = [];
+      const defaultOverlap = unitType === 'document' ? 0 : 1;
+      const overlapCount = params.overlap !== undefined ? Math.max(0, parseInt(params.overlap, 10) || 0) : defaultOverlap;
 
-      if (rawContent.includes("--- Seite ")) {
-        const parts = rawContent.split(/--- Seite (\d+) ---/);
-        for (let i = 1; i < parts.length; i += 2) {
-          pages.push({
-            pageNum: parseInt(parts[i], 10),
-            text: parts[i + 1] || ""
-          });
+      let units = [];
+      let unitLabel = 'Seite';
+      let scopeSummary = '';
+
+      if (unitType === 'document') {
+        const cleanedFullText = rawContent.replace(/--- Seite \d+ ---/g, '').trim() || rawContent;
+        units = [{ labelNum: 'Gesamtdokument', text: cleanedFullText }];
+        unitLabel = 'Dokument';
+        scopeSummary = 'Gesamtes Dokument als Ganzes';
+      } else if (unitType === 'line') {
+        unitLabel = 'Zeile';
+        const lines = rawContent.split(/\r?\n/).map((lineText, index) => ({
+          lineNum: index + 1,
+          text: lineText
+        }));
+        if (lines.length === 0) {
+          lines.push({ lineNum: 1, text: '' });
         }
-      }
-    
-      if (pages.length === 0) {
-        pages.push({ pageNum: 1, text: rawContent });
-      }
+        const minLine = lines[0].lineNum;
+        const maxLine = lines[lines.length - 1].lineNum;
+        const startLine = Math.max(minLine, parseInt(params.start_line, 10) || minLine);
+        const endLine = Math.min(maxLine, parseInt(params.end_line, 10) || maxLine);
 
-      const minPage = pages[0].pageNum;
-      const maxPage = pages[pages.length - 1].pageNum;
-      const startPage = Math.max(minPage, parseInt(params.start_page) || minPage);
-      const endPage = Math.min(maxPage, parseInt(params.end_page) || maxPage);
-    
-      const selectedIndices = pages
-        .map((p, idx) => ({ p, idx }))
-        .filter(({ p }) => p.pageNum >= startPage && p.pageNum <= endPage);
-    
-      if (selectedIndices.length === 0) {
-        return `Keine Seiten im Bereich ${startPage}-${endPage} für Dokument '${targetDoc.name}' gefunden.`;
+        const filteredLines = lines
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item }) => item.lineNum >= startLine && item.lineNum <= endLine);
+
+        if (filteredLines.length === 0) {
+          return `Keine Zeilen im Bereich ${startLine}-${endLine} für Dokument '${targetDoc.name}' gefunden.`;
+        }
+
+        units = filteredLines.map(({ item, idx }) => {
+          const prevSlice = overlapCount > 0 ? lines.slice(Math.max(0, idx - overlapCount), idx) : [];
+          const nextSlice = overlapCount > 0 ? lines.slice(idx + 1, Math.min(lines.length, idx + 1 + overlapCount)) : [];
+          return {
+            labelNum: String(item.lineNum),
+            text: item.text,
+            prevText: prevSlice.map(x => `Zeile ${x.lineNum}: ${x.text}`).join('\n'),
+            nextText: nextSlice.map(x => `Zeile ${x.lineNum}: ${x.text}`).join('\n')
+          };
+        });
+        scopeSummary = `Zeilen ${startLine}–${endLine} (Overlap: ${overlapCount} Zeile(n) davor/danach)`;
+      } else {
+        unitLabel = 'Seite';
+        const pages = [];
+        if (rawContent.includes("--- Seite ")) {
+          const parts = rawContent.split(/--- Seite (\d+) ---/);
+          for (let i = 1; i < parts.length; i += 2) {
+            pages.push({
+              pageNum: parseInt(parts[i], 10),
+              text: parts[i + 1] || ""
+            });
+          }
+        }
+        if (pages.length === 0) {
+          pages.push({ pageNum: 1, text: rawContent });
+        }
+
+        const minPage = pages[0].pageNum;
+        const maxPage = pages[pages.length - 1].pageNum;
+        const startPage = Math.max(minPage, parseInt(params.start_page, 10) || minPage);
+        const endPage = Math.min(maxPage, parseInt(params.end_page, 10) || maxPage);
+      
+        const selectedIndices = pages
+          .map((p, idx) => ({ p, idx }))
+          .filter(({ p }) => p.pageNum >= startPage && p.pageNum <= endPage);
+      
+        if (selectedIndices.length === 0) {
+          return `Keine Seiten im Bereich ${startPage}-${endPage} für Dokument '${targetDoc.name}' gefunden.`;
+        }
+
+        units = selectedIndices.map(({ p, idx }) => {
+          const prevSlice = overlapCount > 0 ? pages.slice(Math.max(0, idx - overlapCount), idx) : [];
+          const nextSlice = overlapCount > 0 ? pages.slice(idx + 1, Math.min(pages.length, idx + 1 + overlapCount)) : [];
+          return {
+            labelNum: String(p.pageNum),
+            text: p.text,
+            prevText: prevSlice.map(x => `--- Seite ${x.pageNum} ---\n${x.text.trim()}`).join('\n\n'),
+            nextText: nextSlice.map(x => `--- Seite ${x.pageNum} ---\n${x.text.trim()}`).join('\n\n')
+          };
+        });
+        scopeSummary = `Seiten ${startPage}–${endPage} (Overlap: ${overlapCount} Seite(n) davor/danach)`;
       }
     
-      const pageResults = [];
+      const unitResults = [];
     
-      for (const { p, idx } of selectedIndices) {
-        const prevText = idx > 0 ? pages[idx - 1].text : "";
-        const nextText = idx < pages.length - 1 ? pages[idx + 1].text : "";
-    
+      for (const u of units) {
         const prompt = buildContentAnalysisPrompt({
           doc: targetDoc,
           researchQuestion,
           technique,
-          targetPage: p.pageNum,
-          prevPageText: prevText,
-          currentPageText: p.text,
-          nextPageText: nextText
+          unitType,
+          unitLabel,
+          targetUnit: u.labelNum,
+          prevText: u.prevText || "",
+          currentText: u.text || "",
+          nextText: u.nextText || "",
+          promptTemplate
         });
     
         try {
@@ -1713,20 +1819,20 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
               model: modelVal,
               messages: [{ role: "user", content: prompt }],
               temperature: 0.2,
-              max_tokens: 900
+              max_tokens: unitType === 'document' ? 1600 : 900
             })
           });
     
           if (!res.ok) {
-            pageResults.push(`### Seite ${p.pageNum}\nFehler beim LLM-Aufruf (HTTP ${res.status}).`);
+            unitResults.push(`### ${unitLabel} ${u.labelNum}\nFehler beim LLM-Aufruf (HTTP ${res.status}).`);
             continue;
           }
     
           const data = await res.json();
           const analysisText = (data.choices?.[0]?.message?.content || '').trim() || "Keine Antwort vom Modell erhalten.";
-          pageResults.push(`### Seite ${p.pageNum}\n${analysisText}`);
+          unitResults.push(`### ${unitLabel} ${u.labelNum}\n${analysisText}`);
         } catch (err) {
-          pageResults.push(`### Seite ${p.pageNum}\nFehler bei der Analyse: ${err.message}`);
+          unitResults.push(`### ${unitLabel} ${u.labelNum}\nFehler bei der Analyse: ${err.message}`);
         }
       }
     
@@ -1734,9 +1840,10 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
         `# Qualitative Inhaltsanalyse: ${targetDoc.name} (${targetDoc.id})`,
         `- **Forschungsfrage:** ${researchQuestion}`,
         `- **Analysetechnik:** ${technique}`,
-        `- **Analysierte Seiten:** ${startPage}–${endPage} (mit je 1 Seite Overlap davor/danach)`,
+        `- **Verarbeitungseinheit:** ${unitType} (${scopeSummary})`,
+        `- **Eigenes Prompt-Template:** ${promptTemplate && promptTemplate.trim() ? 'Ja (benutzerdefiniert)' : 'Nein (Standard)'}`,
         ``,
-        pageResults.join("\n\n")
+        unitResults.join("\n\n")
       ].join("\n");
     }
 
@@ -1804,7 +1911,7 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
           type: "function",
           function: {
             name: "run_content_analysis",
-            description: "Führt eine qualitative Inhaltsanalyse eines Dokuments Seite für Seite (inkl. je einer Seite Overlap davor und danach) für eine Forschungsfrage durch.",
+            description: "Führt eine qualitative Inhaltsanalyse eines Dokuments für eine Forschungsfrage durch. Standardmäßig seitenweise ('page'), optional auch zeilenweise ('line') oder als gesamtes Dokument ('document') sowie mit eigenem 'prompt_template'.",
             parameters: {
               type: "object",
               properties: {
@@ -1815,8 +1922,20 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
                   enum: ["summarize", "explicate", "annotate", "induce"],
                   description: "Analysetechnik: 'summarize' (Zusammenfassung), 'explicate' (Explikation), 'annotate' (Strukturierung) oder 'induce' (Kategorienbildung)."
                 },
-                start_page: { type: "integer", description: "Optional: Erste zu analysierende Seite." },
-                end_page: { type: "integer", description: "Optional: Letzte zu analysierende Seite." }
+                unit: {
+                  type: "string",
+                  enum: ["page", "line", "document"],
+                  description: "Verarbeitungseinheit: 'page' (Standard, seitenweise), 'line' (zeilenweise) oder 'document' (gesamtes Dokument als Ganzes)."
+                },
+                start_page: { type: "integer", description: "Optional bei unit='page': Erste zu analysierende Seite." },
+                end_page: { type: "integer", description: "Optional bei unit='page': Letzte zu analysierende Seite." },
+                start_line: { type: "integer", description: "Optional bei unit='line': Erste zu analysierende Zeile." },
+                end_line: { type: "integer", description: "Optional bei unit='line': Letzte zu analysierende Zeile." },
+                overlap: { type: "integer", description: "Optional: Anzahl benachbarter Einheiten davor/danach als Kontext (Standard: 1 für page/line, 0 für document)." },
+                prompt_template: {
+                  type: "string",
+                  description: "Optionales eigenes Prompt-Template. Unterstützt Platzhalter wie {{research_question}}, {{technique}}, {{technique_instruction}}, {{unit_label}}, {{target_unit}}, {{unit_text}}, {{context_block}}, {{prev_context}}, {{next_context}}, {{doc_name}}, {{doc_title}}, {{doc_id}}."
+                }
               },
               required: ["research_question", "technique"]
             }
@@ -1898,7 +2017,7 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
       }
 
       const modelVal = document.getElementById('model-name').value;
-      const maxContextTokens = parseInt(document.getElementById('max-context').value) === NaN ? 4096 : parseInt(document.getElementById('max-context').value);
+      const maxContextTokens = isNaN(parseInt(document.getElementById('max-context').value)) ? 4096 : parseInt(document.getElementById('max-context').value);
       
       if (activeFrozenSystemPrompt === null) {
         activeFrozenSystemPrompt = getCompleteSystemPrompt();
@@ -2130,7 +2249,6 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
         editBtn.onclick = () => openMessageEditModal(messageIndex);
         actionsDiv.appendChild(editBtn);
 
-        // Wiederholen-Button nun auch für User-Messages (sowie weiterhin für Assistant-Messages)
         const repeatBtn = document.createElement('button');
         repeatBtn.className = 'msg-action-btn';
         repeatBtn.innerHTML = '↻';
@@ -2253,8 +2371,14 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
       document.getElementById(`deny-${callId}`).onclick = () => { card.remove(); callback(false, args); };
     }
 
+
     function setInputsDisabled(disabled) {
-      document.getElementById('send-btn').disabled = disabled;
+      const sendBtn = document.getElementById('send-btn');
+      const labelEl = sendBtn?.querySelector('.btn-label');
+      sendBtn.disabled = disabled;
+      if (labelEl) {
+        labelEl.textContent = disabled ? "Läuft..." : "Senden";
+      }
       document.getElementById('user-input').disabled = disabled;
     }
 
@@ -2310,32 +2434,32 @@ Formuliere die Ergebnisse für Seite ${targetPage} klar strukturiert und knapp a
     }
 
     function saveMessageEdit() {
-          if (currentEditingIndex === null) return;
-          const index = currentEditingIndex;
-          const msg = chatHistory[index];
-          if (!msg) return;
-          
-          const newText = document.getElementById('msg-edit-textarea').value;
-          
-          if (typeof msg.content === 'string') {
-            msg.content = newText;
-          } else if (Array.isArray(msg.content)) {
-            let textPart = msg.content.find(c => c.type === 'text');
-            if (textPart) textPart.text = newText;
-            else msg.content.unshift({ type: "text", text: newText });
-          }
-    
-          rebuildChatUI();
-          updateContextUsageDisplay();
-          saveStateToLocalStorage();
-          closeMessageEditModal();
-          
-          if (msg.role === 'user') {
-            setInputsDisabled(true);
-            document.getElementById('cancel-btn').style.display = 'inline-block';
-            runAgentLoop();
-          }
+      if (currentEditingIndex === null) return;
+      const index = currentEditingIndex;
+      const msg = chatHistory[index];
+      if (!msg) return;
+      
+      const newText = document.getElementById('msg-edit-textarea').value;
+      
+      if (typeof msg.content === 'string') {
+        msg.content = newText;
+      } else if (Array.isArray(msg.content)) {
+        let textPart = msg.content.find(c => c.type === 'text');
+        if (textPart) textPart.text = newText;
+        else msg.content.unshift({ type: "text", text: newText });
       }
+
+      rebuildChatUI();
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+      closeMessageEditModal();
+      
+      if (msg.role === 'user') {
+        setInputsDisabled(true);
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+        runAgentLoop();
+      }
+    }
 
     function rebuildChatUI() {
       const container = document.getElementById('chat-messages');
