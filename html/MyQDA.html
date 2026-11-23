@@ -6,19 +6,19 @@
     <meta name="author" content="Dr. Andreas Fischer">
     <meta name="copyright" content="Dr. Andreas Fischer">
     <meta name="reply-to" content="andreasfischer1985@web.de">
-    <title>MyQDA - Text-Annotation-Tool v1.23</title>    
+    <title>MyQDA - Text-Annotation-Tool v1.25</title>    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>   
     <script type="module">
         (async function() {
             try {
-                const moduleUrl = 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/index.js';
+                const moduleUrl = 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.13.0/esm/index.js';
                 const res = await fetch(moduleUrl);
                 let code = await res.text();
                 
-                code = code.replaceAll('./single-thread/', 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/single-thread/');
-                code = code.replaceAll('./multi-thread/', 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/multi-thread/');
-                code = code.replaceAll('./wasm/', 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/wasm/');
+                code = code.replaceAll('./single-thread/', 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.13.0/esm/single-thread/');
+                code = code.replaceAll('./multi-thread/', 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.13.0/esm/multi-thread/');
+                code = code.replaceAll('./wasm/', 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.13.0/esm/wasm/');
 
                 const blob = new Blob([code], { type: 'application/javascript'});
                 const blobUrl = URL.createObjectURL(blob);
@@ -26,9 +26,9 @@
                 const wllamaModule = await import(blobUrl);
                 window.Wllama = wllamaModule.Wllama;
                 window.WasmFromCDN = wllamaModule.WasmFromCDN;
-                console.log("[INFO] Wllama v3.8.1 erfolgreich via Blob/import geladen.");
+                console.log("[INFO] Wllama v3.13.0 erfolgreich via Blob/import geladen.");
             } catch (err) {
-                console.error('[ERROR] Konnte Wllama 3.8.1 nicht laden:', err);
+                console.error('[ERROR] Konnte Wllama 3.13.0 nicht laden:', err);
             }
         })();
     </script>
@@ -234,7 +234,7 @@
             margin-bottom: 10px;
         }
 
-        .buttons-left, .buttons-right { display: flex; align-items: center; gap: 8px; }
+        .buttons-left, .buttons-right { display: flex; align-items: center; gap: 6px; }
 
         .checkbox-label {
             display: flex;
@@ -243,7 +243,7 @@
             font-weight: 500;
             cursor: pointer;
             user-select: none;
-            font-size: 0.95em;
+            font-size: 0.9em;
             color: var(--text-dark);
             background: transparent;
             padding: 0;
@@ -251,37 +251,103 @@
         }
 
         button {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 5px;
+            padding: 4px 9px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
             cursor: pointer;
-            color: white;
-            font-size: 0.9em;
+            background-color: #ffffff;
+            color: #334155;
+            font-size: 0.82em;
             font-weight: 500;
-            transition: background-color 0.2s;
+            line-height: 1.25;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        button:hover {
+            background-color: #f1f5f9;
+            border-color: #94a3b8;
+            color: #0f172a;
         }
 
         .small-btn {
             background: transparent;
             border: none;
+            color: #475569;
             cursor: pointer;
-            padding: 1px 3px;
-            font-size: 0.85em;
+            padding: 1px 4px;
+            font-size: 0.8em;
             border-radius: 3px;
             flex-shrink: 0;
         }
-        .small-btn:hover { background-color: #cbd5e1; }
+        .small-btn:hover {
+            background-color: #e2e8f0;
+            color: #0f172a;
+        }
 
-        #annotate-button { background-color: #2e7d32; }
-        #annotate-button:hover { background-color: #1b5e20; }
-        #remove-annotation-button { background-color: #c62828; }
-        #remove-annotation-button:hover { background-color: #b71c1c; }
-        #show-annotations-button { background-color: #0284c7; }
-        #show-annotations-button:hover { background-color: #0369a1; }
-        #count-annotations-button { background-color: #0d9488; }
-        #count-annotations-button:hover { background-color: #0f766e; }
-        #ai-content-analysis-button { background-color: var(--accent-purple); }
-        #ai-content-analysis-button:hover { background-color: var(--accent-purple-hover); }
+        #annotate-button,
+        #remove-annotation-button,
+        #show-annotations-button,
+        #count-annotations-button,
+        .ai-action-btn,
+        .ai-action-btn-auto,
+        .ai-ctrl-pause,
+        .ai-ctrl-stop,
+        .ai-export-json,
+        .ai-export-csv {
+            background-color: #f8fafc;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        #annotate-button:hover,
+        #show-annotations-button:hover,
+        #count-annotations-button:hover,
+        .ai-action-btn:hover,
+        .ai-action-btn-auto:hover,
+        .ai-export-json:hover,
+        .ai-export-csv:hover {
+            background-color: #e2e8f0;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        #remove-annotation-button:hover,
+        .ai-ctrl-stop:hover {
+            background-color: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        .ai-ctrl-pause:hover {
+            background-color: #fffbeb;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+
+        #ai-content-analysis-button {
+            background-color: #334155;
+            color: #ffffff;
+            border: 1px solid #334155;
+        }
+
+        #ai-content-analysis-button:hover {
+            background-color: #1e293b;
+            border-color: #1e293b;
+            color: #ffffff;
+        }
+
+        .ai-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 7px 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin: 10px 0 14px 0;
+        }
+
         #document-header, #code-header { cursor: pointer; color: var(--primary); margin: 0; }
 
         .modal {
@@ -343,20 +409,16 @@
         .quotes-list li { margin-bottom: 4px; }
 
         .ai-action-btn {
-            background-color: #475569;
-            font-size: 0.85em;
-            padding: 5px 10px;
+            font-size: 0.8em;
+            padding: 3px 8px;
             margin-right: 6px;
             border-radius: 4px;
         }
-        .ai-action-btn:hover { background-color: #334155; }
         .ai-action-btn-auto {
-            background-color: var(--accent-green);
-            font-size: 0.85em;
-            padding: 5px 10px;
+            font-size: 0.8em;
+            padding: 3px 8px;
             border-radius: 4px;
         }
-        .ai-action-btn-auto:hover { background-color: var(--accent-green-hover); }
         .validation-warning {
             background-color: #fffbeeb0;
             color: #b45309;
@@ -404,6 +466,7 @@
             word-break: break-all;
         }
     </style>
+
 </head>
 <body>
 
@@ -517,12 +580,11 @@ let CODES = [
 const PROMPT_HEADER = "Du bist ein wissenschaftlicher Assistent für qualitative Inhaltsanalysen nach Fischer (2025).\nKontext der Analyse: {context}\nText: {text}\nAufgabe: ";
 
 const PROMPT_TEMPLATES = {
-    Induktion: `${PROMPT_HEADER}Leite induktiv relevante Kategorien aus dem Text ab.\n\nGib das Ergebnis STRIKT als JSON-Array im folgenden Format aus:\n[\n  {\n    "code": "Kategoriename",\n    "description": "Kurze Beschreibung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
-    Deduktion: `${PROMPT_HEADER}Wende das Kodierschema aus dem Kontext deduktiv auf den Text an.\n\nGib das Ergebnis STRIKT als JSON-Array im folgenden Format aus:\n[\n  {\n    "code": "Kategoriename aus Schema",\n    "description": "Begründung der Zuordnung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
+    Induktion: `${PROMPT_HEADER}Leite induktiv relevante Kategorien aus dem Text ab.\n\nGib das Ergebnis STRIKT als JSON-Array im folgenden Format aus:\n[\n  {\n    "code": "Kategorienbezeichnung",\n    "description": "Kurze Beschreibung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
+    Deduktion: `${PROMPT_HEADER}Wende das Kodierschema aus dem Kontext deduktiv auf den Text an.\n\nGib das Ergebnis STRIKT als JSON-Array im folgenden Format aus:\n[\n  {\n    "code": "Kategorienbezeichnung aus Schema",\n    "description": "Begründung der Zuordnung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
     Zusammenfassung: `${PROMPT_HEADER}Führe eine Zusammenfassung des Textes durch. Erstelle eine Liste von Paraphrasen aller für die Analyse relevanten Textstellen. Ordne jeder Paraphrase mindestens ein exaktes wörtliches Zitat aus dem Originaltext zu.\n\nGib das Ergebnis STRIKT als JSON-Array im folgenden Format aus:\n[\n  {\n    "paraphrase": "Einzelne zusammenfassende Paraphrase",\n    "textstellen": ["Exaktes wörtliches Zitat aus dem Original 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`,
     Explikation: `${PROMPT_HEADER}Expliziere den Text im Hinblick auf den angegebenen Kontext. Erstelle eine Liste aller relevanten Assoziationen, Erläuterungen und Implikationen. Ordne jeder Assoziation mindestens ein exaktes wörtliches Zitat aus dem Originaltext zu.\n\nGib das Ergebnis STRIKT als JSON-Array im folgenden Format aus:\n[\n  {\n    "assoziation": "Einzelne Assoziation / Erläuterung",\n    "textstellen": ["Exaktes wörtliches Zitat 1", "Exaktes wörtliches Zitat 2"]\n  }\n]`
 };
-
 
 let DEFAULT_SETTINGS = {
     model: "google/gemma-4-12b-qat",
@@ -543,9 +605,6 @@ let DEFAULT_SETTINGS = {
     ctxSize: 2048
 };
 
-
-
-
 let WLLAMA_SERVER_STATE = {
     status: "aus", // "aus", "an", "processing"
     selectedSourceType: 'download',
@@ -553,7 +612,7 @@ let WLLAMA_SERVER_STATE = {
     selectedFileName: 'Gemma-3-1b-it',
     localFile: null,
     wllamaInstance: null,
-    logs: ["[INFO] System initialisiert. Wllama v3.8.1 GGUF Server bereit."]
+    logs: ["[INFO] System initialisiert. Wllama v3.13.0 GGUF Server bereit."]
 };
 
 let SETTINGS = JSON.parse(localStorage.getItem('myqda_settings')) || DEFAULT_SETTINGS;
@@ -563,6 +622,9 @@ if (SETTINGS.responseFormat === undefined) {
 if (SETTINGS.ctxSize === undefined) {
     SETTINGS.ctxSize = 2048;
 }
+
+// Verwaltung laufender KI-Analysen (Steuerung & Ergebnisse)
+const AI_ANALYSIS_JOBS = new Map();
 
 function saveSettings() {
     localStorage.setItem('myqda_settings', JSON.stringify(SETTINGS));
@@ -716,7 +778,7 @@ document.getElementById('folder-file-input').addEventListener('change', async (e
     e.target.value = '';
 });
 
-// --- WLLAMA v3.8.1 GGUF SERVER INTEGRATION MIT API v3.8.1 ---
+// --- WLLAMA v3.13.0 GGUF SERVER INTEGRATION MIT API v3.13.0 ---
 function downloadSelectedWllamaModel() {
     const url = WLLAMA_SERVER_STATE.selectedUrl;
     if (!url) {
@@ -738,7 +800,7 @@ function openLocalServerModal() {
     
     let html = `
         <h2>🖥️ WASM GGUF Server (experimental)</h2>
-        <p><small><i>In-Browser LLM-Inferenz für kleine Modelle via Wllama v3.8.1 (aktuell nur für Funktionstests geeignet)</i></small></p>        
+        <p><small><i>In-Browser LLM-Inferenz für kleine Modelle via Wllama v3.13.0 (aktuell nur für Funktionstests geeignet)</i></small></p>        
         <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid var(--border-color); margin-bottom:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <strong>Server Status:</strong>
@@ -846,9 +908,14 @@ async function startWllamaServer() {
     const useWebGPU = webgpuCheckbox ? webgpuCheckbox.checked : true;
     
     const loadOptions = {
-        n_ctx: SETTINGS.ctxSize,
-        jinja: true
+      n_ctx: SETTINGS.ctxSize,
+      jinja: true,
+      chat_template_kwargs: {
+        preserve_thinking: false,
+        enable_thinking: false
+      }
     };
+
     if (!useWebGPU) {
         loadOptions.n_gpu_layers = 0;
         logDiagnostic("[SERVER] WebGPU deaktiviert -> n_gpu_layers=0 gesetzt.");
@@ -867,7 +934,7 @@ async function startWllamaServer() {
             WLLAMA_SERVER_STATE.wllamaInstance = null;
         }
 
-        logDiagnostic(`[SERVER] Instanziiere Wllama v3.8.1 Runtime (ctx: ${SETTINGS.ctxSize})...`);
+        logDiagnostic(`[SERVER] Instanziiere Wllama v3.13.0 Runtime (ctx: ${SETTINGS.ctxSize})...`);
         
         const customLogger = {
             debug: (...args) => logDiagnostic('[DEBUG] ' + args.join(' ')),
@@ -879,9 +946,9 @@ async function startWllamaServer() {
         const numThreads = Math.min(navigator.hardwareConcurrency || 4, 8);
 
         WLLAMA_SERVER_STATE.wllamaInstance = new window.Wllama({
-            'default': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/wasm/wllama.wasm',
-            'single-thread': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/wasm/wllama-single-thread.wasm',
-            'multi-thread': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.8.1/esm/wasm/wllama-multi-thread.wasm',
+            'default': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.13.0/esm/wasm/wllama.wasm',
+            'single-thread': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.13.0/esm/wasm/wllama-single-thread.wasm',
+            'multi-thread': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@3.13.0/esm/wasm/wllama-multi-thread.wasm',
         }, {
             logger: customLogger,
             nThreads: numThreads 
@@ -908,7 +975,7 @@ async function startWllamaServer() {
         WLLAMA_SERVER_STATE.status = 'an';
         updateServerBadge();
         logDiagnostic("[SERVER] Status: AN & BEREIT auf http://localhost:8080/v1/chat/completions");
-        alert("Wllama v3.8.1 GGUF Server erfolgreich gestartet!");
+        alert("Wllama v3.13.0 GGUF Server erfolgreich gestartet!");
         closeModal();
     } catch (err) {
         logDiagnostic(`[ERROR] Start-Fehler: ${err.message}`);
@@ -936,9 +1003,6 @@ function updateServerBadge() {
     const navBadge = document.getElementById('nav-server-status-badge');
     const toggleBtn = document.getElementById('nav-server-toggle-btn');
     
-    // NEU: Auch den Button direkt im Modal greifbar machen, falls das Modal offen ist
-    const modalToggleBtn = document.querySelector('#app-modal button[onclick="toggleWllamarServerState()"]'); 
-    
     const status = WLLAMA_SERVER_STATE.status;
     const statusClass = status === 'an' ? 'status-an' : (status === 'processing' ? 'status-processing' : 'status-aus');
     
@@ -958,7 +1022,6 @@ function updateServerBadge() {
         toggleBtn.style.backgroundColor = isRunningOrProcessing ? "#c62828" : "var(--accent-green)";
     }
     
-    // Modal-Button ebenfalls live umfärben, falls das Modal gerade offen ist
     const modalBtn = document.querySelector('#app-modal button[onclick*="toggleWllamaServerState"]');
     if (modalBtn) {
         modalBtn.textContent = isRunningOrProcessing ? "⏹️ GGUF Server Stoppen" : "▶️ GGUF Server Starten";
@@ -966,7 +1029,7 @@ function updateServerBadge() {
     }
 }
 
-// OpenAI-kompatibler fetch Interceptor mit Wllama v3.8.1 createChatCompletion API
+// OpenAI-kompatibler fetch Interceptor mit Wllama v3.13.0 createChatCompletion API
 const originalFetch = window.fetch;
 window.fetch = async function(resource, init) {
     const urlStr = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
@@ -1001,7 +1064,7 @@ window.fetch = async function(resource, init) {
             const temp = body.temperature ?? SETTINGS.temperature;
             const topP = body.top_p ?? SETTINGS.top_p;
 
-            logDiagnostic(`[INFERENZ v3.8.1] Starte createChatCompletion | Modell: ${WLLAMA_SERVER_STATE.selectedFileName} | Tokens: ${maxTokens} | Temp: ${temp} | Stream: ${isStream}`);
+            logDiagnostic(`[INFERENZ v3.13.0] Starte createChatCompletion | Modell: ${WLLAMA_SERVER_STATE.selectedFileName} | Tokens: ${maxTokens} | Temp: ${temp} | Stream: ${isStream}`);
 
             const wllama = WLLAMA_SERVER_STATE.wllamaInstance;
             const completionId = 'chatcmpl-' + Math.random().toString(36).substring(2, 12);
@@ -1017,11 +1080,13 @@ window.fetch = async function(resource, init) {
                                 temperature: temp,
                                 top_p: topP,
                                 top_k: SETTINGS.top_k,
-                                stream: true
+                                stream: true,
+                                signal: init && init.signal ? init.signal : undefined
                             });
 
                             let tokenCount = 0;
                             for await (const chunk of chatStream) {
+                                if (init && init.signal && init.signal.aborted) break;
                                 tokenCount++;
                                 const eventChunk = {
                                     id: completionId,
@@ -1038,7 +1103,7 @@ window.fetch = async function(resource, init) {
                             controller.close();
                         } catch (err) {
                             logDiagnostic(`[INFERENZ-ERROR] Stream abgebrochen: ${err.message}`);
-                            controller.error(err);
+                            try { controller.error(err); } catch (_) {}
                         }
                     }
                 });
@@ -1055,7 +1120,8 @@ window.fetch = async function(resource, init) {
                         temperature: temp,
                         top_p: topP,
                         top_k: SETTINGS.top_k,
-                        stream: false
+                        stream: false,
+                        signal: init && init.signal ? init.signal : undefined
                     });
                     logDiagnostic(`[INFERENZ] Synchroner Request beendet.`);
 
@@ -1084,7 +1150,286 @@ window.fetch = async function(resource, init) {
 };
 // --- ENDE WLLAMA INTEGRATION ---
 
+function stopAllRunningAIJobs() {
+    AI_ANALYSIS_JOBS.forEach((job) => {
+        if (job.state !== 'finished' && job.state !== 'stopped') {
+            job.state = 'stopped';
+            if (job.abortController) {
+                try { job.abortController.abort(); } catch (_) {}
+            }
+            updateJobToolbarUI(job);
+        }
+    });
+    if (WLLAMA_SERVER_STATE.status === 'processing' && WLLAMA_SERVER_STATE.wllamaInstance) {
+        WLLAMA_SERVER_STATE.status = 'an';
+        updateServerBadge();
+    }
+}
+
+function stopAIJobForDoc(docId) {
+    const job = AI_ANALYSIS_JOBS.get(docId);
+    if (!job) return;
+    if (job.state !== 'finished' && job.state !== 'stopped') {
+        job.state = 'stopped';
+        if (job.abortController) {
+            try { job.abortController.abort(); } catch (_) {}
+        }
+        if (job.pauseResolver) {
+            job.pauseResolver();
+            job.pauseResolver = null;
+        }
+        updateJobToolbarUI(job);
+    }
+    const anyActive = Array.from(AI_ANALYSIS_JOBS.values()).some(j => j.state === 'running' || j.state === 'paused');
+    if (!anyActive && WLLAMA_SERVER_STATE.status === 'processing' && WLLAMA_SERVER_STATE.wllamaInstance) {
+        WLLAMA_SERVER_STATE.status = 'an';
+        updateServerBadge();
+    }
+}
+
+function togglePauseAIJob(docId) {
+    const job = AI_ANALYSIS_JOBS.get(docId);
+    if (!job || job.state === 'finished' || job.state === 'stopped') return;
+    if (job.state === 'running') {
+        job.state = 'paused';
+    } else if (job.state === 'paused') {
+        job.state = 'running';
+        if (job.pauseResolver) {
+            const resolve = job.pauseResolver;
+            job.pauseResolver = null;
+            resolve();
+        }
+    }
+    updateJobToolbarUI(job);
+}
+
+function waitWhilePausedOrStopped(job) {
+    return new Promise((resolve) => {
+        if (job.state !== 'paused') return resolve();
+        job.pauseResolver = resolve;
+    });
+}
+
+function updateJobToolbarUI(job) {
+    const docExists = DOCUMENTS.some(d => d.id === job.docId);
+    if (!docExists) return;
+
+    const statusLabelEl = document.getElementById(`ai-job-status-${job.docId}`);
+    const pauseBtnEl = document.getElementById(`ai-job-pause-${job.docId}`);
+    const stopBtnEl = document.getElementById(`ai-job-stop-${job.docId}`);
+
+    let statusText = '';
+    if (job.state === 'running') statusText = 'Status: Läuft...';
+    else if (job.state === 'paused') statusText = 'Status: Pausiert';
+    else if (job.state === 'stopped') statusText = 'Status: Gestoppt';
+    else if (job.state === 'finished') statusText = 'Status: Abgeschlossen';
+
+    if (statusLabelEl) statusLabelEl.textContent = statusText;
+
+    const isDoneOrStopped = (job.state === 'finished' || job.state === 'stopped');
+    if (pauseBtnEl) {
+        pauseBtnEl.style.display = isDoneOrStopped ? 'none' : 'inline-block';
+        pauseBtnEl.textContent = job.state === 'paused' ? '▶️ Fortsetzen' : '⏸️ Pausieren';
+    }
+    if (stopBtnEl) {
+        stopBtnEl.style.display = isDoneOrStopped ? 'none' : 'inline-block';
+    }
+
+    const toolbarEl = document.getElementById(`ai-toolbar-${job.docId}`);
+    if (toolbarEl && job.doc && job.doc.isAIDoc) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = job.doc.htmlContent || '';
+        const existingToolbar = tempDiv.querySelector(`#ai-toolbar-${job.docId}`);
+        if (existingToolbar) {
+            existingToolbar.outerHTML = buildAIToolbarHTML(job);
+            job.doc.htmlContent = tempDiv.innerHTML;
+            if (selectedDocument && selectedDocument.id === job.docId) {
+                const liveToolbar = document.getElementById(`ai-toolbar-${job.docId}`);
+                if (liveToolbar) liveToolbar.outerHTML = buildAIToolbarHTML(job);
+            }
+        }
+    }
+}
+
+function buildAIToolbarHTML(job) {
+    const isDoneOrStopped = (job.state === 'finished' || job.state === 'stopped');
+    let statusText = 'Status: Läuft...';
+    if (job.state === 'paused') statusText = 'Status: Pausiert';
+    else if (job.state === 'stopped') statusText = 'Status: Gestoppt';
+    else if (job.state === 'finished') statusText = 'Status: Abgeschlossen';
+
+    const pauseBtnHtml = isDoneOrStopped
+        ? ''
+        : `<button id="ai-job-pause-${job.docId}" type="button" class="ai-ctrl-pause" onclick="togglePauseAIJob(${job.docId})">${job.state === 'paused' ? '▶️ Fortsetzen' : '⏸️ Pausieren'}</button>`;
+    const stopBtnHtml = isDoneOrStopped
+        ? ''
+        : `<button id="ai-job-stop-${job.docId}" type="button" class="ai-ctrl-stop" onclick="stopAIJobForDoc(${job.docId})">⏹️ Stoppen</button>`;
+
+    return `
+        <div id="ai-toolbar-${job.docId}" class="ai-toolbar">
+            ${pauseBtnHtml}
+            ${stopBtnHtml}
+            <button type="button" class="ai-export-json" onclick="exportAIResultsJSON(${job.docId})">💾 Export JSON</button>
+            <button type="button" class="ai-export-csv" onclick="exportAIResultsCSV(${job.docId})">📊 Export CSV</button>
+            <span id="ai-job-status-${job.docId}" style="margin-left:auto; font-weight:600; color:var(--text-dark);">${escapeHTML(statusText)}</span>
+        </div>
+    `;
+}
+
+function triggerFileDownload(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.getElementById('downloadAnchorElem');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportAIResultsJSON(docId) {
+    const job = AI_ANALYSIS_JOBS.get(docId);
+    if (!job) {
+        alert("Keine Analyse-Ergebnisse für dieses Dokument gefunden.");
+        return;
+    }
+    const payload = {
+        documentName: job.doc ? job.doc.name : `KI-Analyse_${docId}`,
+        exportedAt: new Date().toISOString(),
+        status: job.state,
+        config: {
+            context: job.config.context,
+            model: job.config.model,
+            verfahren: job.config.verfahren,
+            granularitaet: job.config.granularitaet,
+            responseFormat: job.config.responseFormat,
+            temperature: job.config.temperature,
+            top_p: job.config.top_p,
+            top_k: job.config.top_k
+        },
+        results: job.results
+    };
+    triggerFileDownload(JSON.stringify(payload, null, 2), `ki_analyse_${docId}_${Date.now()}.json`, "application/json;charset=utf-8");
+}
+
+function escapeCSVCell(val) {
+    if (val === null || val === undefined) return '""';
+    const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+    return `"${str.replace(/"/g, '""')}"`;
+}
+
+
+function exportAIResultsCSV(docId) {
+    const job = AI_ANALYSIS_JOBS.get(docId);
+    if (!job) {
+        alert("Keine Analyse-Ergebnisse für dieses Dokument gefunden.");
+        return;
+    }
+
+    const baseHeaders = ["index", "unitTitle", "status", "isValid", "rawOutput", "error"];
+    const dynamicKeysSet = new Set();
+
+    job.results.forEach(entry => {
+        if (entry.isValid && Array.isArray(entry.parsedData)) {
+            entry.parsedData.forEach(obj => {
+                if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+                    Object.keys(obj).forEach(k => dynamicKeysSet.add(k));
+                }
+            });
+        }
+    });
+
+    const dynamicKeys = Array.from(dynamicKeysSet);
+    const headers = [...baseHeaders, ...dynamicKeys];
+    const rows = [headers.map(escapeCSVCell).join(";")];
+
+    let rowIndex = 1;
+
+    job.results.forEach(entry => {
+        if (entry.isValid && Array.isArray(entry.parsedData) && entry.parsedData.length > 0) {
+            entry.parsedData.forEach(item => {
+                const safeItem = (item && typeof item === 'object' && !Array.isArray(item)) ? item : {};
+                const rowCells = [
+                    rowIndex++,
+                    entry.unitTitle || "",
+                    entry.status || "",
+                    "true",
+                    entry.rawOutput || "",
+                    entry.error || "",
+                    ...dynamicKeys.map(k => (Object.prototype.hasOwnProperty.call(safeItem, k) ? safeItem[k] : ""))
+                ];
+                rows.push(rowCells.map(escapeCSVCell).join(";"));
+            });
+        } else {
+            const rowCells = [
+                rowIndex++,
+                entry.unitTitle || "",
+                entry.status || "",
+                entry.isValid ? "true" : "false",
+                entry.rawOutput || "",
+                entry.error || "",
+                ...dynamicKeys.map(() => "")
+            ];
+            rows.push(rowCells.map(escapeCSVCell).join(";"));
+        }
+    });
+
+    const csvContent = "\uFEFF" + rows.join("\r\n");
+    triggerFileDownload(csvContent, `ki_analyse_${docId}_${Date.now()}.csv`, "text/csv;charset=utf-8");
+}
+
+function exportAIResultsCSV2(docId) {
+    const job = AI_ANALYSIS_JOBS.get(docId);
+    if (!job) {
+        alert("Keine Analyse-Ergebnisse für dieses Dokument gefunden.");
+        return;
+    }
+
+    const baseHeaders = ["index", "unitTitle", "status", "isValid", "rawOutput", "error"];
+    const dynamicKeysSet = new Set();
+
+    job.results.forEach(entry => {
+        if (entry.isValid && Array.isArray(entry.parsedData)) {
+            entry.parsedData.forEach(obj => {
+                if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+                    Object.keys(obj).forEach(k => dynamicKeysSet.add(k));
+                }
+            });
+        }
+    });
+
+    const dynamicKeys = Array.from(dynamicKeysSet);
+    const headers = [...baseHeaders, ...dynamicKeys];
+    const rows = [headers.map(escapeCSVCell).join(";")];
+
+    job.results.forEach((entry, idx) => {
+        const extractedValuesByKey = {};
+        if (entry.isValid && Array.isArray(entry.parsedData)) {
+            dynamicKeys.forEach(k => {
+                const vals = entry.parsedData
+                    .filter(obj => obj && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, k))
+                    .map(obj => typeof obj[k] === 'object' ? JSON.stringify(obj[k]) : String(obj[k]));
+                extractedValuesByKey[k] = vals.join(" | ");
+            });
+        }
+
+        const rowCells = [
+            idx + 1,
+            entry.unitTitle || "",
+            entry.status || "",
+            entry.isValid ? "true" : "false",
+            entry.rawOutput || "",
+            entry.error || "",
+            ...dynamicKeys.map(k => (entry.isValid ? (extractedValuesByKey[k] ?? "") : ""))
+        ];
+        rows.push(rowCells.map(escapeCSVCell).join(";"));
+    });
+
+    const csvContent = "\uFEFF" + rows.join("\r\n");
+    triggerFileDownload(csvContent, `ki_analyse_${docId}_${Date.now()}.csv`, "text/csv;charset=utf-8");
+}
+
 document.getElementById('erase').addEventListener('click', () => {
+    stopAllRunningAIJobs();
     SETTINGS = DEFAULT_SETTINGS;
     documentList.innerHTML = '';
     DOCUMENTS = [{ id: 1, name: "Text", plainText: "", annotations: [], selectedForAI: true }]; 
@@ -1175,10 +1520,17 @@ function openDocumentEditModal() {
             const name = card.querySelector('.doc-name').value.trim();
             const content = card.querySelector('.doc-content').value;
             if (DOCUMENTS[idx]) {
+                const oldId = DOCUMENTS[idx].id;
                 DOCUMENTS[idx].id = id;
                 DOCUMENTS[idx].name = name;
                 if (DOCUMENTS[idx].isAIDoc) DOCUMENTS[idx].htmlContent = content;
                 else DOCUMENTS[idx].plainText = content;
+                if (oldId !== id && AI_ANALYSIS_JOBS.has(oldId)) {
+                    const job = AI_ANALYSIS_JOBS.get(oldId);
+                    AI_ANALYSIS_JOBS.delete(oldId);
+                    job.docId = id;
+                    AI_ANALYSIS_JOBS.set(id, job);
+                }
             }
         });
         updateInterface();
@@ -1333,6 +1685,7 @@ function renderDocumentList() {
         delBtn.onclick = (e) => {
             e.stopPropagation();
             if (confirm(`Soll das Dokument "${doc.name}" gelöscht werden?`)) {
+                stopAIJobForDoc(doc.id);
                 DOCUMENTS = DOCUMENTS.filter(d => d.id != doc.id);
                 textDisplay.innerHTML = "";
                 selectedDocument = DOCUMENTS[0] || null;
@@ -1798,7 +2151,6 @@ function countAnnotationsModal() {
     openModalWithHTML(tableHtml);
 }
 
-
 function calculateTextStats() {
     const corpusDocs = getActiveAIAnalysisDocuments();
     let totalCorpusLen = 0, maxDocLen = 0;
@@ -1984,7 +2336,6 @@ function getDocText(doc, removeHtml = false) {
 }
 
 async function runAIAnalysis(config) {
-    // Falls der lokale WASM-Server genutzt wird, prüfen ob er bereit ist
     if (config.url.includes('localhost:8080') && (WLLAMA_SERVER_STATE.status !== 'an' || !WLLAMA_SERVER_STATE.wllamaInstance)) {
         alert("Der Wllama GGUF Server ist nicht aktiv. Bitte starten Sie den Server über das Menü (WASM GGUF Server).");
         return;
@@ -1996,20 +2347,48 @@ async function runAIAnalysis(config) {
     }
 
     const resultDocName = `KI-Analyse (${config.verfahren}) ${new Date().toLocaleTimeString('de-DE')}`;
-    let currentHtml = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren})</h2><hr>`;
+    const docId = Date.now();
+
+    const job = {
+        docId: docId,
+        doc: null,
+        config: { ...config },
+        state: 'running', // 'running' | 'paused' | 'stopped' | 'finished'
+        abortController: null,
+        pauseResolver: null,
+        results: []
+    };
+    AI_ANALYSIS_JOBS.set(docId, job);
+
+    let currentHtml = `<h2>KI-basierte Inhaltsanalyse (${config.verfahren})</h2><hr><p><strong>Achtung:</strong> KI-generierte Analysen können Fehler enthalten und sind von Menschen zu verantworten!</p>${buildAIToolbarHTML(job)}`;
     
     const newDoc = { 
-        id: Date.now(), 
+        id: docId, 
         name: resultDocName, 
         isAIDoc: true, 
         htmlContent: currentHtml,
         selectedForAI: false 
     };
+    job.doc = newDoc;
     DOCUMENTS.push(newDoc);
     updateInterface();
     selectListItem(document.getElementById(`document-${newDoc.id}`), 'document-list');
 
+    const isJobDeletedOrStopped = () => {
+        const stillInDocs = DOCUMENTS.some(d => d.id === docId);
+        if (!stillInDocs) {
+            job.state = 'stopped';
+            updateJobToolbarUI(job);
+            return true;
+        }
+        return job.state === 'stopped';
+    };
+
     const updateDocContent = (addedHtml) => {
+        if (!DOCUMENTS.some(d => d.id === docId)) {
+            job.state = 'stopped';
+            return;
+        }
         currentHtml += addedHtml;
         newDoc.htmlContent = currentHtml;
         if (selectedDocument && selectedDocument.id === newDoc.id) textDisplay.innerHTML = currentHtml;
@@ -2059,6 +2438,8 @@ async function runAIAnalysis(config) {
 
     if (textsToAnalyze.length === 0) {
         updateDocContent(`<p style="color:red;">Keine markierten Dokumente oder Segmente für die Analyse vorhanden.</p>`);
+        job.state = 'finished';
+        updateJobToolbarUI(job);
         if (WLLAMA_SERVER_STATE.status === 'processing') {
             WLLAMA_SERVER_STATE.status = 'an';
             updateServerBadge();
@@ -2086,7 +2467,21 @@ async function runAIAnalysis(config) {
     updateDocContent(settingsDocHtml);
 
     for (let i = 0; i < textsToAnalyze.length; i++) {
+        if (isJobDeletedOrStopped()) break;
+        await waitWhilePausedOrStopped(job);
+        if (isJobDeletedOrStopped()) break;
+
         const item = textsToAnalyze[i];
+        const resultEntry = {
+            unitTitle: item.title,
+            status: 'running',
+            isValid: false,
+            rawOutput: "",
+            parsedData: null,
+            error: ""
+        };
+        const resultIndex = job.results.push(resultEntry) - 1;
+
         const finalPrompt = config.promptTemplate.replace('{text}', item.payload).replace('{context}', config.context);
         const textPrompt = finalPrompt.replace(/\r?\n|\r/g, "\\n");
         const promptHtml = `	    
@@ -2149,14 +2544,21 @@ async function runAIAnalysis(config) {
             requestBody.format = "json";
         }
 
+        const abortController = new AbortController();
+        job.abortController = abortController;
+
         try {
-            // FIX: headers ordnungsgemäß initialisieren und optionale API-Keys übergeben
             const headers = { 'Content-Type': 'application/json' };
             if (config.apiKey) {
                 headers['Authorization'] = `Bearer ${config.apiKey}`;
             }
 
-            const response = await fetch(config.url, { method: 'POST', headers: headers, body: JSON.stringify(requestBody) });
+            const response = await fetch(config.url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(requestBody),
+                signal: abortController.signal
+            });
             
             if (!response.ok) {
                 let errorDetails = "";
@@ -2172,13 +2574,23 @@ async function runAIAnalysis(config) {
             let aiAnswer = "";
 
             if (config.useStreaming) {
-                const boxId = `stream-box-${i}`, targetId = `stream-target-${i}`;
+                const boxId = `stream-box-${docId}-${i}`, targetId = `stream-target-${docId}-${i}`;
                 updateDocContent(`<div id="${boxId}" style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px;"><h3 style="margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3><pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre></div><hr>`);
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder("utf-8");
                 let buffer = "";
                 while (true) {
+                    if (isJobDeletedOrStopped()) {
+                        try { await reader.cancel(); } catch (_) {}
+                        break;
+                    }
+                    await waitWhilePausedOrStopped(job);
+                    if (isJobDeletedOrStopped()) {
+                        try { await reader.cancel(); } catch (_) {}
+                        break;
+                    }
+
                     const { done, value } = await reader.read();
                     if (done) break;
                     buffer += decoder.decode(value, { stream: true });
@@ -2192,6 +2604,7 @@ async function runAIAnalysis(config) {
                                 const content = parsed.choices?.[0]?.delta?.content || "";
                                 if (content) {
                                     aiAnswer += content;
+                                    job.results[resultIndex].rawOutput = aiAnswer;
                                     const targetEl = document.getElementById(targetId);
                                     if (targetEl && selectedDocument && selectedDocument.id === newDoc.id) targetEl.innerText = aiAnswer;
                                 }
@@ -2199,16 +2612,40 @@ async function runAIAnalysis(config) {
                         }
                     }
                 }
-                const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
-                currentHtml = currentHtml.replace(`<pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>`, renderedHtml);
-                newDoc.htmlContent = currentHtml;
-                if (selectedDocument && selectedDocument.id === newDoc.id) textDisplay.innerHTML = currentHtml;
+
+                const parsedData = cleanAndParseJSON(aiAnswer);
+                const isValid = validateAIResultStructure(parsedData, config.verfahren);
+                job.results[resultIndex].rawOutput = aiAnswer;
+                job.results[resultIndex].parsedData = parsedData;
+                job.results[resultIndex].isValid = isValid;
+                job.results[resultIndex].status = isJobDeletedOrStopped() ? 'stopped' : 'completed';
+
+                if (!isJobDeletedOrStopped() && DOCUMENTS.some(d => d.id === docId)) {
+                    const renderedHtml = renderAIResult(aiAnswer, config.verfahren);
+                    currentHtml = currentHtml.replace(`<pre id="${targetId}" style="white-space: pre-wrap; font-family: inherit; margin: 0;"></pre>`, renderedHtml);
+                    newDoc.htmlContent = currentHtml;
+                    if (selectedDocument && selectedDocument.id === newDoc.id) textDisplay.innerHTML = currentHtml;
+                }
             } else {
                 const data = await response.json();
                 aiAnswer = data.choices?.[0]?.message?.content || "";
-                updateDocContent(`<div style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px;">${renderAIResult(aiAnswer, config.verfahren)}</div><hr>`);
+                const parsedData = cleanAndParseJSON(aiAnswer);
+                const isValid = validateAIResultStructure(parsedData, config.verfahren);
+                job.results[resultIndex].rawOutput = aiAnswer;
+                job.results[resultIndex].parsedData = parsedData;
+                job.results[resultIndex].isValid = isValid;
+                job.results[resultIndex].status = 'completed';
+
+                updateDocContent(`<div style="background:#fff; border:1px solid #cbd5e1; padding:15px; margin:12px 0; border-radius:6px;"><h3 style="margin-top:0;">Ergebnis für ${escapeHTML(item.title)}</h3>${renderAIResult(aiAnswer, config.verfahren)}</div><hr>`);
             }
         } catch (err) {
+            if (err && err.name === 'AbortError') {
+                job.results[resultIndex].status = 'stopped';
+                job.results[resultIndex].error = 'Analyse gestoppt';
+                updateDocContent(`<p style="color:#b45309; font-weight:600;">⏹️ Analyse für "${escapeHTML(item.title)}" gestoppt.</p>`);
+                break;
+            }
+
             var rawMessage = err.message || "";
             var message = "";
 
@@ -2222,11 +2659,23 @@ async function runAIAnalysis(config) {
                 message = escapeHTML(rawMessage);
             }
 
+            job.results[resultIndex].status = 'error';
+            job.results[resultIndex].error = message;
             updateDocContent(`<p style="color:#e11d48;">Fehler: ${message}</p>`);
+        } finally {
+            job.abortController = null;
         }
     }
 
-    if (WLLAMA_SERVER_STATE.status === 'processing' && WLLAMA_SERVER_STATE.wllamaInstance) {
+    if (job.state !== 'stopped') {
+        job.state = 'finished';
+    } else {
+        updateDocContent(`<p style="color:#c62828; font-weight:600;">⏹️ Die KI-Analyse wurde gestoppt.</p>`);
+    }
+    updateJobToolbarUI(job);
+
+    const anyActive = Array.from(AI_ANALYSIS_JOBS.values()).some(j => j.state === 'running' || j.state === 'paused');
+    if (!anyActive && WLLAMA_SERVER_STATE.status === 'processing' && WLLAMA_SERVER_STATE.wllamaInstance) {
         WLLAMA_SERVER_STATE.status = 'an';
         updateServerBadge();
     }
@@ -2301,7 +2750,6 @@ function annotateTextstellenCorpusFromCard(cardId) {
     if (!codeName) return alert("Kein gültiger Code-Name gefunden.");
     executeAnnotation(codeName, quotes);
 }
-
 
 function executeAnnotation(codeName, quotes) {
     if (!Array.isArray(quotes) || quotes.length === 0) {
@@ -2405,10 +2853,10 @@ function executeAnnotation(codeName, quotes) {
     alert(report);
 }
 
-
 async function handleFileSelection() {
     const data = await openAndReadJsonFile();
     if (data && data[0]) {
+        stopAllRunningAIJobs();
         DOCUMENTS = data[0]["DOCUMENTS"] || [];
         CODES = data[0]["CODES"] || [];
         SETTINGS = data[0]["SETTINGS"] || DEFAULT_SETTINGS;
