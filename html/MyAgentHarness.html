@@ -6,7 +6,7 @@
   <meta name="author" content="Dr. Andreas Fischer">
   <meta name="copyright" content="Dr. Andreas Fischer">
   <meta name="reply-to" content="andreasfischer1985@web.de">
-  <title>MyAgentHarness v1.26</title>
+  <title>MyAgentHarness v1.27</title>
   <!-- PDF.js für Client-seitiges PDF-Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
@@ -14,6 +14,8 @@
   </script>
   <!-- Marked.js über CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+  <!-- JSZip für ZIP-Export der virtuellen Dateien -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     :root {
       --bg-primary: #1e1e2e;
@@ -40,14 +42,78 @@
     }
 
     #sidebar {
-      width: 440px;
+      width: 360px;
+      min-width: 220px;
+      max-width: 75vw;
       background-color: var(--bg-secondary);
-      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      padding: 15px;
-      gap: 15px;
+      padding: 10px;
+      gap: 9px;
       overflow-y: auto;
+      font-size: 0.78rem;
+      flex-shrink: 0;
+    }
+
+    body.sidebar-collapsed #sidebar {
+      display: none;
+    }
+
+    #sidebar-resizer {
+      width: 10px;
+      background-color: var(--bg-primary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: col-resize;
+      user-select: none;
+      flex-shrink: 0;
+      position: relative;
+      transition: background-color 0.15s;
+    }
+
+    #sidebar-resizer:hover,
+    #sidebar-resizer.resizing {
+      background-color: rgba(137, 180, 250, 0.14);
+    }
+
+    #sidebar-resizer::before {
+      content: '';
+      width: 2px;
+      height: 36px;
+      border-radius: 2px;
+      background-color: var(--border);
+    }
+
+    #sidebar-resizer:hover::before,
+    #sidebar-resizer.resizing::before {
+      background-color: var(--accent);
+    }
+
+    #sidebar-toggle-btn {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 18px;
+      height: 22px;
+      padding: 0;
+      font-size: 0.68rem;
+      line-height: 1;
+      border-radius: 3px;
+      background: var(--bg-card);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    #sidebar-toggle-btn:hover {
+      background: var(--border);
+      color: var(--accent-hover);
     }
 
     #main-chat {
@@ -79,35 +145,57 @@
       display: inline-block;
     }
 
-    /* Style für klappbare Sidebar-Sektionen */
+    /* Style für klappbare Sidebar-Sektionen (kompakt) */
     details.section {
       background: var(--bg-card);
-      padding: 12px;
-      border-radius: 6px;
+      padding: 8px 9px;
+      border-radius: 5px;
       border: 1px solid var(--border);
     }
     details.section summary {
-      font-size: 1.1rem;
+      font-size: 0.85rem;
       color: var(--accent);
       cursor: pointer;
       user-select: none;
       font-weight: bold;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 4px;
-      margin-bottom: 8px;
+      padding-bottom: 3px;
+      margin-bottom: 6px;
       list-style: none;
+    }
+    details.section:not([open]) summary {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
     }
     details.section summary::-webkit-details-marker {
       display: none;
     }
     details.section summary::after {
       content: ' ▼';
-      font-size: 0.8rem;
+      font-size: 0.68rem;
       float: right;
       color: var(--text-muted);
     }
     details.section[open] summary::after {
       content: ' ▲';
+    }
+
+    #sidebar label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+      line-height: 1.25;
+    }
+
+    #sidebar input[type="checkbox"] {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      cursor: pointer;
     }
 
     label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
@@ -121,19 +209,47 @@
       font-family: monospace;
       font-size: 0.85rem;
     }
+
+    #sidebar input[type="text"],
+    #sidebar input[type="number"],
+    #sidebar textarea {
+      padding: 5px 6px;
+      font-size: 0.74rem;
+      border-radius: 3px;
+    }
+
     textarea { resize: vertical; }
 
-    .file-upload-btn { border: 1px dashed var(--border); border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; background: var(--bg-primary); }
+    .file-upload-btn {
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg-primary);
+    }
     .file-upload-btn:hover { border-color: var(--accent); }
     
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; }
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 5px; vertical-align: middle; }
 
-    .doc-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); margin-bottom: 6px; font-size: 0.85rem; }
-    .doc-item-left { display: flex; align-items: center; gap: 8px; overflow: hidden; }
-    .doc-item-actions { display: flex; gap: 4px; align-items: center; }
+    .doc-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-primary);
+      padding: 4px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      margin-bottom: 4px;
+      font-size: 0.73rem;
+      gap: 4px;
+    }
+    .doc-item-left { display: flex; align-items: center; gap: 5px; overflow: hidden; min-width: 0; }
+    .doc-item-left span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-item-actions { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
     
-    .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 0.9rem; padding: 2px 4px; border-radius: 3px; color: var(--text-main); }
+    .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 0.78rem; padding: 1px 3px; border-radius: 3px; color: var(--text-main); }
     .btn-icon:hover { background: var(--border); }
     .btn-del { color: var(--danger); font-weight: bold; }
 
@@ -237,7 +353,13 @@
     button:hover { background: var(--accent-hover); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .btn-row { display: flex; gap: 8px; margin-top: 6px; }
+    #sidebar button {
+      padding: 4px 8px;
+      font-size: 0.72rem;
+      border-radius: 3px;
+    }
+
+    .btn-row { display: flex; gap: 5px; margin-top: 4px; }
     .btn-secondary { background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border); }
     .btn-secondary:hover { border-color: var(--accent); background: var(--border); }
 
@@ -312,16 +434,16 @@
       <label for="endpoint">Endpoint URL:</label>
       <input type="text" id="endpoint" value="http://127.0.0.1:1234/v1/chat/completions" onchange="updateMaxContextFromEndpoint(); saveStateToLocalStorage();">
 
-      <label for="model-name" style="margin-top: 8px;">Modell:</label>
+      <label for="model-name" style="margin-top: 5px;">Modell:</label>
       <input type="text" id="model-name" list="models-list" value="gemma-4-12b-it" onchange="updateMaxContextFromEndpoint(); saveStateToLocalStorage();" onblur="updateMaxContextFromEndpoint();">
       <datalist id="models-list"></datalist>
       
-      <label for="max-context" style="margin-top: 8px;">Max. Kontext (Tokens):</label>
+      <label for="max-context" style="margin-top: 5px;">Max. Kontext (Tokens):</label>
       <input type="number" id="max-context" value="4096" onchange="updateContextUsageDisplay(); saveStateToLocalStorage();">
       
-      <div style="margin-top: 10px;" id="context-usage-container">
-        <div id="context-usage-text" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4px;">Auslastung: 0 / 4096 Tokens (0%)</div>
-        <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; height: 8px; overflow: hidden;">
+      <div style="margin-top: 6px;" id="context-usage-container">
+        <div id="context-usage-text" style="color: var(--text-muted); font-size: 0.72rem; margin-bottom: 3px;">Auslastung: 0 / 4096 Tokens (0%)</div>
+        <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 3px; height: 6px; overflow: hidden;">
           <div id="context-usage-bar" style="background: var(--success); width: 0%; height: 100%; transition: width 0.3s;"></div>
         </div>
       </div>
@@ -340,24 +462,28 @@
 
     <details class="section" open style="display: flex; flex-direction: column;">
       <summary>AGENT.md</summary>
-      <textarea id="agent-md" style="flex: 1; min-height: 90px; margin-top: 8px;" oninput="syncAgentMdToDoc(); updateContextUsageDisplay(); saveStateToLocalStorage();">Du bist ein hilfsbereiter KI-Assistent mit Zugriff auf virtuelle Dokumente, Web-, Code- und Bildgenerierungs-Tools. Nutze search_web, wenn du etwas nicht weißt. Nutze read_doc und write_doc, um Dateien zu lesen und zu schreiben.</textarea>
+      <textarea id="agent-md" style="flex: 1; min-height: 70px; margin-top: 4px;" oninput="syncAgentMdToDoc(); updateContextUsageDisplay(); saveStateToLocalStorage();">Du bist ein hilfsbereiter KI-Assistent mit Zugriff auf virtuelle Dokumente, Web-, Code- und Bildgenerierungs-Tools. Nutze search_web, wenn du etwas nicht weißt. Nutze read_doc und write_doc, um Dateien zu lesen und zu schreiben.</textarea>
     </details>
 
     <!-- Virtuelle Dokumente Sektion -->
     <details class="section" open>
       <summary>Virtuelle Dateien</summary>
       <input type="file" id="fileInput" accept=".txt,.pdf,.png,.jpg,.jpeg,.md" multiple style="display: none;">
-      <div class="file-upload-btn" id="upload-btn-container" onclick="document.getElementById('fileInput').click()" style="margin-top: 8px;">
-        <span style="font-size: 0.85rem; color: var(--text-muted);">+ Dokumente/Bilder hochladen</span>
+      <div class="file-upload-btn" id="upload-btn-container" onclick="document.getElementById('fileInput').click()" style="margin-top: 4px;">
+        <span style="font-size: 0.73rem; color: var(--text-muted);">+ Dokumente/Bilder hochladen</span>
       </div>
-      <div id="docList" style="margin-top: 8px;"></div>
+      <div id="docList" style="margin-top: 6px;"></div>
+      <div class="btn-row" style="margin-top: 6px;">
+        <button type="button" class="btn-secondary" id="download-all-docs-btn" onclick="downloadAllDocsAsZip()" style="width: 100%;">Download (ZIP)</button>
+      </div>
     </details>
 
     <details class="section" open>
       <summary>Verfügbare Tools</summary>
-      <div class="checkbox-group" id="tools-container" style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+      <div class="checkbox-group" id="tools-container" style="margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
         <label><input type="checkbox" id="tool-read_doc" checked onchange="saveStateToLocalStorage()"> read_doc (Virtuelle Dateien)</label>
         <label><input type="checkbox" id="tool-write_doc" checked onchange="saveStateToLocalStorage()"> write_doc (Virtuelle Dateien)</label>
+        <label><input type="checkbox" id="tool-gsub_doc" checked onchange="saveStateToLocalStorage()"> gsub_doc (Regex-Ersetzung)</label>
         <label><input type="checkbox" id="tool-search_doc" checked onchange="saveStateToLocalStorage()"> search_doc (Virtuelle Dateien)</label>
         <label><input type="checkbox" id="tool-search_web" checked onchange="saveStateToLocalStorage()"> search_web (DuckDuckGo)</label>
         <label><input type="checkbox" id="tool-fetch_url" checked onchange="saveStateToLocalStorage()"> fetch_url</label>
@@ -372,10 +498,15 @@
 
     <details class="section" open>
       <summary>Sicherheit</summary>
-      <div class="checkbox-group" style="margin-top: 8px;">
+      <div class="checkbox-group" style="margin-top: 4px;">
         <label><input type="checkbox" id="require-approval" checked onchange="saveStateToLocalStorage()"> Tool-Calls manuell freigeben</label>
       </div>
     </details>
+  </div>
+
+  <!-- Horizontaler Resize-Griff + Ein-/Ausklapp-Button -->
+  <div id="sidebar-resizer" title="Ziehen zum Ändern der Breite">
+    <button type="button" id="sidebar-toggle-btn" onclick="toggleSidebarCollapsed()" title="Seitenleiste ein-/ausklappen">◀</button>
   </div>
 
   <!-- Chat Panel -->
@@ -406,10 +537,83 @@
     let isCancelled = false;
     let chatHistorySnapshotBeforeSend = null;
 
+    let sidebarWidth = 360;
+    let sidebarCollapsed = false;
+
     const DEFAULT_AGENT_MD = "Du bist ein hilfsbereiter KI-Assistent mit Zugriff auf virtuelle Dokumente, Web-, Code- und Bildgenerierungs-Tools. Nutze search_web, wenn du etwas nicht weißt. Nutze read_doc und write_doc, um Dateien zu lesen und zu schreiben.";
 
+    function applySidebarLayout() {
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebar-toggle-btn');
+      if (sidebar) {
+        sidebar.style.width = `${sidebarWidth}px`;
+      }
+      if (sidebarCollapsed) {
+        document.body.classList.add('sidebar-collapsed');
+        if (toggleBtn) {
+          toggleBtn.textContent = '▶';
+          toggleBtn.title = 'Seitenleiste ausklappen';
+        }
+      } else {
+        document.body.classList.remove('sidebar-collapsed');
+        if (toggleBtn) {
+          toggleBtn.textContent = '◀';
+          toggleBtn.title = 'Seitenleiste einklappen';
+        }
+      }
+    }
+
+    function toggleSidebarCollapsed() {
+      sidebarCollapsed = !sidebarCollapsed;
+      applySidebarLayout();
+      saveStateToLocalStorage();
+    }
+
+    function initSidebarResizer() {
+      const resizer = document.getElementById('sidebar-resizer');
+      const toggleBtn = document.getElementById('sidebar-toggle-btn');
+      if (!resizer) return;
+
+      let isDragging = false;
+      let startX = 0;
+      let startWidth = sidebarWidth;
+
+      resizer.addEventListener('mousedown', (e) => {
+        if (toggleBtn && (e.target === toggleBtn || toggleBtn.contains(e.target))) return;
+        e.preventDefault();
+        if (sidebarCollapsed) {
+          sidebarCollapsed = false;
+          applySidebarLayout();
+        }
+        isDragging = true;
+        startX = e.clientX;
+        startWidth = document.getElementById('sidebar').getBoundingClientRect().width || sidebarWidth;
+        resizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        const minW = 220;
+        const maxW = Math.max(300, Math.floor(window.innerWidth * 0.75));
+        sidebarWidth = Math.max(minW, Math.min(maxW, Math.round(startWidth + deltaX)));
+        document.getElementById('sidebar').style.width = `${sidebarWidth}px`;
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        resizer.classList.remove('resizing');
+        document.body.style.cursor = '';
+        saveStateToLocalStorage();
+      });
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
+      initSidebarResizer();
       loadStateFromLocalStorage();
+      applySidebarLayout();
       if (!document.getElementById('max-context').value) {
         await updateMaxContextFromEndpoint();
       }
@@ -433,6 +637,8 @@
         maxContext: document.getElementById('max-context').value,
         agentMd: document.getElementById('agent-md').value,
         requireApproval: document.getElementById('require-approval').checked,
+        sidebarWidth,
+        sidebarCollapsed,
         uploadedDocs,
         chatHistory,
         toolCache: Array.from(toolCache.entries())
@@ -450,6 +656,8 @@
         if (state.maxContext) document.getElementById('max-context').value = state.maxContext;
         if (state.agentMd) document.getElementById('agent-md').value = state.agentMd;
         if (state.requireApproval !== undefined) document.getElementById('require-approval').checked = state.requireApproval;
+        if (typeof state.sidebarWidth === 'number' && !Number.isNaN(state.sidebarWidth)) sidebarWidth = state.sidebarWidth;
+        if (typeof state.sidebarCollapsed === 'boolean') sidebarCollapsed = state.sidebarCollapsed;
         if (state.toolCache) toolCache = new Map(state.toolCache);
         
         if (state.uploadedDocs) {
@@ -635,6 +843,81 @@
       ensureAgentMdDocExists();
       updateContextUsageDisplay();
       saveStateToLocalStorage();
+    }
+
+    async function downloadAllDocsAsZip() {
+      const entries = Object.entries(uploadedDocs);
+      if (entries.length === 0) {
+        alert("Keine virtuellen Dateien zum Herunterladen vorhanden.");
+        return;
+      }
+      if (typeof JSZip === 'undefined') {
+        alert("JSZip konnte nicht geladen werden. Bitte Internetverbindung prüfen.");
+        return;
+      }
+
+      const btn = document.getElementById('download-all-docs-btn');
+      const origText = btn ? btn.textContent : 'Download (ZIP)';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Erstelle ZIP...';
+      }
+
+      try {
+        const zip = new JSZip();
+        const folder = zip.folder('virtuelle_dateien');
+        const usedNames = new Set();
+
+        const makeUniqueFileName = (rawName, fallbackExt = '.txt') => {
+          let safe = (rawName || 'dokument').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'dokument';
+          if (!/\.[a-zA-Z0-9]{1,8}$/.test(safe)) {
+            safe += fallbackExt;
+          }
+          let candidate = safe;
+          let counter = 2;
+          while (usedNames.has(candidate.toLowerCase())) {
+            const dotIdx = safe.lastIndexOf('.');
+            if (dotIdx > 0) {
+              candidate = `${safe.slice(0, dotIdx)}_${counter}${safe.slice(dotIdx)}`;
+            } else {
+              candidate = `${safe}_${counter}`;
+            }
+            counter++;
+          }
+          usedNames.add(candidate.toLowerCase());
+          return candidate;
+        };
+
+        for (const [id, doc] of entries) {
+          if (doc.isImage && typeof doc.content === 'string' && doc.content.startsWith('data:')) {
+            const match = doc.content.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.*)$/);
+            if (match) {
+              const extMap = { jpeg: '.jpg', jpg: '.jpg', png: '.png', webp: '.webp', gif: '.gif' };
+              const ext = extMap[match[1].toLowerCase()] || `.${match[1].toLowerCase()}`;
+              const fileName = makeUniqueFileName(doc.name || id, ext);
+              folder.file(fileName, match[2], { base64: true });
+              continue;
+            }
+          }
+          const fileName = makeUniqueFileName(doc.name || id, '.txt');
+          folder.file(fileName, doc.content || '');
+        }
+
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `virtuelle-dateien-${Date.now()}.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("Fehler beim Erstellen der ZIP-Datei: " + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
+      }
     }
 
     async function updateMaxContextFromEndpoint() {
@@ -957,7 +1240,7 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
 
       const uploadContainer = document.getElementById('upload-btn-container');
       const originalHTML = uploadContainer.innerHTML;
-      uploadContainer.innerHTML = `<span class="spinner"></span> <span style="font-size: 0.85rem; color: var(--text-muted);">Dokumente werden eingelesen...</span>`;
+      uploadContainer.innerHTML = `<span class="spinner"></span> <span style="font-size: 0.73rem; color: var(--text-muted);">Dokumente werden eingelesen...</span>`;
       uploadContainer.style.pointerEvents = 'none';
 
       try {
@@ -1271,6 +1554,80 @@ Antworte AUSSCHLIESSLICH im JSON-Format: {"title": "...", "description": "..."}`
       updateContextUsageDisplay();
       saveStateToLocalStorage();
       return `Erfolg: Datei '${normalizedFileName}' (ID: ${existingDocId}) wurde erfolgreich ${isAppend ? 'ergänzt (append)' : 'geschrieben'} (Seitenanzahl: ${finalPageCount}).`;
+    }
+
+    function perform_gsub_doc(args = {}) {
+      const params = typeof args === 'string' ? {} : (args || {});
+      const docIdentifier = params.document_id || params.id || params.name || params.filename;
+      if (!docIdentifier) {
+        return "Fehler: Kein Dokument ('document_id' / 'name') angegeben.";
+      }
+
+      const rawPattern = params.pattern !== undefined ? String(params.pattern) : (params.regex !== undefined ? String(params.regex) : "");
+      if (!rawPattern) {
+        return "Fehler: Kein regulärer Ausdruck ('pattern') angegeben.";
+      }
+
+      const replacement = params.replacement !== undefined ? String(params.replacement) : (params.replace !== undefined ? String(params.replace) : "");
+      let flags = params.flags !== undefined ? String(params.flags).trim() : "g";
+      if (!flags.includes("g")) {
+        flags += "g";
+      }
+
+      let targetId = null;
+      let targetDoc = null;
+      for (const [id, doc] of Object.entries(uploadedDocs)) {
+        if (id === docIdentifier || doc.name === docIdentifier || doc.name.toLowerCase() === String(docIdentifier).toLowerCase()) {
+          targetId = id;
+          targetDoc = doc;
+          break;
+        }
+      }
+
+      if (!targetDoc) {
+        return `Fehler: Dokument '${docIdentifier}' nicht gefunden. Verfügbare Dokumente: ` +
+          Object.values(uploadedDocs).map(d => `${d.name} (${d.id})`).join(', ');
+      }
+
+      if (targetDoc.isImage) {
+        return `Fehler: Dokument '${targetDoc.name}' ist eine Bilddatei und unterstützt keine Regex-Ersetzung.`;
+      }
+
+      let regex;
+      try {
+        regex = new RegExp(rawPattern, flags);
+      } catch (err) {
+        return `Fehler: Ungültiger regulärer Ausdruck '/${rawPattern}/${flags}': ${err.message}`;
+      }
+
+      const originalContent = targetDoc.content || "";
+      const matches = originalContent.match(regex);
+      const matchCount = matches ? matches.length : 0;
+      const updatedContent = originalContent.replace(regex, replacement);
+
+      targetDoc.content = updatedContent;
+      if (typeof params.title === "string" && params.title.trim()) {
+        targetDoc.title = params.title.trim();
+      }
+      if (typeof params.description === "string" && params.description.trim()) {
+        targetDoc.description = params.description.trim();
+      }
+
+      if (targetDoc.name === 'AGENT.md') {
+        document.getElementById('agent-md').value = updatedContent;
+      }
+
+      if (currentModalDocId === targetId) {
+        const contentField = document.getElementById('modal-input-content');
+        if (contentField && !contentField.disabled) {
+          contentField.value = updatedContent;
+        }
+      }
+
+      updateContextUsageDisplay();
+      saveStateToLocalStorage();
+
+      return `Erfolg: ${matchCount} Treffer in '${targetDoc.name}' (${targetId}) mit /${rawPattern}/${flags} ersetzt.`;
     }
 
     async function perform_search_web(query) {
@@ -2177,7 +2534,6 @@ async function perform_run_content_analysis(args = {}, context = {}) {
     return { ok: false, error: msg, markdown: `Fehler: ${msg}` };
   }
 
-  // 1. Erweiterung: Dry-Run
   if (dryRun) {
     const totalChars = built.units.reduce((sum, u) => sum + (u.text || "").length, 0);
     const totalWords = built.units.reduce(
@@ -2320,7 +2676,6 @@ async function perform_run_content_analysis(args = {}, context = {}) {
     return itemResult;
   });
 
-  // 3. Erweiterung: Übergreifende Synthese
   let synthesisText = "";
   let synthesisMeta = null;
 
@@ -2413,6 +2768,23 @@ async function perform_run_content_analysis(args = {}, context = {}) {
                 page_count: { type: "integer", description: "Seitenzahl des Dokuments (Standard: 1)." }
               },
               required: ["name", "content"]
+            }
+          }
+        },
+        gsub_doc: {
+          type: "function",
+          function: {
+            name: "gsub_doc",
+            description: "Ersetzt Textstellen im Inhalt einer virtuellen Datei mithilfe eines regulären Ausdrucks.",
+            parameters: {
+              type: "object",
+              properties: {
+                document_id: { type: "string", description: "Die ID oder der Dateiname des zu bearbeitenden Dokuments." },
+                pattern: { type: "string", description: "Regulärer Ausdruck (ohne umgebende Schrägstriche), z. B. '\\balt\\b'." },
+                replacement: { type: "string", description: "Ersatzzeichenkette (unterstützt Backreferences wie $1, $&)." },
+                flags: { type: "string", description: "Optionale RegExp-Flags wie 'g', 'gi', 'gm', 'gms' (Standard: 'g')." }
+              },
+              required: ["document_id", "pattern", "replacement"]
             }
           }
         },
@@ -2763,6 +3135,7 @@ async function perform_run_content_analysis(args = {}, context = {}) {
         switch (name) {
           case 'read_doc': return await perform_read_doc(currentArgs);
           case 'write_doc': return perform_write_doc(currentArgs);
+          case 'gsub_doc': return perform_gsub_doc(currentArgs);
           case 'search_doc': return perform_search_doc(currentArgs);
           case 'search_web': return await perform_search_web(currentArgs.query);
           case 'fetch_url': return await perform_fetch_url(currentArgs.url || currentArgs.query);
